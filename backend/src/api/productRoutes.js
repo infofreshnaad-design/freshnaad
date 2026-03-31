@@ -218,13 +218,25 @@ router.get('/low-stock', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res)
 router.get('/last-purchase-price/:productId', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
     const { productId } = req.params;
-    const lastItem = await prisma.purchaseItem.findFirst({
+    // Fetch last few purchase items to find the latest date in JS (safer than nested orderBy in some envs)
+    const items = await prisma.purchaseItem.findMany({
       where: { productId },
-      orderBy: { purchase: { date: 'desc' } },
-      select: { price: true, purchase: { select: { date: true, supplierName: true } } }
+      take: 10,
+      include: { 
+        purchase: { 
+          select: { date: true, supplierName: true } 
+        } 
+      },
+      orderBy: { id: 'desc' } // Secondary sort by creation
     });
-    res.json(lastItem || { price: 0 });
+    
+    if (!items || items.length === 0) return res.json({ price: 0 });
+
+    // Sort by actual purchase date
+    const latest = items.sort((a, b) => new Date(b.purchase.date).getTime() - new Date(a.purchase.date).getTime())[0];
+    res.json(latest || { price: 0 });
   } catch (error) {
+    console.error('Last Price Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

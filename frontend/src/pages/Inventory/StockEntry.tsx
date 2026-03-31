@@ -62,14 +62,20 @@ const StockEntry = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const [prodRes, supRes, lowStockRes] = await Promise.all([
+        const [prodRes, supRes] = await Promise.all([
           api.get('/products'),
-          api.get('/suppliers'),
-          api.get('/products/low-stock')
+          api.get('/suppliers')
         ]);
         setProducts(prodRes.data);
         setSuppliers(supRes.data);
-        setLowStockItems(lowStockRes.data);
+
+        // Fetch non-critical suggestions in a separate, safer block
+        try {
+            const lowStockRes = await api.get('/products/low-stock');
+            setLowStockItems(lowStockRes.data);
+        } catch (e) {
+            console.warn('Low Stock Suggestions failed:', e);
+        }
 
         // Handle Mode Selection
         if (location.state?.mode === 'PO') {

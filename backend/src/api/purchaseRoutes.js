@@ -3,6 +3,16 @@ const router = express.Router();
 const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 
+// Get count of purchases
+router.get('/count', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const count = await prisma.purchase.count();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get unique supplier names for suggestions
 router.get('/suppliers/suggestions', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
