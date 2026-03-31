@@ -28,26 +28,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get supplier by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const supplier = await prisma.supplier.findUnique({
-      where: { id },
-      include: {
-        purchases: {
-          orderBy: { date: 'desc' },
-          take: 5
-        }
-      }
-    });
-    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-    res.json(supplier);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Create supplier
 router.post('/', async (req, res) => {
   try {
@@ -68,68 +48,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update supplier
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, phone, email, gstNo, address, openingBalance, is_active } = req.body;
-    const supplier = await prisma.supplier.update({
-      where: { id },
-      data: {
-        name,
-        phone: phone || null,
-        email: email || null,
-        gstNo: gstNo || null,
-        address: address || null,
-        openingBalance: Number(openingBalance) || 0,
-        is_active
-      }
-    });
-    res.json(supplier);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Toggle inactive status
-router.patch('/:id/status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { is_active } = req.body;
-    
-    if (is_active === undefined) return res.status(400).json({ message: 'is_active is required' });
-    
-    const supplier = await prisma.supplier.update({
-      where: { id },
-      data: { is_active }
-    });
-    res.json(supplier);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete supplier (soft delete or hard delete if no relations)
-router.delete('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Check for existing purchases
-    const purchasesCount = await prisma.purchase.count({ where: { supplierId: id } });
-    if (purchasesCount > 0) {
-       return res.status(400).json({ error: 'Cannot delete supplier with existing purchases. Please disable them instead.' });
-    }
-
-    await prisma.supplier.delete({
-      where: { id }
-    });
-    res.json({ message: 'Supplier deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get supplier ledger
+// GET /ledger
 router.get('/:id/ledger', async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,7 +140,7 @@ router.get('/:id/ledger', async (req, res) => {
   }
 });
 
-// Get supplier purchase history
+// GET /history
 router.get('/:id/history', async (req, res) => {
   try {
     const { id } = req.params;
@@ -235,6 +154,87 @@ router.get('/:id/history', async (req, res) => {
       orderBy: { date: 'desc' }
     });
     res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /:id
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supplier = await prisma.supplier.findUnique({
+      where: { id },
+      include: {
+        purchases: {
+          orderBy: { date: 'desc' },
+          take: 5
+        }
+      }
+    });
+    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    res.json(supplier);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update supplier
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, email, gstNo, address, openingBalance, is_active } = req.body;
+    const supplier = await prisma.supplier.update({
+      where: { id },
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        gstNo: gstNo || null,
+        address: address || null,
+        openingBalance: Number(openingBalance) || 0,
+        is_active
+      }
+    });
+    res.json(supplier);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle inactive status
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    
+    if (is_active === undefined) return res.status(400).json({ message: 'is_active is required' });
+    
+    const supplier = await prisma.supplier.update({
+      where: { id },
+      data: { is_active }
+    });
+    res.json(supplier);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete supplier (soft delete or hard delete if no relations)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check for existing purchases
+    const purchasesCount = await prisma.purchase.count({ where: { supplierId: id } });
+    if (purchasesCount > 0) {
+       return res.status(400).json({ error: 'Cannot delete supplier with existing purchases. Please disable them instead.' });
+    }
+
+    await prisma.supplier.delete({
+      where: { id }
+    });
+    res.json({ message: 'Supplier deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
