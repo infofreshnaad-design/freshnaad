@@ -27,7 +27,10 @@ const LoginPage = () => {
       if (err.response?.data?.type === 'DEVICE_UNREGISTERED') {
         setShowDeviceReg(true);
       } else {
-        const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Connection failed.';
+        let errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Connection failed.';
+        if (typeof errorMsg === 'object') {
+            errorMsg = errorMsg.message || JSON.stringify(errorMsg);
+        }
         setError(errorMsg);
       }
     } finally {
