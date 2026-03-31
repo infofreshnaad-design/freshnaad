@@ -23,7 +23,7 @@ try {
 
     console.log('\n--- ✅ DATABASE INITIALIZED SUCCESSFULLY! ---');
     console.log('You can now log in at your Vercel URL with:');
-    console.log('User: admin@freshnaad.com');
+    console.log('User: admin');
     console.log('Pass: admin123');
 
 } catch (error) {

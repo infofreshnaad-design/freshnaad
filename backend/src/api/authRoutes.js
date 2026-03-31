@@ -9,20 +9,20 @@ router.post('/login', async (req, res) => {
   
   try {
     let user = await prisma.user.findUnique({ 
-      where: { email: username },
+      where: { username },
       include: { license: true }
     });
 
     // AUTO-BOOTSTRAP: If database is empty, create a default admin
     if (!user) {
         const userCount = await prisma.user.count();
-        if (userCount === 0 && username === 'admin@freshnaad.com') {
+        if (userCount === 0 && username === 'admin') {
             console.log('Empty Database Detected: Bootstrapping default admin...');
             const hashedPassword = await bcrypt.hash('admin123', 10);
             user = await prisma.user.create({
                 data: {
                     name: 'Default Admin',
-                    email: 'admin@freshnaad.com',
+                    username: 'admin',
                     password: hashedPassword,
                     role: 'ADMIN'
                 },
