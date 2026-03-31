@@ -62,31 +62,28 @@ const StockEntry = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const [prodRes, supRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/suppliers')
-        ]);
+        // Fetch core data sequentially to reduce parallel DB connection pressure (avoids 500s on Vercel)
+        const prodRes = await api.get('/products');
         setProducts(prodRes.data);
+        
+        const supRes = await api.get('/suppliers');
         setSuppliers(supRes.data);
 
-        // Fetch non-critical suggestions in a separate, safer block
-        try {
-            const lowStockRes = await api.get('/products/low-stock');
-            setLowStockItems(lowStockRes.data);
-        } catch (e) {
-            console.warn('Low Stock Suggestions failed:', e);
-        }
+        // Fetch non-critical suggestions silently
+        api.get('/products/low-stock')
+           .then(res => setLowStockItems(res.data))
+           .catch(e => console.warn('Low stock fetch delayed or failed:', e));
 
         // Handle Mode Selection
         if (location.state?.mode === 'PO') {
             setMode('PO');
-            setBillNo(`PO-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`); // Prefilled or count
+            setBillNo(`PO-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`);
         } else {
             const countRes = await api.get('/purchases/count').catch(() => ({ data: { count: 0 } }));
             setBillNo(`PUR-${1001 + (countRes.data.count || 0)}`);
         }
 
-        // Handle PO Conversion auto-population (Converting PO -> Bill)
+        // Handle PO Conversion auto-population
         if (location.state?.po) {
           const po = location.state.po;
           setSelectedSupplierId(po.supplierId);
@@ -102,7 +99,7 @@ const StockEntry = () => {
             total: item.total
           }));
           setCart(poItems);
-          setMode('BILL'); // When converting PO, result is always a BILL
+          setMode('BILL');
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
