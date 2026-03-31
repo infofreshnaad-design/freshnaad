@@ -44,8 +44,15 @@ router.get('/:id', async (req, res) => {
 // Create customer
 router.post('/', async (req, res) => {
   try {
+    const { name, phone, email, creditBalance, loyaltyPoints } = req.body;
     const customer = await prisma.customer.create({
-      data: req.body
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        creditBalance: Number(creditBalance) || 0,
+        loyaltyPoints: Number(loyaltyPoints) || 0
+      }
     });
     res.json(customer);
   } catch (error) {
@@ -57,9 +64,17 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { name, phone, email, creditBalance, loyaltyPoints, is_active } = req.body;
     const customer = await prisma.customer.update({
       where: { id },
-      data: req.body
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        creditBalance: Number(creditBalance) || 0,
+        loyaltyPoints: Number(loyaltyPoints) || 0,
+        is_active
+      }
     });
     res.json(customer);
   } catch (error) {

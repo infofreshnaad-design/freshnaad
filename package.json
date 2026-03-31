@@ -6,10 +6,10 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "npx prisma generate --schema=database/schema/schema.prisma && cd frontend && npx vite build && cd .. && mkdir -p dist && cp -R frontend/dist/* dist/",
+    "build": "npx prisma generate --schema=backend/prisma/schema.prisma && cd frontend && npx vite build && cd .. && mkdir -p dist && cp -R frontend/dist/* dist/",
     "start": "node api/index.js",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
-    "postinstall": "npx prisma generate --schema=database/schema/schema.prisma"
+    "postinstall": "npx prisma generate --schema=backend/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",

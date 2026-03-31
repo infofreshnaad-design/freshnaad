@@ -23,6 +23,7 @@ router.get('/', async (req, res) => {
     });
     res.json(suppliers);
   } catch (error) {
+    console.error('Error in GET /api/suppliers:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -50,8 +51,16 @@ router.get('/:id', async (req, res) => {
 // Create supplier
 router.post('/', async (req, res) => {
   try {
+    const { name, phone, email, gstNo, address, openingBalance } = req.body;
     const supplier = await prisma.supplier.create({
-      data: req.body
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        gstNo: gstNo || null,
+        address: address || null,
+        openingBalance: Number(openingBalance) || 0
+      }
     });
     res.json(supplier);
   } catch (error) {
@@ -63,9 +72,18 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { name, phone, email, gstNo, address, openingBalance, is_active } = req.body;
     const supplier = await prisma.supplier.update({
       where: { id },
-      data: req.body
+      data: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        gstNo: gstNo || null,
+        address: address || null,
+        openingBalance: Number(openingBalance) || 0,
+        is_active
+      }
     });
     res.json(supplier);
   } catch (error) {
