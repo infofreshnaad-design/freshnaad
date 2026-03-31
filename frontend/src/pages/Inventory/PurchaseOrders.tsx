@@ -8,12 +8,17 @@ const PurchaseOrders = () => {
   const [pos, setPos] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('PENDING');
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   const fetchPOs = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/purchase-orders?status=${filter}`);
-      setPos(res.data);
+      const [poRes, lowRes] = await Promise.all([
+         api.get(`/purchase-orders?status=${filter}`),
+         api.get('/products/low-stock')
+      ]);
+      setPos(poRes.data);
+      setLowStockCount(lowRes.data.length);
     } catch (error) {
       console.error('Error fetching POs:', error);
     } finally {
@@ -70,6 +75,28 @@ const PurchaseOrders = () => {
              </button>
           </div>
         </header>
+
+        {lowStockCount > 0 && (
+            <div className="mb-10 bg-indigo-600 rounded-[2.5rem] p-8 shadow-2xl shadow-indigo-500/20 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Smart Suggestion</span>
+                    </div>
+                    <h2 className="text-2xl font-black mb-1">Restock Opportunity Detected</h2>
+                    <p className="text-indigo-100 font-medium">There are <span className="font-black text-white">{lowStockCount} items</span> below critical stock levels. Should we draft an order?</p>
+                </div>
+                <button 
+                    onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })}
+                    className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 z-10"
+                >
+                    Create Urgent Order
+                </button>
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                    <ShoppingCart size={200} strokeWidth={1} />
+                </div>
+            </div>
+        )}
 
         {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-400">

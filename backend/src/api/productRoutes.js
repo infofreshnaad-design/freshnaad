@@ -196,4 +196,37 @@ router.get('/barcode/:barcode', async (req, res) => {
   }
 });
 
+// Get low stock products
+router.get('/low-stock', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 10;
+    const products = await prisma.product.findMany({
+      where: {
+        stockQuantity: { lt: threshold },
+        is_active: true
+      },
+      include: { category: true },
+      orderBy: { stockQuantity: 'asc' }
+    });
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get last purchase price for a product
+router.get('/last-purchase-price/:productId', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const lastItem = await prisma.purchaseItem.findFirst({
+      where: { productId },
+      orderBy: { purchase: { date: 'desc' } },
+      select: { price: true, purchase: { select: { date: true, supplierName: true } } }
+    });
+    res.json(lastItem || { price: 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
