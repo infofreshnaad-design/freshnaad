@@ -6,7 +6,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "npx prisma generate --schema=backend/prisma/schema.prisma && cd frontend && npx vite build && cd .. && mkdir -p dist && cp -R frontend/dist/* dist/",
+    "build": "npx prisma db push --schema=backend/prisma/schema.prisma --accept-data-loss && npx prisma generate --schema=backend/prisma/schema.prisma && cd frontend && npx vite build && cd .. && mkdir -p dist && cp -R frontend/dist/* dist/",
     "start": "node api/index.js",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "postinstall": "npx prisma generate --schema=backend/prisma/schema.prisma"
