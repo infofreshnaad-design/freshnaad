@@ -35,6 +35,7 @@ const StockEntry = () => {
   const [supplierName, setSupplierName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'BILL' | 'PO'>('BILL');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [billNo, setBillNo] = useState('');
   const [step, setStep] = useState<'main' | 'add-item' | 'finalize'>('main');
@@ -58,17 +59,23 @@ const StockEntry = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const [prodRes, supRes, countRes] = await Promise.all([
+        const [prodRes, supRes] = await Promise.all([
           api.get('/products'),
-          api.get('/suppliers'),
-          api.get('/purchases/count').catch(() => ({ data: { count: 0 } }))
+          api.get('/suppliers')
         ]);
         setProducts(prodRes.data);
         setSuppliers(supRes.data);
-        const count = countRes.data.count || 0;
-        setBillNo(`PUR-${1001 + count}`);
 
-        // Handle PO Conversion auto-population
+        // Handle Mode Selection
+        if (location.state?.mode === 'PO') {
+            setMode('PO');
+            setBillNo(`PO-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`); // Prefilled or count
+        } else {
+            const countRes = await api.get('/purchases/count').catch(() => ({ data: { count: 0 } }));
+            setBillNo(`PUR-${1001 + (countRes.data.count || 0)}`);
+        }
+
+        // Handle PO Conversion auto-population (Converting PO -> Bill)
         if (location.state?.po) {
           const po = location.state.po;
           setSelectedSupplierId(po.supplierId);
@@ -84,6 +91,7 @@ const StockEntry = () => {
             total: item.total
           }));
           setCart(poItems);
+          setMode('BILL'); // When converting PO, result is always a BILL
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -93,6 +101,12 @@ const StockEntry = () => {
   }, [location.state]);
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
+  // Auto-sync supplier ID when typing (if exact match found)
+  useEffect(() => {
+      const match = suppliers.find(s => s.name.toLowerCase() === supplierName.toLowerCase());
+      if (match) setSelectedSupplierId(match.id);
+  }, [supplierName, suppliers]);
 
   const handleSelectItem = (p: Product) => {
     setWorkingItem({
@@ -129,34 +143,53 @@ const StockEntry = () => {
     setLoading(true);
     try {
       const finalPaid = isPaid ? (parseFloat(paidAmount) || totalAmount) : 0;
-      const purchaseData = {
-        supplierId: selectedSupplierId,
-        supplierName,
-        purchaseItems: cart,
-        subtotal: totalAmount,
-        totalDiscount: 0,
-        taxTotal: 0,
-        grandTotal: totalAmount,
-        amountPaid: finalPaid,
-        balanceDue: totalAmount - finalPaid,
-        paymentStatus: finalPaid === totalAmount ? 'PAID' : finalPaid > 0 ? 'PARTIAL' : 'PENDING',
-        paymentMode: 'CASH',
-        date: purchaseDate
-      };
-
-      await api.post('/purchases', purchaseData);
       
-      // If converting from PO, mark it as converted
-      if (location.state?.po?.id) {
-          await api.patch(`/purchase-orders/${location.state.po.id}/status`, { status: 'CONVERTED' });
-      }
+      if (mode === 'PO') {
+          // CREATE PURCHASE ORDER
+          const poData = {
+              supplierId: selectedSupplierId || null,
+              supplierName,
+              poItems: cart,
+              subtotal: totalAmount,
+              totalDiscount: 0,
+              taxTotal: 0,
+              grandTotal: totalAmount,
+              expectedDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString() // Default 7 days
+          };
+          await api.post('/purchase-orders', poData);
+          alert('Purchase Order Created Successfully!');
+      } else {
+          // CREATE DIRECT BILL (EXISTING LOGIC)
+          const purchaseData = {
+            supplierId: selectedSupplierId || null,
+            supplierName,
+            purchaseItems: cart,
+            subtotal: totalAmount,
+            totalDiscount: 0,
+            taxTotal: 0,
+            grandTotal: totalAmount,
+            amountPaid: finalPaid,
+            balanceDue: totalAmount - finalPaid,
+            paymentStatus: finalPaid === totalAmount ? 'PAID' : finalPaid > 0 ? 'PARTIAL' : 'PENDING',
+            paymentMode: 'CASH',
+            date: purchaseDate
+          };
 
-      alert('Stock Updated Successfully!');
+          await api.post('/purchases', purchaseData);
+          
+          // If converting from PO, mark it as converted
+          if (location.state?.po?.id) {
+              await api.patch(`/purchase-orders/${location.state.po.id}/status`, { status: 'CONVERTED' });
+          }
+          alert('Stock Updated Successfully!');
+      }
       
       if (shouldReset) {
         setCart([]);
         setSupplierName('');
+        setSelectedSupplierId('');
         setStep('main');
+        navigate('/inventory'); // Navigate back after success
       } else {
         navigate('/inventory');
       }

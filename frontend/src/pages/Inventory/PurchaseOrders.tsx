@@ -62,7 +62,7 @@ const PurchaseOrders = () => {
                 ))}
              </div>
              <button 
-                onClick={() => navigate('/stock-procurement')} // Direct to stock entry or a dedicated PO creator
+                onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })} 
                 className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
              >
                 <Plus size={20} strokeWidth={3}/>
