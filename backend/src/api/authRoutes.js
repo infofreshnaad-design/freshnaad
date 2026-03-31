@@ -8,26 +8,44 @@ router.post('/login', async (req, res) => {
   const { username, password, deviceId } = req.body;
   
   try {
-    let user = await prisma.user.findUnique({ 
-      where: { username },
-      include: { license: true }
-    });
+    let user;
+    try {
+        user = await prisma.user.findUnique({ 
+            where: { username },
+            include: { license: true }
+        });
 
-    // AUTO-BOOTSTRAP: If database is empty, create a default admin
-    if (!user) {
-        const userCount = await prisma.user.count();
-        if (userCount === 0 && username === 'admin') {
-            console.log('Empty Database Detected: Bootstrapping default admin...');
-            const hashedPassword = await bcrypt.hash('admin123', 10);
-            user = await prisma.user.create({
-                data: {
-                    name: 'Default Admin',
-                    username: 'admin',
-                    password: hashedPassword,
-                    role: 'ADMIN'
-                },
-                include: { license: true }
-            });
+        // AUTO-BOOTSTRAP: If database is empty, create a default admin
+        if (!user) {
+            const userCount = await prisma.user.count();
+            if (userCount === 0 && username === 'admin') {
+                console.log('Empty Database Detected: Bootstrapping default admin...');
+                const hashedPassword = await bcrypt.hash('admin123', 10);
+                user = await prisma.user.create({
+                    data: {
+                        name: 'Default Admin',
+                        username: 'admin',
+                        password: hashedPassword,
+                        role: 'ADMIN'
+                    },
+                    include: { license: true }
+                });
+            }
+        }
+    } catch (dbError) {
+        console.error('CRITICAL DB ERROR during login:', dbError.message);
+        // EMERGENCY FALLBACK: Allow login if DB is unreachable but credentials match default
+        if (username === 'admin' && password === 'admin123') {
+            console.warn('DB UNREACHABLE: Using Emergency Admin Fallback');
+            user = {
+                id: 'emergency-admin',
+                name: 'Emergency Admin',
+                username: 'admin',
+                role: 'ADMIN',
+                isEmergency: true
+            };
+        } else {
+            throw dbError; // Rethrow if it's not the default admin
         }
     }
 
@@ -35,13 +53,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials. User not found.' });
     }
 
-    // Bcrypt comparison
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Skip bcrypt for emergency fallback user (plain text comparison for safety)
+    const isMatch = user.isEmergency 
+        ? (password === 'admin123')
+        : await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-        // Migration fallback: check plain text (optional/deprecated)
-        if (password !== user.password) {
-            return res.status(401).json({ message: 'Invalid credentials. Password mismatch.' });
-        }
+        return res.status(401).json({ message: 'Invalid credentials. Password mismatch.' });
     }
 
     const token = jwt.sign(
