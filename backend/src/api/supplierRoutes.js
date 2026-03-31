@@ -129,4 +129,115 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Get supplier ledger
+router.get('/:id/ledger', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supplier = await prisma.supplier.findUnique({
+      where: { id },
+      include: {
+        purchases: {
+          include: { payments: true },
+          orderBy: { date: 'asc' }
+        },
+        purchaseReturns: {
+          orderBy: { date: 'asc' }
+        }
+      }
+    });
+
+    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+
+    // Construct Ledger
+    let transactions = [];
+    
+    // 1. Opening Balance (Credit)
+    transactions.push({
+      date: supplier.createdAt,
+      type: 'OPENING_BALANCE',
+      description: 'Initial balance at onboard',
+      debit: 0,
+      credit: supplier.openingBalance
+    });
+
+    // 2. Purchases (Stock In) -> Increases what we owe (Credit)
+    supplier.purchases.forEach(p => {
+      transactions.push({
+        date: p.date,
+        type: 'PURCHASE',
+        reference: p.invoiceNo,
+        description: `Purchase Invoice: ${p.invoiceNo}`,
+        debit: 0,
+        credit: p.grandTotal,
+        id: p.id
+      });
+
+      // Payments made against this purchase -> Decreases what we owe (Debit)
+      p.payments.forEach(pay => {
+         transactions.push({
+            date: pay.date,
+            type: 'PAYMENT',
+            reference: p.invoiceNo,
+            description: `Payment for ${p.invoiceNo} (${pay.method})`,
+            debit: pay.amount,
+            credit: 0,
+            id: pay.id
+         });
+      });
+    });
+
+    // 3. Purchase Returns -> Decreases what we owe (Debit)
+    supplier.purchaseReturns.forEach(pr => {
+      transactions.push({
+        date: pr.date,
+        type: 'RETURN',
+        reference: pr.returnNo,
+        description: `Purchase Return: ${pr.returnNo}`,
+        debit: pr.totalAmount,
+        credit: 0,
+        id: pr.id
+      });
+    });
+
+    // Sort by date and calculate running balance
+    transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let runningBalance = 0;
+    const ledger = transactions.map(t => {
+      runningBalance += (t.credit - t.debit);
+      return { ...t, balance: runningBalance };
+    });
+
+    res.json({
+      supplier: { id: supplier.id, name: supplier.name },
+      summary: {
+        openingBalance: supplier.openingBalance,
+        currentBalance: runningBalance
+      },
+      ledger: ledger.reverse() // Newest first for UI
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get supplier purchase history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const history = await prisma.purchase.findMany({
+      where: { supplierId: id },
+      include: {
+        purchaseItems: {
+          include: { product: true }
+        }
+      },
+      orderBy: { date: 'desc' }
+    });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
