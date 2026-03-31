@@ -41,8 +41,10 @@ const PurchaseReturn = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form State
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [partyName, setPartyName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [billNo, setBillNo] = useState('');
   const [billDate, setBillDate] = useState('');
   const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
@@ -68,8 +70,12 @@ const PurchaseReturn = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const prodRes = await api.get('/products');
+      const [prodRes, supRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/suppliers')
+      ]);
       setProducts(prodRes.data);
+      setSuppliers(supRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -142,6 +148,7 @@ const PurchaseReturn = () => {
     setSubmitting(true);
     try {
       await api.post('/purchase-returns', {
+        supplierId: selectedSupplierId,
         supplierName: partyName,
         billNo,
         billDate,
@@ -202,11 +209,29 @@ const PurchaseReturn = () => {
                 <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="text"
-                  placeholder="Enter Supplier Name"
+                  placeholder="Select from database..."
                   value={partyName}
-                  onChange={(e) => setPartyName(e.target.value)}
+                  onChange={(e) => { setPartyName(e.target.value); setShowSuggestions(true); }}
+                  onFocus={() => setShowSuggestions(true)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 bg-slate-50/50"
+                  autoComplete="off"
                 />
+                {showSuggestions && (
+                  <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto">
+                    {suppliers.filter(s => s.name.toLowerCase().includes(partyName.toLowerCase())).map((s) => (
+                      <button 
+                        key={s.id} 
+                        onClick={() => { setPartyName(s.name); setSelectedSupplierId(s.id); setShowSuggestions(false); }} 
+                        className="w-full p-4 text-left hover:bg-red-50 text-slate-700 font-bold border-b border-slate-50 last:border-0"
+                      >
+                        {s.name} ({s.phone})
+                      </button>
+                    ))}
+                    {suppliers.filter(s => s.name.toLowerCase().includes(partyName.toLowerCase())).length === 0 && (
+                      <div className="p-4 text-slate-400 text-xs font-bold">No supplier found.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

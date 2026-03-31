@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Save, ShoppingBag, ArrowLeft, Calendar, Share2, Check, User, ChevronDown, Trash } from 'lucide-react';
 import api from '../../api/api';
 import { Product } from '../../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Reusable Input Component with Floating-Style Label
 const CustomInput = ({ label, value, onChange, placeholder, type = "text", disabled = false, icon = null }: any) => (
@@ -27,10 +27,12 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", disab
 
 const StockEntry = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [cart, setCart] = useState<any[]>([]);
   const [supplierName, setSupplierName] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
@@ -56,21 +58,39 @@ const StockEntry = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const [prodRes, sugRes, countRes] = await Promise.all([
+        const [prodRes, supRes, countRes] = await Promise.all([
           api.get('/products'),
-          api.get('/purchases/suppliers/suggestions'),
+          api.get('/suppliers'),
           api.get('/purchases/count').catch(() => ({ data: { count: 0 } }))
         ]);
         setProducts(prodRes.data);
-        setSuggestions(sugRes.data);
+        setSuppliers(supRes.data);
         const count = countRes.data.count || 0;
         setBillNo(`PUR-${1001 + count}`);
+
+        // Handle PO Conversion auto-population
+        if (location.state?.po) {
+          const po = location.state.po;
+          setSelectedSupplierId(po.supplierId);
+          setSupplierName(po.supplier?.name || po.supplierName);
+          
+          const poItems = po.poItems.map((item: any) => ({
+            productId: item.productId,
+            name: item.product.name,
+            quantity: item.quantity,
+            unit: item.product.unit || 'Nos',
+            price: item.price.toString(),
+            discountPercent: item.discountPercent || 0,
+            total: item.total
+          }));
+          setCart(poItems);
+        }
       } catch (error) {
         console.error('Error fetching initial data:', error);
       }
     };
     fetchInitial();
-  }, []);
+  }, [location.state]);
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
@@ -110,6 +130,7 @@ const StockEntry = () => {
     try {
       const finalPaid = isPaid ? (parseFloat(paidAmount) || totalAmount) : 0;
       const purchaseData = {
+        supplierId: selectedSupplierId,
         supplierName,
         purchaseItems: cart,
         subtotal: totalAmount,
@@ -124,6 +145,12 @@ const StockEntry = () => {
       };
 
       await api.post('/purchases', purchaseData);
+      
+      // If converting from PO, mark it as converted
+      if (location.state?.po?.id) {
+          await api.patch(`/purchase-orders/${location.state.po.id}/status`, { status: 'CONVERTED' });
+      }
+
       alert('Stock Updated Successfully!');
       
       if (shouldReset) {
@@ -170,18 +197,20 @@ const StockEntry = () => {
               <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-widest z-10 group-focus-within:text-blue-500 transition-colors">Party Name *</label>
               <div className="w-full p-3.5 border-[1.5px] border-slate-300 rounded-xl flex items-center bg-white group-focus-within:border-blue-500 transition-all">
                 <input 
-                  type="text" placeholder="Abc company" value={supplierName} autoComplete="off"
+                  type="text" placeholder="Scan or select supplier..." value={supplierName} autoComplete="off"
                   onChange={(e) => { setSupplierName(e.target.value); setShowSuggestions(true); }}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700 placeholder:text-slate-200"
                 />
               </div>
               {showSuggestions && (
                 <div className="absolute z-[60] w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden max-h-48 overflow-y-auto">
-                    {suggestions.filter(s => s.toLowerCase().includes(supplierName.toLowerCase())).map((s, idx) => (
-                        <button key={idx} onClick={() => { setSupplierName(s); setShowSuggestions(false); }} className="w-full p-4 text-left hover:bg-blue-50 text-slate-700 font-black border-b border-slate-50 last:border-0">{s}</button>
+                    {suppliers.filter(s => s.name.toLowerCase().includes(supplierName.toLowerCase())).map((s, idx) => (
+                        <button key={idx} onClick={() => { setSupplierName(s.name); setSelectedSupplierId(s.id); setShowSuggestions(false); }} className="w-full p-4 text-left hover:bg-blue-50 text-slate-700 font-black border-b border-slate-50 last:border-0">{s.name} ({s.phone})</button>
                     ))}
+                    {suppliers.filter(s => s.name.toLowerCase().includes(supplierName.toLowerCase())).length === 0 && (
+                        <div className="p-4 text-slate-400 font-bold text-xs">No supplier found in database.</div>
+                    )}
                 </div>
               )}
            </div>

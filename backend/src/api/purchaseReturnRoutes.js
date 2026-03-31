@@ -8,6 +8,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const { 
       purchaseId, 
+      supplierId,
       supplierName, 
       returnItems, 
       subtotal, 
@@ -26,6 +27,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         data: {
           returnNo,
           purchaseId: purchaseId || null,
+          supplierId: supplierId || null,
           supplierName: supplierName || null,
           subtotal,
           taxTotal,

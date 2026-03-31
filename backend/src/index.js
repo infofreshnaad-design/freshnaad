@@ -26,6 +26,8 @@ app.use(morgan('dev'));
 const syncRoutes = require('./api/syncRoutes');
 const inventoryRoutes = require('./api/inventoryRoutes');
 const purchaseRoutes = require('./api/purchaseRoutes');
+const supplierRoutes = require('./api/supplierRoutes');
+const purchaseOrderRoutes = require('./api/purchaseOrderRoutes');
 
 // Routes
 app.use('/api/products', productRoutes);
@@ -42,6 +44,8 @@ app.use('/api/sales-returns', require('./api/salesReturnRoutes'));
 app.use('/api/purchase-returns', require('./api/purchaseReturnRoutes'));
 app.use('/api/licenses', require('./api/licenseRoutes'));
 app.use('/api/devices', require('./api/deviceRoutes'));
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // Health Checks
 app.get('/health', (req, res) => {

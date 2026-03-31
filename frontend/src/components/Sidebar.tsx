@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, BarChart3, Key, Smartphone, Settings, LogOut, Menu, X, Plus, Users, TrendingDown } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, BarChart3, Key, Smartphone, Settings, LogOut, Menu, X, Plus, Users, TrendingDown, Truck, ShoppingCart } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
@@ -11,9 +11,11 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     { icon: <ShoppingBag size={22} />, label: 'POS Billing', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
     { icon: <LayoutDashboard size={22} />, label: 'Cloud Dashboard', path: '/admin/dashboard', roles: ['ADMIN'] },
     { icon: <Package size={22} />, label: 'Inventory Management', path: '/inventory', roles: ['ADMIN', 'MANAGER'] },
+    { icon: <ShoppingCart size={22} />, label: 'Purchase Orders', path: '/purchase-orders', roles: ['ADMIN', 'MANAGER'] },
     { icon: <Package size={22} />, label: 'Stock Procurement', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'] },
     { icon: <TrendingDown size={22} />, label: 'Sales Return', path: '/sales-return', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
     { icon: <Plus size={22} />, label: 'Purchase Return', path: '/purchase-return', roles: ['ADMIN', 'MANAGER'] },
+    { icon: <Truck size={22} />, label: 'Supplier Registry', path: '/suppliers', roles: ['ADMIN', 'MANAGER'] },
     { icon: <Users size={22} />, label: 'Customer Network', path: '/customers', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
     { icon: <BarChart3 size={22} />, label: 'Financial Reports', path: '/reports', roles: ['ADMIN', 'MANAGER'] },
     { icon: <LayoutDashboard size={22} />, label: 'Daily Expenses', path: '/expenses', roles: ['ADMIN', 'MANAGER'] },

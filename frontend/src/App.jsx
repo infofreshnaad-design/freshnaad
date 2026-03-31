@@ -18,6 +18,8 @@ import useAuthStore from './store/authStore';
 import StockEntry from './pages/Inventory/StockEntry';
 import SalesReturn from './pages/Inventory/SalesReturn';
 import PurchaseReturn from './pages/Inventory/PurchaseReturn';
+import SupplierManagement from './pages/Inventory/SupplierManagement';
+import PurchaseOrders from './pages/Inventory/PurchaseOrders';
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -51,6 +53,8 @@ function App() {
             <Route path="/stock-procurement" element={<StockEntry />} />
             <Route path="/sales-return" element={<SalesReturn />} />
             <Route path="/purchase-return" element={<PurchaseReturn />} />
+            <Route path="/suppliers" element={<SupplierManagement />} />
+            <Route path="/purchase-orders" element={<PurchaseOrders />} />
             <Route path="/customers" element={<CustomerManagement />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/expenses" element={<ExpenseManagement />} />

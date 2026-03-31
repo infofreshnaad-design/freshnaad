@@ -21,6 +21,7 @@ router.get('/suppliers/suggestions', auth(['ADMIN', 'MANAGER', 'CASHIER']), asyn
 router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const { 
+      supplierId,
       supplierName, 
       purchaseItems, 
       paymentMode, 
@@ -44,6 +45,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       const newPurchase = await tx.purchase.create({
         data: {
           invoiceNo,
+          supplierId,
           supplierName,
           subtotal,
           taxTotal,
@@ -181,6 +183,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const { id } = req.params;
     const { 
+      supplierId,
       supplierName, 
       purchaseItems: newItems, 
       subtotal, 
@@ -240,6 +243,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       return await tx.purchase.update({
         where: { id },
         data: {
+          supplierId,
           supplierName,
           subtotal,
           taxTotal,

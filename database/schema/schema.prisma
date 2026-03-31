@@ -67,14 +67,64 @@ model Product {
   unit           String         @default("pcs")
   supplier       String?
   image          String?
+  supplierId     String?        // New strict reference
   is_active      Boolean        @default(true)
   orderItems       OrderItem[]
   purchaseItems    PurchaseItem[]
   salesReturnItems    SalesReturnItem[]
   purchaseReturnItems PurchaseReturnItem[]
   inventoryLogs       InventoryLog[]
+  purchaseOrderItems  PurchaseOrderItem[] // New PO relation
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+}
+
+model Supplier {
+  id            String         @id @default(uuid())
+  name          String
+  phone         String?        @unique
+  email         String?
+  gstNo         String?
+  address       String?
+  openingBalance Float         @default(0)
+  is_active     Boolean        @default(true)
+  purchases     Purchase[]
+  purchaseReturns PurchaseReturn[]
+  purchaseOrders PurchaseOrder[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model PurchaseOrder {
+  id            String         @id @default(uuid())
+  poNumber      String         @unique
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  supplierId    String?
+  supplierName  String?        // Legacy / Manual string
+  subtotal      Float
+  taxTotal      Float
+  totalDiscount Float          @default(0)
+  grandTotal    Float
+  status        String         @default("PENDING") // PENDING, CONVERTED, CANCELLED
+  expectedDate  DateTime?
+  date          DateTime       @default(now())
+  poItems       PurchaseOrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              String         @id @default(uuid())
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String
+  product         Product        @relation(fields: [productId], references: [id])
+  productId       String
+  quantity        Int
+  price           Float
+  discount        Float          @default(0)
+  discountPercent Float          @default(0)
+  taxAmount       Float
+  total           Float
 }
 
 model Customer {
@@ -165,6 +215,8 @@ model PurchaseReturn {
   returnNo     String               @unique
   purchase     Purchase?            @relation(fields: [purchaseId], references: [id])
   purchaseId   String?
+  supplier     Supplier?            @relation(fields: [supplierId], references: [id])
+  supplierId   String?
   supplierName String?
   subtotal     Float
   taxTotal     Float
@@ -222,7 +274,9 @@ model Expense {
 model Purchase {
   id            String         @id @default(uuid())
   invoiceNo     String         @unique
-  supplierName  String
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  supplierId    String?
+  supplierName  String?
   subtotal      Float
   taxTotal      Float
   totalDiscount Float          @default(0)
