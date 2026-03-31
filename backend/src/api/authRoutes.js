@@ -8,24 +8,41 @@ router.post('/login', async (req, res) => {
   const { username, password, deviceId } = req.body;
   
   try {
-    const user = await prisma.user.findUnique({ 
+    let user = await prisma.user.findUnique({ 
       where: { email: username },
       include: { license: true }
     });
 
+    // AUTO-BOOTSTRAP: If database is empty, create a default admin
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+        const userCount = await prisma.user.count();
+        if (userCount === 0 && username === 'admin@freshnaad.com') {
+            console.log('Empty Database Detected: Bootstrapping default admin...');
+            const hashedPassword = await bcrypt.hash('admin123', 10);
+            user = await prisma.user.create({
+                data: {
+                    name: 'Default Admin',
+                    email: 'admin@freshnaad.com',
+                    password: hashedPassword,
+                    role: 'ADMIN'
+                },
+                include: { license: true }
+            });
+        }
+    }
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials. User not found.' });
     }
 
     // Bcrypt comparison
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-       // Support migration: also check plain text if it looks like one (not recommended for production but helpful for your existing passwords)
-       if (password !== user.password) {
-          return res.status(401).json({ message: 'Invalid credentials' });
-       }
+        // Migration fallback: check plain text (optional/deprecated)
+        if (password !== user.password) {
+            return res.status(401).json({ message: 'Invalid credentials. Password mismatch.' });
+        }
     }
-
 
     const token = jwt.sign(
       { id: user.id, role: user.role, licenseId: user.licenseId }, 
@@ -38,8 +55,16 @@ router.post('/login', async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role } 
     });
   } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('CRITICAL LOGIN ERROR:', {
+        message: error.message,
+        code: error.code, // Useful for Prisma database errors
+        stack: error.stack
+    });
+    res.status(500).json({ 
+        error: "Internal Server Error", 
+        details: error.message,
+        hint: error.code === 'P2021' ? "Database tables missing. Run 'npx prisma db push'." : "Check backend logs."
+    });
   }
 });
 
