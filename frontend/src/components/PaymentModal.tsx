@@ -35,12 +35,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   const change = parseFloat(amountPaid) - grandTotal;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[700px] animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-full max-h-[90vh] md:h-[700px] md:max-h-[95vh] animate-in zoom-in-95 duration-200">
         {/* Left Side: Summary & Options */}
-        <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col gap-5 bg-slate-50 border-r border-slate-200 overflow-y-auto custom-scrollbar">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">Checkout</h2>
+        <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col gap-4 md:gap-5 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 overflow-y-auto custom-scrollbar">
+          <div className="flex justify-between items-center shrink-0">
+            <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">Checkout</h2>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
               <X size={24} className="text-slate-500" />
             </button>

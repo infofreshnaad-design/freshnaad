@@ -1,5 +1,5 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
+import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
@@ -33,6 +33,7 @@ const POSInterface: React.FC = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   const isOnline = useNetworkStatus();
   
@@ -243,9 +244,9 @@ const POSInterface: React.FC = () => {
   const { subtotal, taxTotal, grandTotal } = getTotals();
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
       {/* Top Header */}
-      <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md select-none shrink-0">
+      <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
         <div className="flex items-center gap-2">
           <div className="bg-white text-blue-600 p-1 rounded font-bold text-xl">POS</div>
           <span className="font-semibold tracking-tight hidden sm:block">Retail Pro v1.0</span>
@@ -268,7 +269,7 @@ const POSInterface: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Left Side - Product Selection */}
         <section className="flex-1 lg:w-3/5 flex flex-col p-3 md:p-4 gap-3 md:gap-4 overflow-hidden border-b lg:border-r border-slate-200">
           <div className="relative group flex gap-2">
@@ -330,7 +331,7 @@ const POSInterface: React.FC = () => {
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto pr-1 md:pr-2 pb-24 lg:pb-0 custom-scrollbar">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {loading ? (
                 <div className="col-span-full text-center py-10 md:py-20 text-slate-400 animate-pulse">Loading...</div>
@@ -374,14 +375,34 @@ const POSInterface: React.FC = () => {
           </div>
         </section>
 
-        {/* Right Side - Cart & Billing */}
-        <section id="cart-section" className="w-full lg:w-2/5 flex flex-col bg-white shadow-xl overflow-hidden lg:h-full max-h-[50vh] lg:max-h-none">
+        {/* Right Side - Cart & Billing (Drawer on Mobile) */}
+        {/* Overlay for mobile drawer */}
+        {isMobileCartOpen && (
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setIsMobileCartOpen(false)}
+          ></div>
+        )}
+
+        <section 
+          id="cart-section" 
+          className={`
+            fixed inset-x-0 bottom-0 z-40 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-300 transform rounded-t-[2rem] lg:rounded-none overflow-hidden flex flex-col
+            ${isMobileCartOpen ? 'translate-y-0 h-[85vh]' : 'translate-y-full h-[85vh]'}
+            lg:static lg:translate-y-0 lg:h-full lg:w-2/5 lg:shadow-xl lg:flex
+          `}
+        >
           {/* Cart Header */}
           <div className="p-3 md:p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-            <div className="flex items-center gap-2">
-              <ShoppingCart size={18} className="text-blue-600 md:hidden" />
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMobileCartOpen(false)}
+                className="lg:hidden p-1.5 -ml-1 text-slate-400 hover:text-slate-800 bg-white rounded-lg shadow-sm border border-slate-200"
+              >
+                <X size={20} />
+              </button>
               <ShoppingCart size={22} className="text-blue-600 hidden md:block" />
-              <h2 className="font-bold text-base md:text-lg text-slate-700">Cart ({cart.length})</h2>
+              <h2 className="font-bold text-lg text-slate-700">Cart ({cart.length})</h2>
             </div>
             <button 
               onClick={clearCart}
@@ -479,7 +500,7 @@ const POSInterface: React.FC = () => {
             
             <div className="grid grid-cols-1 gap-2 md:gap-3">
               <button 
-                onClick={() => setIsPaymentModalOpen(true)}
+                onClick={() => { setIsMobileCartOpen(false); setIsPaymentModalOpen(true); }}
                 className="py-3 md:py-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl md:rounded-2xl text-sm md:text-base shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 disabled={cart.length === 0}
               >
@@ -491,19 +512,23 @@ const POSInterface: React.FC = () => {
       </main>
 
       {/* Floating Cart Button for Mobile */}
-      {cart.length > 0 && (
-        <button 
-          onClick={() => document.getElementById('cart-section')?.scrollIntoView({ behavior: 'smooth' })}
-          className="lg:hidden fixed bottom-6 right-6 z-30 bg-blue-600 text-white p-4 rounded-full shadow-2xl animate-bounce"
-        >
-          <div className="relative">
-            <ShoppingCart size={24} />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-blue-600">
+      <button 
+        onClick={() => setIsMobileCartOpen(!isMobileCartOpen)}
+        className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-20 bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-4 active:scale-95 transition-transform"
+      >
+        <div className="relative">
+          <ShoppingCart size={24} />
+          {cart.length > 0 && (
+            <span className="absolute -top-3 -right-3 bg-blue-500 text-white text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-900 shadow-lg">
               {cart.length}
             </span>
-          </div>
-        </button>
-      )}
+          )}
+        </div>
+        <div className="flex flex-col text-left border-l border-slate-700 pl-4 w-28">
+          <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 leading-none mb-1">Total Due</span>
+          <span className="font-bold leading-none text-lg">₹{grandTotal.toFixed(2)}</span>
+        </div>
+      </button>
 
       {isPaymentModalOpen && (
         <PaymentModal 
