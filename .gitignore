@@ -14,3 +14,4 @@ yarn-error.log*
 tmp
 build
 node_modules
+database/generated/
