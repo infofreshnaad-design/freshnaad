@@ -379,19 +379,26 @@ router.get('/supplier-ledger', async (req, res) => {
     
     let runningBalance = 0;
     const ledger = transactions.map(t => {
+      // For the unified Purchases table in Reports.tsx, we need p.balanceDue etc.
+      // But we will also send the full ledger for future UI enhancements.
       runningBalance += t.amount;
-      return { ...t, runningBalance };
+      return { 
+        ...t, 
+        runningBalance,
+        // Frontend compatibility for line 706/707
+        grandTotal: Math.abs(t.amount),
+        balanceDue: runningBalance,
+        paymentStatus: t.amount > 0 ? (runningBalance > 0 ? 'PARTIAL' : 'PAID') : 'PAID'
+      };
     });
 
     res.json({
-      supplier: { id: supplier.id, name: supplier.name, openingBalance: supplier.openingBalance },
-      summary: {
-        currentBalance: runningBalance,
-        totalPurchases: supplier.purchases.reduce((s, p) => s + p.grandTotal, 0),
-        totalReturns: supplier.purchaseReturns.reduce((s, r) => s + r.totalAmount, 0),
-        totalPayments: supplier.purchases.reduce((s, p) => s + p.amountPaid, 0)
-      },
-      transactions: ledger.reverse() // Newest first
+      name: supplier.name,
+      totalBalance: runningBalance,
+      totalPurchases: supplier.purchases.reduce((s, p) => s + p.grandTotal, 0),
+      totalPaid: supplier.purchases.reduce((s, p) => s + p.amountPaid, 0),
+      purchases: ledger.reverse(), // Map it as 'purchases' for the frontend table
+      supplier: { id: supplier.id, name: supplier.name, openingBalance: supplier.openingBalance }
     });
   } catch (error) { 
     console.error('Ledger Error:', error);
