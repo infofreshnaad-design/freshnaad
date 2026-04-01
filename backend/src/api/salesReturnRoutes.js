@@ -5,6 +5,31 @@ const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 const pdfUtil = require('../utils/pdfUtil');
 
+// GET sales return as PDF (Public for WhatsApp API - ABSOLUTE TOP PRIORITY)
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const salesReturn = await prisma.salesReturn.findUnique({
+      where: { id },
+      include: { 
+        returnItems: { include: { product: true } }, 
+        customer: true 
+      }
+    });
+
+    if (!salesReturn) return res.status(404).send('Credit Note not found');
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=CreditNote-${salesReturn.returnNo}.pdf`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    pdfUtil.generateReturnPDF(salesReturn, res);
+  } catch (error) {
+    console.error('PDF Error:', error);
+    res.status(500).send('Error generating PDF');
+  }
+});
+
 // Create new sales return (Credit Note)
 router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
@@ -176,29 +201,4 @@ router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// GET sales return as PDF (Public for WhatsApp API)
-router.get('/:id/pdf', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const salesReturn = await prisma.salesReturn.findUnique({
-      where: { id },
-      include: { 
-        returnItems: { include: { product: true } }, 
-        customer: true 
-      }
-    });
-
-    if (!salesReturn) return res.status(404).send('Credit Note not found');
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=CreditNote-${salesReturn.returnNo}.pdf`);
-
-    pdfUtil.generateReturnPDF(salesReturn, res);
-  } catch (error) {
-    console.error('PDF Error:', error);
-    res.status(500).send('Error generating PDF');
-  }
-});
-
 module.exports = router;

@@ -5,7 +5,33 @@ const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 const pdfUtil = require('../utils/pdfUtil');
 
-// --- START CUSTOMER WHATSAPP ROUTES (TOP PRIORITY) ---
+// GET order as PDF (Public for WhatsApp API - ABSOLUTE TOP PRIORITY)
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { 
+        orderItems: { include: { product: true } }, 
+        customer: true 
+      }
+    });
+    
+    if (!order) return res.status(404).send('Invoice not found');
+    
+    // Explicit headers for binary delivery
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Invoice-${order.invoiceNo}.pdf`);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
+    pdfUtil.generateInvoicePDF(order, res);
+  } catch (error) {
+    console.error('PDF Error:', error);
+    res.status(500).send('Error generating PDF');
+  }
+});
+
+// --- START CUSTOMER WHATSAPP ROUTES ---
 router.get('/test-conn', (req, res) => res.json({ status: 'ok', msg: 'Order API is reachable' }));
 
 // Share order via WhatsApp (Manual trigger from UI)
@@ -175,49 +201,6 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Order Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// GET order as PDF (Public for WhatsApp API)
-router.get('/:id/pdf', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: { 
-        orderItems: { include: { product: true } }, 
-        customer: true 
-      }
-    });
-    
-    if (!order) return res.status(404).send('Invoice not found');
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Invoice-${order.invoiceNo}.pdf`);
-    
-    pdfUtil.generateInvoicePDF(order, res);
-  } catch (error) {
-    console.error('PDF Error:', error);
-    res.status(500).send('Error generating PDF');
-  }
-});
-
-// Get order by ID
-router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: { 
-        orderItems: { include: { product: true } }, 
-        customer: true,
-        payments: true
-      }
-    });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json(order);
-  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
