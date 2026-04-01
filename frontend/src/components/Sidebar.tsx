@@ -11,7 +11,6 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     { icon: <ShoppingBag size={22} />, label: 'POS Billing', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
     { icon: <LayoutDashboard size={22} />, label: 'Cloud Dashboard', path: '/admin/dashboard', roles: ['ADMIN'] },
     { icon: <Package size={22} />, label: 'Inventory Management', path: '/inventory', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <ShoppingCart size={22} />, label: 'Purchase Orders', path: '/purchase-orders', roles: ['ADMIN', 'MANAGER'] },
     { icon: <Package size={22} />, label: 'Stock Procurement', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'] },
     { icon: <TrendingDown size={22} />, label: 'Sales Return', path: '/sales-return', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
     { icon: <Plus size={22} />, label: 'Purchase Return', path: '/purchase-return', roles: ['ADMIN', 'MANAGER'] },

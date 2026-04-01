@@ -37,7 +37,6 @@ const StockEntry = () => {
   const [supplierName, setSupplierName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'BILL' | 'PO'>('BILL');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [billNo, setBillNo] = useState('');
   const [step, setStep] = useState<'main' | 'add-item' | 'finalize'>('main');
@@ -74,33 +73,10 @@ const StockEntry = () => {
            .then(res => setLowStockItems(res.data))
            .catch(e => console.warn('Low stock fetch delayed or failed:', e));
 
-        // Handle Mode Selection
-        if (location.state?.mode === 'PO') {
-            setMode('PO');
-            setBillNo(`PO-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`);
-        } else {
-            const countRes = await api.get('/purchases/count').catch(() => ({ data: { count: 0 } }));
-            setBillNo(`PUR-${1001 + (countRes.data.count || 0)}`);
-        }
+        // Handle Header Generation
+        const countRes = await api.get('/purchases/count').catch(() => ({ data: { count: 0 } }));
+        setBillNo(`PUR-${1001 + (countRes.data.count || 0)}`);
 
-        // Handle PO Conversion auto-population
-        if (location.state?.po) {
-          const po = location.state.po;
-          setSelectedSupplierId(po.supplierId);
-          setSupplierName(po.supplier?.name || po.supplierName);
-          
-          const poItems = po.poItems.map((item: any) => ({
-            productId: item.productId,
-            name: item.product.name,
-            quantity: item.quantity,
-            unit: item.product.unit || 'Nos',
-            price: item.price.toString(),
-            discountPercent: item.discountPercent || 0,
-            total: item.total
-          }));
-          setCart(poItems);
-          setMode('BILL');
-        }
       } catch (error) {
         console.error('Error fetching initial data:', error);
       }
@@ -186,45 +162,24 @@ const StockEntry = () => {
     try {
       const finalPaid = isPaid ? (parseFloat(paidAmount) || totalAmount) : 0;
       
-      if (mode === 'PO') {
-          // CREATE PURCHASE ORDER
-          const poData = {
-              supplierId: selectedSupplierId || null,
-              supplierName,
-              poItems: cart,
-              subtotal: totalAmount,
-              totalDiscount: 0,
-              taxTotal: 0,
-              grandTotal: totalAmount,
-              expectedDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString()
-          };
-          await api.post('/purchase-orders', poData);
-          alert('Purchase Order Created Successfully!');
-      } else {
-          // CREATE DIRECT BILL (EXISTING LOGIC)
-          const purchaseData = {
-            supplierId: selectedSupplierId || null,
-            supplierName,
-            purchaseItems: cart,
-            subtotal: totalAmount,
-            totalDiscount: 0,
-            taxTotal: 0,
-            grandTotal: totalAmount,
-            amountPaid: finalPaid,
-            balanceDue: totalAmount - finalPaid,
-            paymentStatus: finalPaid === totalAmount ? 'PAID' : finalPaid > 0 ? 'PARTIAL' : 'PENDING',
-            paymentMode: 'CASH',
-            date: purchaseDate
-          };
+      // CREATE DIRECT BILL (ALWAYS)
+      const purchaseData = {
+        supplierId: selectedSupplierId || null,
+        supplierName,
+        purchaseItems: cart,
+        subtotal: totalAmount,
+        totalDiscount: 0,
+        taxTotal: 0,
+        grandTotal: totalAmount,
+        amountPaid: finalPaid,
+        balanceDue: totalAmount - finalPaid,
+        paymentStatus: finalPaid === totalAmount ? 'PAID' : finalPaid > 0 ? 'PARTIAL' : 'PENDING',
+        paymentMode: 'CASH',
+        date: purchaseDate
+      };
 
-          await api.post('/purchases', purchaseData);
-          
-          // If converting from PO, mark it as converted
-          if (location.state?.po?.id) {
-              await api.patch(`/purchase-orders/${location.state.po.id}/status`, { status: 'CONVERTED' });
-          }
-          alert('Stock Updated Successfully!');
-      }
+      await api.post('/purchases', purchaseData);
+      alert('Stock Updated Successfully!');
       
       if (shouldReset) {
         setCart([]);
@@ -251,7 +206,7 @@ const StockEntry = () => {
         <div className="bg-white px-4 py-4 flex items-center justify-between border-b border-slate-50 sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500"><ArrowLeft size={22} /></button>
-            <h1 className="text-[17px] font-black tracking-tight text-slate-800">{mode === 'PO' ? 'New Purchase Order' : 'Stock Procurement'}</h1>
+            <h1 className="text-[17px] font-black tracking-tight text-slate-800">Stock Procurement</h1>
           </div>
           <div className="flex flex-col text-right">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Billing Date</span>
@@ -350,7 +305,7 @@ const StockEntry = () => {
                  onClick={() => setStep('finalize')}
                  className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-b-4 border-blue-700"
                >
-                  Generate {mode === 'PO' ? 'Draft Order' : 'Procure Note'} <Check size={18} strokeWidth={4} />
+                  Generate Procure Note <Check size={18} strokeWidth={4} />
                </button>
                <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest mt-6 flex items-center justify-center gap-2">
                    <div className="h-1 w-8 bg-slate-100"></div>
@@ -455,7 +410,7 @@ const StockEntry = () => {
         <div className="bg-white px-4 py-4 flex items-center justify-between border-b border-slate-50 sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <button onClick={() => setStep('main')} className="p-2 -ml-2 text-slate-500"><ArrowLeft size={22} /></button>
-            <h1 className="text-[17px] font-black tracking-tight text-slate-800">Confirm {mode === 'PO' ? 'Draft' : 'Final Invoice'}</h1>
+            <h1 className="text-[17px] font-black tracking-tight text-slate-800">Confirm Final Invoice</h1>
           </div>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{purchaseDate}</p>
         </div>
@@ -554,7 +509,7 @@ const StockEntry = () => {
                  className="flex-1 bg-slate-900 text-white font-black rounded-[2rem] shadow-2xl shadow-slate-900/20 active:scale-95 transition-all text-sm uppercase tracking-[0.2em] border-b-8 border-slate-950 flex items-center justify-center gap-3"
               >
                   {loading && <Loader2 className="animate-spin" size={20}/>}
-                  {loading ? 'Filing Entry...' : (mode === 'PO' ? 'Save Draft PO' : 'Commit Purchase')}
+                  {loading ? 'Filing Entry...' : 'Commit Purchase'}
               </button>
            </div>
         </div>
