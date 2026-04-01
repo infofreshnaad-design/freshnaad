@@ -20,6 +20,8 @@ import SalesReturn from './pages/Inventory/SalesReturn';
 import PurchaseReturn from './pages/Inventory/PurchaseReturn';
 import SupplierManagement from './pages/Inventory/SupplierManagement';
 import PurchaseOrders from './pages/Inventory/PurchaseOrders';
+import AccountsPayable from './pages/AP/AccountsPayable';
+import APLedgerView from './pages/AP/components/APLedgerView';
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -61,6 +63,8 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/licenses" element={<LicenseManagement />} />
             <Route path="/admin/devices" element={<DeviceManagement />} />
+            <Route path="/accounts-payable" element={<AccountsPayable />} />
+            <Route path="/accounts-payable/ledger/:id" element={<APLedgerView />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
 

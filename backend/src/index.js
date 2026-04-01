@@ -46,6 +46,7 @@ app.use('/api/licenses', require('./api/licenseRoutes'));
 app.use('/api/devices', require('./api/deviceRoutes'));
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/ap', require('./api/apRoutes'));
 
 // Health Checks
 app.get('/health', (req, res) => {
