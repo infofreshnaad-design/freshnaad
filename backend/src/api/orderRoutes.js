@@ -5,15 +5,6 @@ const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 const pdfUtil = require('../utils/pdfUtil');
 
-// Create new order
-router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
-  try {
-    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
-
-    // Generate Simple Sequential Invoice Number
-    const orderCount = await prisma.order.count();
-    const invoiceNo = `${1001 + orderCount}`;
-
 // --- START CUSTOMER WHATSAPP ROUTES (TOP PRIORITY) ---
 router.get('/test-conn', (req, res) => res.json({ status: 'ok', msg: 'Order API is reachable' }));
 
@@ -44,6 +35,15 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
   }
 });
 // --- END CUSTOMER WHATSAPP ROUTES ---
+
+// Create new order
+router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
+
+    // Generate Simple Sequential Invoice Number
+    const orderCount = await prisma.order.count();
+    const invoiceNo = `${1001 + orderCount}`;
 
 
     const order = await prisma.$transaction(async (tx) => {
