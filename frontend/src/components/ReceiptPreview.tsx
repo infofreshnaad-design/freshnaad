@@ -125,12 +125,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
           orderId: order.id,
           phone: phone
         });
-        setWaStatus(response.data.whatsappStatus);
-        if (response.data.whatsappStatus?.success) {
-           // Success - no need to do anything else
+        
+        if (response.data.success) {
+          setWaStatus({ success: true, message: 'Message Triggered' });
         } else {
-           // Soft failure (API error)
-           console.error('WhatsApp API error:', response.data.whatsappStatus?.error);
+          setWaStatus({ success: false, error: response.data.error || 'Failed to trigger' });
+          console.error('WhatsApp API error:', response.data.error);
         }
       } catch (error) {
         console.error('Failed to send WhatsApp message through backend:', error);
