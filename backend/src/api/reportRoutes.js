@@ -305,41 +305,98 @@ router.get('/suppliers', async (req, res) => {
 // 9.2 Supplier Ledger (Enhanced)
 router.get('/supplier-ledger', async (req, res) => {
   try {
-    const { supplierId } = req.query;
-    if (!supplierId) return res.status(400).json({ error: 'Supplier ID required' });
+    const { supplierId, supplierName } = req.query;
+    if (!supplierId && !supplierName) return res.status(400).json({ error: 'Supplier ID or Name required' });
 
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
-      include: {
-        purchases: { orderBy: { date: 'desc' } },
-        purchaseReturns: { orderBy: { date: 'desc' } }
-      }
-    });
+    let supplier;
+    if (supplierId) {
+      supplier = await prisma.supplier.findUnique({
+        where: { id: supplierId },
+        include: {
+          purchases: { include: { payments: true } },
+          purchaseReturns: true
+        }
+      });
+    } else {
+      supplier = await prisma.supplier.findFirst({
+        where: { name: supplierName },
+        include: {
+          purchases: { include: { payments: true } },
+          purchaseReturns: true
+        }
+      });
+    }
 
     if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
 
-    const totalPurchases = supplier.purchases.reduce((sum, p) => sum + p.grandTotal, 0);
-    const totalPayments = supplier.purchases.reduce((sum, p) => sum + p.amountPaid, 0);
-    const totalReturned = supplier.purchaseReturns.reduce((sum, r) => sum + r.totalAmount, 0);
+    // Construct unified transaction list
+    let transactions = [];
     
-    // Balance calculation: Opening + Purchases - Returns - Payments
-    const currentBalance = (supplier.openingBalance || 0) + totalPurchases - totalReturned - totalPayments;
+    // 1. Opening Balance
+    transactions.push({
+      date: supplier.createdAt,
+      type: 'OPENING',
+      description: 'Opening Balance',
+      amount: supplier.openingBalance,
+      reference: 'Initial'
+    });
+
+    // 2. Purchases
+    supplier.purchases.forEach(p => {
+      transactions.push({
+        date: p.date,
+        type: 'PURCHASE',
+        description: `Invoice: ${p.invoiceNo}`,
+        amount: p.grandTotal,
+        reference: p.invoiceNo
+      });
+
+      // 3. Individual Payments
+      p.payments?.forEach(pay => {
+        transactions.push({
+          date: pay.date,
+          type: 'PAYMENT',
+          description: `Payment via ${pay.method}`,
+          amount: -pay.amount,
+          reference: p.invoiceNo
+        });
+      });
+    });
+
+    // 4. Returns
+    supplier.purchaseReturns.forEach(r => {
+      transactions.push({
+        date: r.date,
+        type: 'RETURN',
+        description: `Return: ${r.returnNo}`,
+        amount: -r.totalAmount,
+        reference: r.returnNo
+      });
+    });
+
+    // Sort and calculate balance
+    transactions.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    let runningBalance = 0;
+    const ledger = transactions.map(t => {
+      runningBalance += t.amount;
+      return { ...t, runningBalance };
+    });
 
     res.json({
-      supplier,
+      supplier: { id: supplier.id, name: supplier.name, openingBalance: supplier.openingBalance },
       summary: {
-        openingBalance: supplier.openingBalance,
-        totalPurchases,
-        totalReturned,
-        totalPayments,
-        currentBalance
+        currentBalance: runningBalance,
+        totalPurchases: supplier.purchases.reduce((s, p) => s + p.grandTotal, 0),
+        totalReturns: supplier.purchaseReturns.reduce((s, r) => s + r.totalAmount, 0),
+        totalPayments: supplier.purchases.reduce((s, p) => s + p.amountPaid, 0)
       },
-      transactions: [
-        ...supplier.purchases.map(p => ({ ...p, type: 'PURCHASE' })),
-        ...supplier.purchaseReturns.map(r => ({ ...r, type: 'RETURN', grandTotal: -r.totalAmount }))
-      ].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      transactions: ledger.reverse() // Newest first
     });
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) { 
+    console.error('Ledger Error:', error);
+    res.status(500).json({ error: error.message }); 
+  }
 });
 
 // 10. Party Wise Profit & Loss

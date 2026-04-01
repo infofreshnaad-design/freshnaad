@@ -119,7 +119,11 @@ router.get('/:id/ledger', async (req, res) => {
     });
 
     // Sort by date and calculate running balance
-    transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    transactions.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateA - dateB;
+    });
 
     let runningBalance = 0;
     const ledger = transactions.map(t => {
