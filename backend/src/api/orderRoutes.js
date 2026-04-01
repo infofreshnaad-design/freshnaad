@@ -179,25 +179,6 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
   }
 });
 
-// Get order by ID
-router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
-      include: { 
-        orderItems: { include: { product: true } }, 
-        customer: true,
-        payments: true
-      }
-    });
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json(order);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // GET order as PDF (Public for WhatsApp API)
 router.get('/:id/pdf', async (req, res) => {
   try {
@@ -219,6 +200,25 @@ router.get('/:id/pdf', async (req, res) => {
   } catch (error) {
     console.error('PDF Error:', error);
     res.status(500).send('Error generating PDF');
+  }
+});
+
+// Get order by ID
+router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { 
+        orderItems: { include: { product: true } }, 
+        customer: true,
+        payments: true
+      }
+    });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

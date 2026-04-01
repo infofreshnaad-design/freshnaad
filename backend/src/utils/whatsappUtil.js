@@ -74,12 +74,19 @@ const whatsappUtil = {
   /**
    * Send a formatted PDF credit note to a customer
    */
-  sendReturnReceipt: async (salesReturn, phone) => {
+  sendReturnReceipt: async (salesReturn, phone, requestedHost = null) => {
     const baseURL = process.env.WHATSAPP_API_URL;
     const apiKey = process.env.WHATSAPP_API_KEY;
-    const appURL = process.env.APP_URL;
+    
+    // Dynamic host detection
+    const appURL = requestedHost 
+      ? `https://${requestedHost}` 
+      : (process.env.APP_URL || 'https://freshnaad.vercel.app');
 
-    if (!baseURL || !apiKey || !phone || !appURL) return { success: false };
+    if (!baseURL || !apiKey || !phone) {
+      console.warn('WhatsApp Return PDF skipped: Missing config.');
+      return { success: false, error: 'Incomplete Configuration' };
+    }
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const formattedPhone = `91${cleanPhone}`;
@@ -90,6 +97,8 @@ const whatsappUtil = {
         : baseURL;
 
     try {
+      console.log(`[WhatsApp] Triggering Return PDF to ${formattedPhone} (Return: ${salesReturn.returnNo}, Domain: ${appURL})`);
+
       const params = new URLSearchParams();
       params.append('token', apiKey);
       params.append('to', formattedPhone);
@@ -99,13 +108,15 @@ const whatsappUtil = {
 
       const response = await axios.post(docEndpoint, params, { 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 15000 
+        timeout: 20000 
       });
 
+      console.log(`[WhatsApp] Return API Response:`, JSON.stringify(response.data));
       return { success: true, message: 'Return PDF Sent' };
     } catch (error) {
-       console.error(`[WhatsApp] Return PDF Failure:`, error.message);
-       return { success: false };
+       const errorData = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+       console.error(`[WhatsApp] Return PDF Failure:`, errorData);
+       return { success: false, error: 'Return Document API Error' };
     }
   }
 };
