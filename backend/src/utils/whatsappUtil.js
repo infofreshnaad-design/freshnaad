@@ -42,7 +42,15 @@ const whatsappUtil = {
     const formattedPhone = `91${cleanPhone}`;
 
     // PDF URL pointing to our public endpoint
-    const pdfUrl = `${appURL.replace(/\/$/, '')}/api/orders/${order.id}/pdf`;
+    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/orders/${order.id}/pdf`;
+    
+    // Vercel Deployment Protection Bypass if token is provided
+    const bypassToken = process.env.VERCEL_BYPASS_TOKEN;
+    if (bypassToken) {
+      const separator = pdfUrl.includes('?') ? '&' : '?';
+      pdfUrl += `${separator}x-vercel-protection-bypass=${bypassToken}&x-vercel-set-bypass-cookie=true`;
+    }
+
     const docEndpoint = baseURL.includes('ultramsg.com') 
         ? (baseURL.endsWith('/') ? `${baseURL}messages/document` : `${baseURL}/messages/document`)
         : baseURL;
@@ -90,8 +98,15 @@ const whatsappUtil = {
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const formattedPhone = `91${cleanPhone}`;
-    const pdfUrl = `${appURL.replace(/\/$/, '')}/api/sales-returns/${salesReturn.id}/pdf`;
+    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/sales-returns/${salesReturn.id}/pdf`;
     
+    // Vercel Deployment Protection Bypass
+    const bypassToken = process.env.VERCEL_BYPASS_TOKEN;
+    if (bypassToken) {
+      const separator = pdfUrl.includes('?') ? '&' : '?';
+      pdfUrl += `${separator}x-vercel-protection-bypass=${bypassToken}&x-vercel-set-bypass-cookie=true`;
+    }
+
     const docEndpoint = baseURL.includes('ultramsg.com') 
         ? (baseURL.endsWith('/') ? `${baseURL}messages/document` : `${baseURL}/messages/document`)
         : baseURL;
