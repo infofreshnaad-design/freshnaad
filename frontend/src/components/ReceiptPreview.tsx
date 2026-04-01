@@ -28,7 +28,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         <tr>
           <td style="padding: 5px 0;">
             <div style="font-weight: bold;">${itemName}</div>
-            <div style="font-size: 10px; color: #666;">₹${(item.price || 0).toFixed(2)} + GST</div>
           </td>
           <td style="padding: 5px 0; text-align: center;">${item.quantity}</td>
           <td style="padding: 5px 0; text-align: right; font-weight: bold;">₹${(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
@@ -171,7 +170,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                         `Customer: ${order.customer?.name || order.customerName || 'Walk-in'}\n\n` +
                         `*ITEMS:*\n${items}\n\n` +
                         `Subtotal: ₹${(order.subtotal || 0).toFixed(2)}\n` +
-                        `Tax (GST): ₹${(order.taxTotal || 0).toFixed(2)}\n` +
                         `*Grand Total: ₹${(order.grandTotal || 0).toFixed(2)}*\n\n` +
                         `_Digital Receipt via POS Pro_`;
 
@@ -225,7 +223,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <tr key={item.id}>
                     <td className="py-2 pr-2">
                       <p className="font-bold leading-tight">{item.product?.name || item.name || 'Product'}</p>
-                      <p className="text-[10px] text-slate-400">₹{(item.price || 0).toFixed(2)} + GST</p>
                     </td>
                     <td className="py-2 text-center align-top">{item.quantity}</td>
                     <td className="py-2 text-right align-top font-bold">₹{(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>

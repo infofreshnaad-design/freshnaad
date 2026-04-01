@@ -476,10 +476,6 @@ const POSInterface: React.FC = () => {
                 <span>Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-xs md:text-sm text-slate-400">
-                <span>Tax (GST)</span>
-                <span>₹{taxTotal.toFixed(2)}</span>
-              </div>
               {loyaltyDiscount > 0 && (
                 <div className="flex justify-between text-xs md:text-sm text-green-400 font-medium">
                   <span>Loyalty Discount ({appliedPoints} pts)</span>

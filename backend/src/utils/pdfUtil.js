@@ -47,7 +47,6 @@ const pdfUtil = {
        .text('Item', 60, tableTop + 5)
        .text('Qty', 280, tableTop + 5)
        .text('Price', 350, tableTop + 5)
-       .text('Tax', 420, tableTop + 5)
        .text('Total', 500, tableTop + 5);
 
     doc.moveTo(50, tableTop + 20).lineTo(550, tableTop + 20).stroke('#DDDDDD');
@@ -60,7 +59,6 @@ const pdfUtil = {
          .text(name, 60, y)
          .text(item.quantity.toString(), 280, y)
          .text(`₹${item.price.toFixed(2)}`, 350, y)
-         .text(`₹${(item.taxAmount || 0).toFixed(2)}`, 420, y)
          .text(`₹${item.total.toFixed(2)}`, 500, y);
 
       y += 20;
