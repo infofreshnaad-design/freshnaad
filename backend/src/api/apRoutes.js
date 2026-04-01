@@ -85,4 +85,25 @@ router.post('/payment-out', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     }
 });
 
+// Delete PURCHASE transaction
+router.delete('/purchase/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+    try {
+        const io = req.app.get('io');
+        const deleted = await apService.deletePurchase(req.params.id, io);
+        res.json(deleted);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete PAYMENT_OUT transaction
+router.delete('/payment/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+    try {
+        const deleted = await apService.deletePaymentOut(req.params.id);
+        res.json(deleted);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

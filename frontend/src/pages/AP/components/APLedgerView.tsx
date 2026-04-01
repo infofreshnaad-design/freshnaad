@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Truck, Calendar, Wallet, ShoppingBag, ArrowDownLeft, ChevronDown, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Truck, Calendar, Wallet, ShoppingBag, ArrowDownLeft, ChevronDown, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react';
 import api from '../../../api/api';
 
 const APLedgerView = () => {
@@ -101,11 +101,26 @@ const APLedgerView = () => {
                                             <span className="text-xs font-bold">{new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`text-2xl font-black ${tx.amount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                                            {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount).toLocaleString()}
-                                        </p>
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Bal: ₹{tx.runningBalance.toLocaleString()}</p>
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-right">
+                                            <p className={`text-2xl font-black ${tx.amount > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                {tx.amount > 0 ? '+' : '-'}₹{Math.abs(tx.amount).toLocaleString()}
+                                            </p>
+                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Bal: ₹{tx.runningBalance.toLocaleString()}</p>
+                                        </div>
+                                        <button 
+                                            onClick={async () => {
+                                                if (!window.confirm(`Permanently delete this ${tx.type === 'PURCHASE' ? 'PURCHASE (and reverse stock)' : 'SETTLEMENT'}?`)) return;
+                                                try {
+                                                    const url = tx.type === 'PURCHASE' ? `/ap/purchase/${tx.id}` : `/ap/payment/${tx.id}`;
+                                                    await api.delete(url);
+                                                    fetchLedger();
+                                                } catch (e) { alert('Delete failed'); }
+                                            }}
+                                            className="p-3 bg-red-50 text-red-300 hover:text-red-500 rounded-2xl transition-all"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
 

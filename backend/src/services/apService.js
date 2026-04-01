@@ -15,61 +15,52 @@ class APService {
                 purchaseReturns: {
                     orderBy: { date: 'asc' }
                 },
-                // We'll also fetch payments linked to those purchases
-                // and any future general payments
             }
         });
 
         if (!supplier) throw new Error('Supplier not found');
 
-        // Fetch all individual payments for this supplier
         const payments = await prisma.purchasePayment.findMany({
             where: { purchase: { supplierId } },
             orderBy: { date: 'asc' }
         });
 
-        // 1. Combine all financial events
         let events = [];
 
-        // Add Purchases (Credit)
         supplier.purchases.forEach(p => {
             events.push({
                 id: p.id,
                 date: p.date,
                 type: 'PURCHASE',
                 reference: p.invoiceNo,
-                amount: p.grandTotal, // Debt Increases
+                amount: p.grandTotal,
                 items: p.purchaseItems
             });
         });
 
-        // Add Payments (Debit)
         payments.forEach(pay => {
             events.push({
                 id: pay.id,
                 date: pay.date,
                 type: 'PAYMENT_OUT',
                 reference: pay.transactionId || 'Settlement',
-                amount: -pay.amount, // Debt Decreases (Negative for balance calculation)
+                amount: -pay.amount,
                 method: pay.method
             });
         });
 
-        // Add Returns (Debit)
         supplier.purchaseReturns.forEach(pr => {
             events.push({
                 id: pr.id,
                 date: pr.date,
                 type: 'PURCHASE_RETURN',
                 reference: pr.returnNo,
-                amount: -pr.totalAmount // Debt Decreases
+                amount: -pr.totalAmount
             });
         });
 
-        // 2. Sort by date
         events.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        // 3. Calculate Running Balance
         let currentBalance = supplier.openingBalance;
         const ledger = events.map(event => {
             currentBalance += event.amount;
@@ -90,12 +81,8 @@ class APService {
         };
     }
 
-    /**
-     * Process a Purchase (PURCHASE Transaction)
-     */
     async processPurchase(data, io) {
         return await prisma.$transaction(async (tx) => {
-            // 1. Create Purchase
             const purchase = await tx.purchase.create({
                 data: {
                     invoiceNo: data.invoiceNo,
@@ -127,7 +114,6 @@ class APService {
                 }
             });
 
-            // 2. Update Inventory
             for (const item of data.items) {
                 await tx.product.update({
                     where: { id: item.productId },
@@ -152,16 +138,8 @@ class APService {
         });
     }
 
-    /**
-     * Process a Settlement (PAYMENT_OUT Transaction)
-     */
     async processPaymentOut(data) {
         return await prisma.$transaction(async (tx) => {
-            // Find unpaid or partially paid purchases for this supplier to settle them
-            // In a simple "Account Settlement" world, we can just reduce the debt of the most recent pending bills
-            // or create a 'General Credit' against the supplier.
-            
-            // For now, we find the oldest pending purchase and apply payment there
             let remainingToApply = data.amount;
 
             const pendingPurchases = await tx.purchase.findMany({
@@ -199,9 +177,67 @@ class APService {
                 remainingToApply -= canApply;
             }
 
-            // If there's still money left (Advance Payment), we'll implement that if needed.
-            // For now, we return the success state.
             return { settled: data.amount - remainingToApply, advance: remainingToApply };
+        });
+    }
+
+    async deletePurchase(id, io) {
+        return await prisma.$transaction(async (tx) => {
+            const purchase = await tx.purchase.findUnique({
+                where: { id },
+                include: { purchaseItems: true }
+            });
+
+            if (!purchase) throw new Error('Purchase not found');
+
+            for (const item of purchase.purchaseItems) {
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stockQuantity: { decrement: item.quantity } }
+                });
+
+                await tx.inventoryLog.create({
+                    data: {
+                        productId: item.productId,
+                        type: 'OUT',
+                        quantity: item.quantity,
+                        reason: `AP DELETE Reverse: ${purchase.invoiceNo}`
+                    }
+                });
+            }
+
+            await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
+            await tx.purchasePayment.deleteMany({ where: { purchaseId: id } });
+            
+            const deleted = await tx.purchase.delete({ where: { id } });
+
+            if (io) {
+                io.emit('INVENTORY_UPDATE', { items: purchase.purchaseItems.map(i => ({ id: i.productId, quantity: i.quantity })) });
+            }
+
+            return deleted;
+        });
+    }
+
+    async deletePaymentOut(id) {
+        return await prisma.$transaction(async (tx) => {
+            const payment = await tx.purchasePayment.findUnique({
+                where: { id },
+                include: { purchase: true }
+            });
+
+            if (!payment) throw new Error('Payment not found');
+
+            await tx.purchase.update({
+                where: { id: payment.purchaseId },
+                data: {
+                    amountPaid: { decrement: payment.amount },
+                    balanceDue: { increment: payment.amount },
+                    paymentStatus: 'PARTIAL'
+                }
+            });
+
+            return await tx.purchasePayment.delete({ where: { id } });
         });
     }
 }
