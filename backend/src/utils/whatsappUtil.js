@@ -24,12 +24,12 @@ const whatsappUtil = {
    * @param {string} phone - The customer's 10-digit phone number
    */
   sendReceipt: async (order, phone) => {
-    const baseURL = process.env.WHATSAPP_API_URL; // Base UltraMsg URL (e.g., https://api.ultramsg.com/instanceXXX)
+    const baseURL = process.env.WHATSAPP_API_URL;
     const apiKey = process.env.WHATSAPP_API_KEY;
-    const appURL = process.env.APP_URL; // Your public Vercel URL
+    const appURL = process.env.APP_URL || 'https://freshnaad.vercel.app'; // Fallback to production if env is missing
 
-    if (!baseURL || !apiKey || !phone || !appURL) {
-      console.log('WhatsApp PDF automation skipped: Missing config (API URL/Key/App URL) or phone.');
+    if (!baseURL || !apiKey || !phone) {
+      console.warn('WhatsApp PDF automation skipped: Missing API URL or Key.');
       return { success: false, error: 'Incomplete Configuration' };
     }
 

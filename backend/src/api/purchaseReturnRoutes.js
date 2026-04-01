@@ -17,9 +17,9 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       reason 
     } = req.body;
 
-    // Generate Return Number (e.g., DBN-1710500000)
-    const timestamp = Date.now().toString().slice(-10);
-    const returnNo = `DBN-${timestamp}`;
+    // Generate Simple Sequential Return Number
+    const returnCount = await prisma.purchaseReturn.count();
+    const returnNo = `${1001 + returnCount}`;
 
     const purchaseReturn = await prisma.$transaction(async (tx) => {
       // 1. Create the Purchase Return

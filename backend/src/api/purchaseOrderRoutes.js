@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
 
     // Generate PO Number
     const count = await prisma.purchaseOrder.count() + 1;
-    const poNumber = `PO-${new Date().getFullYear()}-${count.toString().padStart(4, '0')}`;
+    const poNumber = `${1000 + count}`;
 
     const newPO = await prisma.purchaseOrder.create({
       data: {

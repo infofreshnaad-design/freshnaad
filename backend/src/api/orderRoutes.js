@@ -12,7 +12,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
     // Generate Simple Sequential Invoice Number
     const orderCount = await prisma.order.count();
-    const invoiceNo = `INV-${1001 + orderCount}`;
+    const invoiceNo = `${1001 + orderCount}`;
 
     const order = await prisma.$transaction(async (tx) => {
       // 1. Calculate points earned (1 point per ₹100 of grandTotal)
@@ -162,8 +162,12 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     
-    const waResult = await whatsappUtil.sendReceipt(order, phone);
-    res.json({ success: true, message: 'WhatsApp message triggered', whatsappStatus: waResult });
+    // Non-blocking trigger to prevent frontend timeouts on slow connections/Vercel
+    whatsappUtil.sendReceipt(order, phone)
+      .then(res => console.log('Background WhatsApp Manual Share Success:', res))
+      .catch(err => console.error('Background WhatsApp Manual Share Failure:', err));
+
+    res.json({ success: true, message: 'WhatsApp message triggered in background' });
   } catch (error) {
     console.error('WhatsApp Share Error:', error);
     res.status(500).json({ error: error.message });

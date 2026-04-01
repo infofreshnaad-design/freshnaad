@@ -20,7 +20,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
     // Generate Simple Sequential Return Number
     const returnCount = await prisma.salesReturn.count();
-    const returnNo = `RET-${1001 + returnCount}`;
+    const returnNo = `${1001 + returnCount}`;
 
     const salesReturn = await prisma.$transaction(async (tx) => {
       // 1. Create the Sales Return

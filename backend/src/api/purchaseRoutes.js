@@ -48,7 +48,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 
     // Generate Simple Sequential Purchase Invoice Number
     const purchaseCount = await prisma.purchase.count();
-    const invoiceNo = `PUR-${1001 + purchaseCount}`;
+    const invoiceNo = `${1001 + purchaseCount}`;
 
     const purchase = await prisma.$transaction(async (tx) => {
       // 1. Create the purchase record
