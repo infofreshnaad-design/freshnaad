@@ -34,12 +34,10 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     
-    // Non-blocking trigger to prevent frontend timeouts on slow connections/Vercel
-    whatsappUtil.sendReceipt(order, phone)
-      .then(res => console.log('Background WhatsApp Manual Share Success:', res))
-      .catch(err => console.error('Background WhatsApp Manual Share Failure:', err));
+    // We MUST await this on Vercel to prevent process termination
+    const waResult = await whatsappUtil.sendReceipt(order, phone, req.headers.host);
 
-    return res.json({ success: true, message: 'WhatsApp message triggered in background' });
+    return res.json({ success: true, message: 'WhatsApp message sent', whatsappStatus: waResult });
   } catch (error) {
     console.error('WhatsApp Share Error:', error);
     return res.status(500).json({ error: error.message });
@@ -166,7 +164,7 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
             const customer = await prisma.customer.findUnique({ where: { id: order.customerId } });
             if (customer && customer.phone) {
                 // We MUST await this on Vercel to prevent process termination before the HTTP request completes
-                const waResult = await whatsappUtil.sendReceipt(order, customer.phone);
+                const waResult = await whatsappUtil.sendReceipt(order, customer.phone, req.headers.host);
                 order.whatsappStatus = waResult;
             }
         } catch (err) {

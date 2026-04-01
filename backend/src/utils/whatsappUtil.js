@@ -23,10 +23,14 @@ const whatsappUtil = {
    * @param {Object} order - The created order object (with orderItems and product details)
    * @param {string} phone - The customer's 10-digit phone number
    */
-  sendReceipt: async (order, phone) => {
+  sendReceipt: async (order, phone, requestedHost = null) => {
     const baseURL = process.env.WHATSAPP_API_URL;
     const apiKey = process.env.WHATSAPP_API_KEY;
-    const appURL = process.env.APP_URL || 'https://freshnaad.vercel.app'; // Fallback to production if env is missing
+    
+    // Dynamic host detection: Priority to request header, fallback to APP_URL
+    const appURL = requestedHost 
+      ? `https://${requestedHost}` 
+      : (process.env.APP_URL || 'https://freshnaad.vercel.app');
 
     if (!baseURL || !apiKey || !phone) {
       console.warn('WhatsApp PDF automation skipped: Missing API URL or Key.');
@@ -44,7 +48,7 @@ const whatsappUtil = {
         : baseURL;
 
     try {
-      console.log(`[WhatsApp] Triggering PDF Delivery to ${formattedPhone} (Invoice: ${order.invoiceNo})`);
+      console.log(`[WhatsApp] Triggering PDF Delivery to ${formattedPhone} (Invoice: ${order.invoiceNo}, Domain: ${appURL})`);
       
       const params = new URLSearchParams();
       params.append('token', apiKey);
@@ -55,7 +59,7 @@ const whatsappUtil = {
 
       const response = await axios.post(docEndpoint, params, { 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 15000 // Generating PDF + Sending might take longer
+        timeout: 20000 // Ensuring enough time for PDF generation and delivery
       });
 
       console.log(`[WhatsApp] Document API Response:`, JSON.stringify(response.data));

@@ -127,9 +127,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         });
         
         if (response.data.success) {
-          setWaStatus({ success: true, message: 'Message Triggered' });
+          setWaStatus({ success: true, message: 'Message Sent Successfully' });
+          // Artificial delay to ensure UX feedback is perceived
+          await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
-          setWaStatus({ success: false, error: response.data.error || 'Failed to trigger' });
+          setWaStatus({ success: false, error: response.data.error || 'Failed to send' });
           console.error('WhatsApp API error:', response.data.error);
         }
       } catch (error) {
@@ -302,6 +304,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
           <WhatsAppShareModal 
             onClose={() => setShowWhatsAppModal(false)}
             onProceed={handleWhatsAppProceed}
+            isSending={isSending}
           />
         )}
       </div>

@@ -5,9 +5,10 @@ import CustomerSelectionModal from './CustomerSelectionModal';
 interface WhatsAppShareModalProps {
   onClose: () => void;
   onProceed: (phoneNumber: string) => void;
+  isSending?: boolean;
 }
 
-const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProceed }) => {
+const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProceed, isSending }) => {
   const [method, setMethod] = useState<'direct' | 'search'>('direct');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
@@ -89,10 +90,14 @@ const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProc
 
           <button 
             onClick={handleProceed}
-            disabled={!phoneNumber || phoneNumber.length < 10}
+            disabled={!phoneNumber || phoneNumber.length < 10 || isSending}
             className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2 hover:bg-slate-800 disabled:opacity-50 disabled:grayscale transition-all active:scale-95"
           >
-            Send Receipt <ArrowRight size={18} />
+            {isSending ? (
+              <>Processing Delivery...</>
+            ) : (
+              <>Send Receipt <ArrowRight size={18} /></>
+            )}
           </button>
         </div>
 

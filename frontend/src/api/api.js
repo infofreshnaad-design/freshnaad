@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api'
+  baseURL: '/api',
+  timeout: 25000 // Extended for Vercel + WhatsApp API delivery
 });
 
 // Request interceptor to add the JWT token and Device ID
