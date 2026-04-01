@@ -14,6 +14,40 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
     const orderCount = await prisma.order.count();
     const invoiceNo = `${1001 + orderCount}`;
 
+// --- START CUSTOMER WHATSAPP ROUTES (TOP PRIORITY) ---
+router.get('/test-conn', (req, res) => res.json({ status: 'ok', msg: 'Order API is reachable' }));
+
+// Share order via WhatsApp (Manual trigger from UI)
+router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const { orderId, phone } = req.body;
+    console.log(`[WhatsApp Share Request] Order: ${orderId}, Phone: ${phone}`);
+    
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        orderItems: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
+    // Non-blocking trigger to prevent frontend timeouts on slow connections/Vercel
+    whatsappUtil.sendReceipt(order, phone)
+      .then(res => console.log('Background WhatsApp Manual Share Success:', res))
+      .catch(err => console.error('Background WhatsApp Manual Share Failure:', err));
+
+    return res.json({ success: true, message: 'WhatsApp message triggered in background' });
+  } catch (error) {
+    console.error('WhatsApp Share Error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+// --- END CUSTOMER WHATSAPP ROUTES ---
+
+
     const order = await prisma.$transaction(async (tx) => {
       // 1. Calculate points earned (1 point per ₹100 of grandTotal)
       const earnRate = 100;
@@ -143,33 +177,6 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Order Error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Share order via WhatsApp (Manual trigger from UI)
-router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
-  try {
-    const { orderId, phone } = req.body;
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        orderItems: {
-          include: { product: true }
-        }
-      }
-    });
-
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    
-    // Non-blocking trigger to prevent frontend timeouts on slow connections/Vercel
-    whatsappUtil.sendReceipt(order, phone)
-      .then(res => console.log('Background WhatsApp Manual Share Success:', res))
-      .catch(err => console.error('Background WhatsApp Manual Share Failure:', err));
-
-    res.json({ success: true, message: 'WhatsApp message triggered in background' });
-  } catch (error) {
-    console.error('WhatsApp Share Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
