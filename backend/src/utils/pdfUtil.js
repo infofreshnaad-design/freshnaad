@@ -58,8 +58,8 @@ const pdfUtil = {
       doc.fontSize(9)
          .text(name, 60, y)
          .text(item.quantity.toString(), 280, y)
-         .text(`₹${item.price.toFixed(2)}`, 350, y)
-         .text(`₹${item.total.toFixed(2)}`, 500, y);
+         .text(`Rs.${item.price.toFixed(2)}`, 350, y)
+         .text(`Rs.${item.total.toFixed(2)}`, 500, y);
 
       y += 20;
     });
@@ -70,7 +70,7 @@ const pdfUtil = {
     
     doc.fontSize(12)
        .text('Total Amount:', 350, totalY + 10, { bold: true })
-       .text(`₹${order.grandTotal.toFixed(2)}`, 500, totalY + 10, { bold: true });
+       .text(`Rs.${order.grandTotal.toFixed(2)}`, 500, totalY + 10, { bold: true });
 
     // --- Footer ---
     doc.fontSize(8)
@@ -113,14 +113,14 @@ const pdfUtil = {
     salesReturn.returnItems?.forEach(item => {
       doc.text(item.product?.name || 'Product', 60, y)
          .text(item.quantity.toString(), 280, y)
-         .text(`₹${item.price.toFixed(2)}`, 350, y)
-         .text(`₹${item.total.toFixed(2)}`, 500, y);
+         .text(`Rs.${item.price.toFixed(2)}`, 350, y)
+         .text(`Rs.${item.total.toFixed(2)}`, 500, y);
       y += 20;
     });
 
     doc.moveDown()
        .fontSize(12)
-       .text(`Total Refunded: ₹${salesReturn.totalAmount.toFixed(2)}`, 350, y + 20, { bold: true });
+       .text(`Total Refunded: Rs.${salesReturn.totalAmount.toFixed(2)}`, 350, y + 20, { bold: true });
 
     doc.fontSize(8)
        .fillColor('#999999')
