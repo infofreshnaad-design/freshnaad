@@ -24,6 +24,11 @@ router.get('/summary', auth(['ADMIN', 'MANAGER']), async (req, res) => {
                     select: {
                         totalAmount: true
                     }
+                },
+                payments: {
+                    select: {
+                        amount: true
+                    }
                 }
             }
         });
@@ -31,10 +36,14 @@ router.get('/summary', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         // Calculate net payable for each supplier
         const summaries = suppliers.map(s => {
             const totalPurchases = s.purchases.reduce((acc, p) => acc + p.grandTotal, 0);
-            const totalPaid = s.purchases.reduce((acc, p) => acc + p.amountPaid, 0);
+            const totalPaidTowardsPurchases = s.purchases.reduce((acc, p) => acc + p.amountPaid, 0);
+            const totalDirectPayments = s.payments.reduce((acc, p) => acc + p.amount, 0);
             const totalReturns = s.purchaseReturns.reduce((acc, r) => acc + r.totalAmount, 0);
             
-            // Payable = Opening + Purchases - Returns - Paid
+            // Total Payments = Paid on bills + Advances
+            const totalPaid = totalPaidTowardsPurchases + totalDirectPayments;
+            
+            // Payable = Opening + Purchases - Returns - Total Paid
             const balance = s.openingBalance + totalPurchases - totalReturns - totalPaid;
             
             return {
