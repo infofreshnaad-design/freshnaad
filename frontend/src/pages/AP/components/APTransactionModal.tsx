@@ -164,11 +164,12 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                             type="text" placeholder="Start typing vendor name..." value={supplierInput} 
                             onChange={(e) => { setSupplierInput(e.target.value); setShowSupplierSuggestions(true); }}
                             onFocus={() => setShowSupplierSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 200)}
                             className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
                         />
                         {selectedSupplier && <Check size={20} className="text-emerald-500" />}
                     </div>
-                    {showSupplierSuggestions && supplierInput && (
+                    {showSupplierSuggestions && supplierInput && (!selectedSupplier || supplierInput !== selectedSupplier.name) && (
                         <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
                             {suppliers.filter(s => s.name.toLowerCase().includes(supplierInput.toLowerCase())).map(s => (
                                 <button key={s.id} onClick={() => { setSelectedSupplier(s); setSupplierInput(s.name); setShowSupplierSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{s.name}</button>
@@ -285,10 +286,11 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                                 type="text" placeholder="Search product or scan..." value={itemSearch} 
                                 onChange={(e) => { setItemSearch(e.target.value); setShowProductSuggestions(true); }}
                                 onFocus={() => setShowProductSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
                                 className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
                             />
                         </div>
-                        {showProductSuggestions && itemSearch && (
+                        {showProductSuggestions && itemSearch && itemSearch !== workingItem.name && (
                             <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
                                 {products.filter(p => p.name.toLowerCase().includes(itemSearch.toLowerCase())).map(p => (
                                     <button key={p.id} onClick={() => { setWorkingItem({ ...workingItem, id: p.id, name: p.name, rate: p.purchasePrice.toString(), unit: p.unit }); setItemSearch(p.name); setShowProductSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{p.name}</button>
@@ -317,8 +319,15 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                  </div>
 
                  <button 
-                    onClick={() => { setCart([...cart, { ...workingItem, qty: parseFloat(workingItem.qty), rate: parseFloat(workingItem.rate), total: parseFloat(workingItem.qty) * parseFloat(workingItem.rate) }]); setStep('MAIN'); setWorkingItem({ id: '', name: '', qty: '', rate: '', unit: '', total: 0 }); setItemSearch(''); }}
-                    className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    onClick={() => { 
+                        if (!workingItem.id || !workingItem.qty) return;
+                        setCart([...cart, { ...workingItem, qty: parseFloat(workingItem.qty), rate: parseFloat(workingItem.rate), total: parseFloat(workingItem.qty) * parseFloat(workingItem.rate) }]); 
+                        setStep('MAIN'); 
+                        setWorkingItem({ id: '', name: '', qty: '', rate: '', unit: '', total: 0 }); 
+                        setItemSearch(''); 
+                    }}
+                    disabled={!workingItem.id || !workingItem.qty || parseFloat(workingItem.qty) <= 0}
+                    className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
                  >
                     <Plus size={18} /> Add to Transaction
                  </button>
