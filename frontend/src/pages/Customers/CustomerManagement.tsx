@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../api/api';
-import { Users, UserPlus, Phone, Mail, Award, CreditCard, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, ShoppingBag, Calendar, ArrowUpRight, MoreVertical } from 'lucide-react';
+import { Users, UserPlus, Phone, Mail, Award, CreditCard, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, ShoppingBag, Calendar, ArrowUpRight, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportUtils } from '../../utils/exportUtils';
 
 interface Order {
   id: string;
@@ -109,6 +108,39 @@ const CustomerManagement = () => {
     }
   };
 
+  const handleExportCustomers = (format: 'PDF' | 'CSV') => {
+    if (!customers.length) return;
+    const filename = `Customers_${new Date().toISOString().split('T')[0]}`;
+    const headers = ['Name', 'Phone', 'Points', 'Spent', 'Credit'];
+    const data = customers.map(c => [
+      c.name, 
+      c.phone || '-', 
+      c.loyaltyPoints, 
+      `Rs.${c.totalSpent.toFixed(0)}`, 
+      `Rs.${c.creditBalance.toFixed(0)}`
+    ]);
+
+    if (format === 'CSV') {
+      const csvData = customers.map(c => ({ Name: c.name, Phone: c.phone, Points: c.loyaltyPoints, Spent: c.totalSpent, Credit: c.creditBalance }));
+      exportUtils.exportToCSV(csvData, filename);
+    } else {
+      exportUtils.exportToPDF({ title: 'Customer Registry', headers, data, filename });
+    }
+  };
+
+  const handleExportHistory = (format: 'PDF' | 'CSV') => {
+    if (!selectedCustomer || !selectedCustomer.orders) return;
+    const filename = `History_${selectedCustomer.name}_${new Date().toISOString().split('T')[0]}`;
+    const headers = ['Date', 'Invoice', 'Method', 'Amount'];
+    const data = selectedCustomer.orders.map(o => [
+      new Date(o.createdAt).toLocaleDateString(),
+      o.invoiceNo,
+      o.paymentMode,
+      `Rs.${o.grandTotal.toFixed(0)}`
+    ]);
+    exportUtils.exportToPDF({ title: `Sale Statement: ${selectedCustomer.name}`, headers, data, filename });
+  };
+
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (c.phone && c.phone.includes(searchTerm))
@@ -130,13 +162,29 @@ const CustomerManagement = () => {
             <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Customer Network</h1>
             <p className="text-slate-500 font-medium text-lg">Manage relationships, loyalty points, and credit history.</p>
           </div>
-          <button 
-            onClick={() => handleOpenModal()}
-            className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 group"
-          >
-            <UserPlus size={24} className="group-hover:rotate-12 transition-transform" />
-            <span>Enroll New Client</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                <button 
+                onClick={() => handleExportCustomers('CSV')}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs hover:bg-emerald-100 transition-all border border-emerald-100"
+                >
+                <FileSpreadsheet size={16} /> CSV
+                </button>
+                <button 
+                onClick={() => handleExportCustomers('PDF')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-xs hover:bg-red-100 transition-all border border-red-100"
+                >
+                <FileText size={16} /> PDF
+                </button>
+            </div>
+            <button 
+                onClick={() => handleOpenModal()}
+                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 group"
+            >
+                <UserPlus size={24} className="group-hover:rotate-12 transition-transform" />
+                <span>Enroll Client</span>
+            </button>
+          </div>
         </header>
 
         {/* Stats Grid */}
@@ -385,9 +433,17 @@ const CustomerManagement = () => {
                             </div>
                         </div>
                      </div>
-                     <button onClick={() => setIsHistoryOpen(false)} className="p-5 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-[2rem] transition-all active:scale-90">
-                        <X size={28} />
-                     </button>
+                     <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => handleExportHistory('PDF')}
+                            className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black text-xs hover:bg-red-100 transition-all border border-red-100"
+                        >
+                            <FileText size={18} /> Export Statement
+                        </button>
+                        <button onClick={() => setIsHistoryOpen(false)} className="p-5 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-[2rem] transition-all active:scale-90">
+                            <X size={28} />
+                        </button>
+                     </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">

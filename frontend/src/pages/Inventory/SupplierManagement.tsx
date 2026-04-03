@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { Truck, Plus, Phone, Mail, FileText, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, IndianRupee, MapPin } from 'lucide-react';
+import { Truck, Plus, Phone, Mail, FileText, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, IndianRupee, MapPin, FileSpreadsheet, Download } from 'lucide-react';
+import { exportUtils } from '../../utils/exportUtils';
 
 interface Supplier {
   id: string;
@@ -137,6 +138,34 @@ const SupplierManagement = () => {
      }
   };
 
+  const handleExportSuppliers = (format: 'PDF' | 'CSV') => {
+    if (!suppliers.length) return;
+    const filename = `Suppliers_${new Date().toISOString().split('T')[0]}`;
+    const headers = ['Name', 'Phone', 'GST No', 'Balance'];
+    const data = suppliers.map(s => [s.name, s.phone || '-', s.gstNo || '-', `Rs.${s.openingBalance.toLocaleString()}`]);
+
+    if (format === 'CSV') {
+      const csvData = suppliers.map(s => ({ Name: s.name, Phone: s.phone, GST: s.gstNo, Balance: s.openingBalance }));
+      exportUtils.exportToCSV(csvData, filename);
+    } else {
+      exportUtils.exportToPDF({ title: 'Supplier Registry', headers, data, filename });
+    }
+  };
+
+  const handleExportLedger = (format: 'PDF' | 'CSV') => {
+    if (!ledgerData) return;
+    const filename = `Ledger_${ledgerData.supplier.name}_${new Date().toISOString().split('T')[0]}`;
+    const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance'];
+    const data = ledgerData.ledger.map((t: any) => [
+      new Date(t.date).toLocaleDateString(),
+      t.description,
+      t.debit > 0 ? `Rs.${t.debit}` : '-',
+      t.credit > 0 ? `Rs.${t.credit}` : '-',
+      `Rs.${t.balance}`
+    ]);
+    exportUtils.exportToPDF({ title: `Ledger: ${ledgerData.supplier.name}`, headers, data, filename });
+  };
+
   const filteredSuppliers = suppliers.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (s.phone && s.phone.includes(searchTerm)) ||
@@ -151,13 +180,29 @@ const SupplierManagement = () => {
             <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1">Supplier Network</h1>
             <p className="text-slate-500 font-medium">Manage your sourcing partners and vendor accounts.</p>
           </div>
-          <button 
-            onClick={() => handleOpenModal()}
-            className="w-full md:w-auto bg-slate-900 text-white px-8 py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
-          >
-            <Plus size={24} strokeWidth={2.5}/>
-            <span>Onboard Supplier</span>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                <button 
+                onClick={() => handleExportSuppliers('CSV')}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs hover:bg-emerald-100 transition-all border border-emerald-100"
+                >
+                <FileSpreadsheet size={16} /> CSV
+                </button>
+                <button 
+                onClick={() => handleExportSuppliers('PDF')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-xs hover:bg-red-100 transition-all border border-red-100"
+                >
+                <FileText size={16} /> PDF
+                </button>
+            </div>
+            <button 
+                onClick={() => handleOpenModal()}
+                className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+            >
+                <Plus size={24} strokeWidth={2.5}/>
+                <span>Onboard Supplier</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -417,6 +462,14 @@ const SupplierManagement = () => {
                 </div>
                 
                 <div className="p-8 bg-slate-50/50 border-t flex justify-end gap-4">
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => handleExportLedger('PDF')}
+                            className="px-6 py-4 bg-red-50 text-red-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-all border border-red-100"
+                        >
+                            PDF Statement
+                        </button>
+                    </div>
                     <button onClick={() => window.print()} className="px-8 py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Print Statement</button>
                     <button onClick={() => setIsLedgerModalOpen(false)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:opacity-90 transition-all">Close</button>
                 </div>
