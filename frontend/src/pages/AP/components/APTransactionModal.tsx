@@ -51,6 +51,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
   // Item Buffer (for Step 2)
   const [workingItem, setWorkingItem] = useState({ id: '', name: '', qty: '', rate: '', unit: '', total: 0 });
   const [itemSearch, setItemSearch] = useState('');
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -282,14 +283,15 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                             <Search size={20} className="text-slate-300 mr-4" />
                             <input 
                                 type="text" placeholder="Search product or scan..." value={itemSearch} 
-                                onChange={(e) => setItemSearch(e.target.value)}
+                                onChange={(e) => { setItemSearch(e.target.value); setShowProductSuggestions(true); }}
+                                onFocus={() => setShowProductSuggestions(true)}
                                 className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
                             />
                         </div>
-                        {itemSearch && (
+                        {showProductSuggestions && itemSearch && (
                             <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
                                 {products.filter(p => p.name.toLowerCase().includes(itemSearch.toLowerCase())).map(p => (
-                                    <button key={p.id} onClick={() => { setWorkingItem({ ...workingItem, id: p.id, name: p.name, rate: p.purchasePrice.toString(), unit: p.unit }); setItemSearch(p.name); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{p.name}</button>
+                                    <button key={p.id} onClick={() => { setWorkingItem({ ...workingItem, id: p.id, name: p.name, rate: p.purchasePrice.toString(), unit: p.unit }); setItemSearch(p.name); setShowProductSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{p.name}</button>
                                 ))}
                             </div>
                         )}
