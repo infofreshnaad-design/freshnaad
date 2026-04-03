@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { Wallet, Plus, Calendar, Tag, CreditCard, Edit, Trash2 } from 'lucide-react';
+import { Wallet, Plus, Calendar, Tag, CreditCard, Edit, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportUtils } from '../../utils/exportUtils';
 
 const ExpenseManagement = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -90,6 +91,36 @@ const ExpenseManagement = () => {
     }
   };
 
+  const handleExport = (format: 'PDF' | 'CSV') => {
+    if (!expenses.length) return;
+
+    const filename = `Expenses_${new Date().toISOString().split('T')[0]}`;
+    const headers = ['Date', 'Category', 'Description', 'Amount'];
+    const data = expenses.map(exp => [
+      new Date(exp.date).toLocaleDateString(),
+      exp.type,
+      exp.description || '-',
+      `Rs.${exp.amount.toFixed(2)}`
+    ]);
+
+    if (format === 'CSV') {
+      const csvData = expenses.map(exp => ({
+        Date: new Date(exp.date).toLocaleDateString(),
+        Category: exp.type,
+        Description: exp.description || '-',
+        Amount: exp.amount
+      }));
+      exportUtils.exportToCSV(csvData, filename);
+    } else {
+      exportUtils.exportToPDF({ 
+        title: 'Expense Management Report', 
+        headers, 
+        data, 
+        filename 
+      });
+    }
+  };
+
   return (
     <div className="p-8 bg-slate-50 min-h-screen font-sans">
       <div className="max-w-7xl mx-auto">
@@ -98,22 +129,38 @@ const ExpenseManagement = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Expense Tracker</h1>
             <p className="text-slate-500 font-medium">Monitor your shop's recurring and one-time expenses.</p>
           </div>
-          <button 
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                type: 'GENERAL',
-                amount: '',
-                description: '',
-                date: new Date().toISOString().split('T')[0]
-              });
-              setIsModalOpen(true);
-            }}
-            className="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-red-700 transition-all shadow-xl shadow-red-500/10 active:scale-95"
-          >
-            <Plus size={20} />
-            <span>Add New Expense</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 mr-2 shadow-sm">
+                <button 
+                onClick={() => handleExport('CSV')}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs hover:bg-emerald-100 transition-all border border-emerald-100"
+                >
+                <FileSpreadsheet size={16} /> CSV
+                </button>
+                <button 
+                onClick={() => handleExport('PDF')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-xs hover:bg-red-100 transition-all border border-red-100"
+                >
+                <FileText size={16} /> PDF
+                </button>
+            </div>
+            <button 
+                onClick={() => {
+                setEditingId(null);
+                setFormData({
+                    type: 'GENERAL',
+                    amount: '',
+                    description: '',
+                    date: new Date().toISOString().split('T')[0]
+                });
+                setIsModalOpen(true);
+                }}
+                className="bg-red-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-red-700 transition-all shadow-xl shadow-red-500/10 active:scale-95"
+            >
+                <Plus size={20} />
+                <span>Add Expense</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">

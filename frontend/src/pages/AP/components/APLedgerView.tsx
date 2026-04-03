@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Truck, Calendar, Wallet, ShoppingBag, ArrowDownLeft, ChevronDown, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Truck, Calendar, Wallet, ShoppingBag, ArrowDownLeft, ChevronDown, CheckCircle2, AlertCircle, Clock, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportUtils } from '../../../utils/exportUtils';
 import api from '../../../api/api';
 
 const APLedgerView = () => {
@@ -25,6 +26,38 @@ const APLedgerView = () => {
         }
     };
 
+    const handleExport = (format: 'PDF' | 'CSV') => {
+        if (!data || !data.ledger.length) return;
+
+        const filename = `Ledger_${data.supplierInfo.name}_${new Date().toISOString().split('T')[0]}`;
+        const headers = ['Date', 'Reference', 'Type', 'Amount', 'Balance'];
+        const rows = data.ledger.map((tx: any) => [
+            new Date(tx.date).toLocaleDateString(),
+            tx.reference,
+            tx.type,
+            `Rs.${tx.amount.toLocaleString()}`,
+            `Rs.${tx.runningBalance.toLocaleString()}`
+        ]);
+
+        if (format === 'CSV') {
+            const csvData = data.ledger.map((tx: any) => ({
+                Date: new Date(tx.date).toLocaleDateString(),
+                Reference: tx.reference,
+                Type: tx.type,
+                Amount: tx.amount,
+                Balance: tx.runningBalance
+            }));
+            exportUtils.exportToCSV(csvData, filename);
+        } else {
+            exportUtils.exportToPDF({
+                title: `Ledger Statement: ${data.supplierInfo.name}`,
+                headers,
+                data: rows,
+                filename
+            });
+        }
+    };
+
     if (loading) return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
             <div className="animate-spin text-blue-500"><Clock size={48} /></div>
@@ -44,14 +77,32 @@ const APLedgerView = () => {
                         </button>
                         <div>
                             <h1 className="text-xl font-black text-white leading-none mb-1">{data.supplierInfo.name}</h1>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interactive Party Ledger</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Interactive Party Ledger</p>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Net Balance</p>
-                        <p className={`text-2xl font-black ${data.supplierInfo.currentBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            ₹{Math.abs(data.supplierInfo.currentBalance).toLocaleString('en-IN')}
-                        </p>
+                    
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 hidden md:flex">
+                            <button 
+                                onClick={() => handleExport('CSV')}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-white/70 rounded-lg font-black text-[10px] hover:bg-white/10 transition-all uppercase"
+                            >
+                                <FileSpreadsheet size={14} /> CSV
+                            </button>
+                            <button 
+                                onClick={() => handleExport('PDF')}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 text-white/70 rounded-lg font-black text-[10px] hover:bg-white/10 transition-all uppercase"
+                            >
+                                <FileText size={14} /> PDF
+                            </button>
+                        </div>
+                        <div className="h-8 w-px bg-white/10 hidden md:block"></div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Net Balance</p>
+                            <p className={`text-2xl font-black ${data.supplierInfo.currentBalance > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                ₹{Math.abs(data.supplierInfo.currentBalance).toLocaleString('en-IN')}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
