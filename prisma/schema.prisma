@@ -91,6 +91,7 @@ model Supplier {
   purchases     Purchase[]
   purchaseReturns PurchaseReturn[]
   purchaseOrders PurchaseOrder[]
+  payments      PurchasePayment[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -295,14 +296,16 @@ model Purchase {
 }
 
 model PurchasePayment {
-  id            String   @id @default(uuid())
-  purchase      Purchase @relation(fields: [purchaseId], references: [id])
-  purchaseId    String
-  method        String   @default("CASH") // CASH, UPI, CARD, BANK
+  id            String    @id @default(uuid())
+  purchase      Purchase? @relation(fields: [purchaseId], references: [id])
+  purchaseId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  supplierId    String?
+  method        String    @default("CASH") // CASH, UPI, CARD, BANK
   amount        Float
   transactionId String?
-  date          DateTime @default(now())
-  createdAt     DateTime @default(now())
+  date          DateTime  @default(now())
+  createdAt     DateTime  @default(now())
 }
 
 model PurchaseItem {

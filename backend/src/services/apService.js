@@ -21,7 +21,12 @@ class APService {
         if (!supplier) throw new Error('Supplier not found');
 
         const payments = await prisma.purchasePayment.findMany({
-            where: { purchase: { supplierId } },
+            where: {
+                OR: [
+                    { supplierId },
+                    { purchase: { supplierId } }
+                ]
+            },
             orderBy: { date: 'asc' }
         });
 
@@ -177,6 +182,19 @@ class APService {
                 remainingToApply -= canApply;
             }
 
+            if (remainingToApply > 0) {
+                // Any leftover money is an "Advance" or General Payment
+                await tx.purchasePayment.create({
+                    data: {
+                        supplierId: data.supplierId,
+                        amount: remainingToApply,
+                        method: data.method || 'CASH',
+                        transactionId: data.transactionId,
+                        date: data.date ? new Date(data.date) : new Date()
+                    }
+                });
+            }
+
             return { settled: data.amount - remainingToApply, advance: remainingToApply };
         });
     }
@@ -228,14 +246,16 @@ class APService {
 
             if (!payment) throw new Error('Payment not found');
 
-            await tx.purchase.update({
-                where: { id: payment.purchaseId },
-                data: {
-                    amountPaid: { decrement: payment.amount },
-                    balanceDue: { increment: payment.amount },
-                    paymentStatus: 'PARTIAL'
-                }
-            });
+            if (payment.purchaseId) {
+                await tx.purchase.update({
+                    where: { id: payment.purchaseId },
+                    data: {
+                        amountPaid: { decrement: payment.amount },
+                        balanceDue: { increment: payment.amount },
+                        paymentStatus: 'PARTIAL'
+                    }
+                });
+            }
 
             return await tx.purchasePayment.delete({ where: { id } });
         });
