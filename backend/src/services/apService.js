@@ -85,7 +85,7 @@ class APService {
         return await prisma.$transaction(async (tx) => {
             const purchase = await tx.purchase.create({
                 data: {
-                    invoiceNo: data.invoiceNo,
+                    invoiceNo: data.invoiceNo || `PUR-${Date.now()}`,
                     supplierId: data.supplierId,
                     supplierName: data.supplierName,
                     subtotal: data.subtotal,

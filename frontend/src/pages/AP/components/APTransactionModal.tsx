@@ -40,6 +40,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [invoiceNo, setInvoiceNo] = useState('');
   
   // Payment Mode State (For Settlement)
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -94,6 +95,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                 items: cart.map(i => ({ productId: i.id, quantity: i.qty, price: i.rate })),
                 grandTotal: total,
                 subtotal: total,
+                invoiceNo: invoiceNo || `PUR-${Date.now()}`,
                 date
             });
         } else {
@@ -156,26 +158,39 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                     </div>
                 </div>
 
-                <div className="relative group">
-                    <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Select Party / Sourcing Partner *</label>
-                    <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
-                        <Search size={20} className="text-slate-300 mr-4" />
-                        <input 
-                            type="text" placeholder="Start typing vendor name..." value={supplierInput} 
-                            onChange={(e) => { setSupplierInput(e.target.value); setShowSupplierSuggestions(true); }}
-                            onFocus={() => setShowSupplierSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 200)}
-                            className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
-                        />
-                        {selectedSupplier && <Check size={20} className="text-emerald-500" />}
-                    </div>
-                    {showSupplierSuggestions && supplierInput && (!selectedSupplier || supplierInput !== selectedSupplier.name) && (
-                        <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
-                            {suppliers.filter(s => s.name.toLowerCase().includes(supplierInput.toLowerCase())).map(s => (
-                                <button key={s.id} onClick={() => { setSelectedSupplier(s); setSupplierInput(s.name); setShowSupplierSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{s.name}</button>
-                            ))}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="relative group flex-1">
+                        <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Select Party *</label>
+                        <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
+                            <Search size={20} className="text-slate-300 mr-4" />
+                            <input 
+                                type="text" placeholder="Vendor name..." value={supplierInput} 
+                                onChange={(e) => { setSupplierInput(e.target.value); setShowSupplierSuggestions(true); }}
+                                onFocus={() => setShowSupplierSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSupplierSuggestions(false), 200)}
+                                className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
+                            />
+                            {selectedSupplier && <Check size={20} className="text-emerald-500" />}
                         </div>
-                    )}
+                        {showSupplierSuggestions && supplierInput && (!selectedSupplier || supplierInput !== selectedSupplier.name) && (
+                            <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
+                                {suppliers.filter(s => s.name.toLowerCase().includes(supplierInput.toLowerCase())).map(s => (
+                                    <button key={s.id} onClick={() => { setSelectedSupplier(s); setSupplierInput(s.name); setShowSupplierSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{s.name}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="relative flex-1 group">
+                        <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Invoice/Ref #</label>
+                        <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
+                            <input 
+                                type="text" placeholder="Bill No..." value={invoiceNo} 
+                                onChange={(e) => setInvoiceNo(e.target.value)}
+                                className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700 uppercase" 
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
