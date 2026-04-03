@@ -192,7 +192,7 @@ const POSInterface: React.FC = () => {
     const { subtotal, taxTotal, grandTotal } = getTotals();
     const orderData = {
       id: crypto.randomUUID(), 
-      invoiceNo: `OFFLINE-${Date.now()}`,
+      invoiceNo: `POS-${Date.now()}`, // Template ID until server responds
       orderItems: cart.map((item: any) => ({
         ...item,
         price: item.sellingPrice,
@@ -209,36 +209,39 @@ const POSInterface: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // --- INSTANT UI FEEDBACK ---
-    // 1. Set recent order to local data immediately for the preview
-    setRecentOrder(orderData);
-    // 2. Clear cart and close modal instantly
-    clearCart();
-    setIsPaymentModalOpen(false);
-    // 3. Open preview modal instantly
-    setIsPreviewOpen(true);
-
-    // --- BACKGROUND PROCESSING ---
-    setTimeout(async () => {
-      try {
-        if (isOnline) {
-          const response = await api.post('/orders', orderData, {
-            headers: { 'x-terminal-id': 'T1' }
-          });
-          // 4. Update with real server data (e.g., proper invoice number) once confirmed
-          setRecentOrder(response.data);
-        } else {
-          await addToSyncQueue('CREATE_ORDER', orderData);
-          // UI already updated with orderData
-        }
-      } catch (error: any) {
-        console.error('Payment Sync Error:', error);
-        // Fallback to offline queue if online request fails
+    try {
+      if (isOnline) {
+        const response = await api.post('/orders', orderData, {
+          headers: { 'x-terminal-id': 'T1' }
+        });
+        
+        // 1. Set real order with server-generated ID and Invoice #
+        setRecentOrder(response.data);
+        
+        // 2. REFRESH STOCK: Critical to show the deduction in the grid immediately
+        await fetchProducts();
+      } else {
         await addToSyncQueue('CREATE_ORDER', orderData);
-        // No need to alert the user if they're already looking at the preview,
-        // the sync system will handle it in the background.
+        setRecentOrder(orderData);
       }
-    }, 0);
+
+      // --- UI TRANSITION ---
+      clearCart();
+      setIsPaymentModalOpen(false);
+      setIsPreviewOpen(true);
+
+    } catch (error: any) {
+      console.error('Payment Sync Error:', error);
+      // Fallback: If online failed, try offline sync or alert
+      if (isOnline) {
+        alert('Payment failed to sync with server. Order saved locally for sync.');
+        await addToSyncQueue('CREATE_ORDER', orderData);
+        setRecentOrder(orderData);
+        clearCart();
+        setIsPaymentModalOpen(false);
+        setIsPreviewOpen(true);
+      }
+    }
   };
 
   const { subtotal, taxTotal, grandTotal } = getTotals();

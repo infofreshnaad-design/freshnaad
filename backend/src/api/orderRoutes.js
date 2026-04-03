@@ -184,18 +184,19 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       return newOrder;
     });
 
-    // 8. Automated WhatsApp Messaging (Reliable on Vercel)
+    // 8. Automated WhatsApp Messaging (Background - Non-blocking for terminal speed)
     if (order && order.customerId) {
-        try {
-            const customer = await prisma.customer.findUnique({ where: { id: order.customerId } });
-            if (customer && customer.phone) {
-                // We MUST await this on Vercel to prevent process termination before the HTTP request completes
-                const waResult = await whatsappUtil.sendReceipt(order, customer.phone, req.headers.host);
-                order.whatsappStatus = waResult;
-            }
-        } catch (err) {
-            console.error('WhatsApp Automation Error:', err);
-        }
+        // Fire and forget - don't await so the terminal gets an instant response
+        prisma.customer.findUnique({ where: { id: order.customerId } })
+            .then(customer => {
+                if (customer && customer.phone) {
+                    return whatsappUtil.sendReceipt(order, customer.phone, req.headers.host);
+                }
+            })
+            .then(waResult => {
+                if (waResult) order.whatsappStatus = waResult;
+            })
+            .catch(err => console.error('Background WhatsApp Automation Error:', err));
     }
 
     res.json(order);

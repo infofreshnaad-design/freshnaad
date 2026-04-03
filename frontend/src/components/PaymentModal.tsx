@@ -6,7 +6,7 @@ import CustomerSelectionModal from './CustomerSelectionModal';
 import RedeemPointsModal from './RedeemPointsModal';
 
 interface PaymentModalProps {
-  onPaymentComplete: (method: string, amount: string) => void;
+  onPaymentComplete: (method: string, amount: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -185,10 +185,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                 onInput={handleKeypadInput}
                 onDelete={handleKeypadDelete}
                 onClear={handleKeypadClear}
-                onConfirm={() => {
+                onConfirm={async () => {
                   if (parseFloat(amountPaid) >= grandTotal && !loading) {
                     setLoading(true);
-                    onPaymentComplete(paymentMethod, amountPaid);
+                    try {
+                      await onPaymentComplete(paymentMethod, amountPaid);
+                    } catch (err) {
+                      console.error('Payment Modal Error:', err);
+                      setLoading(false); // Only reset if failed
+                    }
                   }
                 }}
               />
