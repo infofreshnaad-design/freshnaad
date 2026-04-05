@@ -16,15 +16,28 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
   const [waStatus, setWaStatus] = React.useState<any>(order?.whatsappStatus || null);
   const [isSending, setIsSending] = React.useState(false);
-  const { print, isConnected } = useBluetoothPrinter();
+  const [isPrinting, setIsPrinting] = React.useState(false);
+  const { print, isConnected, ensureConnected } = useBluetoothPrinter();
 
   if (!order) return null;
 
     const handleUnifiedPrint = async () => {
-      if (isConnected) {
-        await handleBluetoothPrint();
-      } else {
+      setIsPrinting(true);
+      try {
+        // Try to ensure we are connected (with auto-repair)
+        const connected = await ensureConnected();
+        
+        if (connected) {
+          await handleBluetoothPrint();
+        } else {
+          // If auto-repair fails and we were supposed to be connected, or just not connected
+          handleSystemPrint();
+        }
+      } catch (error) {
+        console.error('Print logic error:', error);
         handleSystemPrint();
+      } finally {
+        setIsPrinting(false);
       }
     };
 
@@ -262,10 +275,15 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               
               <button 
                 onClick={handleUnifiedPrint}
-                className={`flex-[2] ${isConnected ? 'bg-indigo-600 shadow-indigo-200' : 'bg-slate-900 shadow-slate-200'} text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl`}
+                disabled={isPrinting}
+                className={`flex-[2] ${isConnected ? 'bg-indigo-600 shadow-indigo-200' : 'bg-slate-900 shadow-slate-200'} text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-70`}
               >
-                {isConnected ? <Bluetooth size={22} /> : <Printer size={22} />}
-                <span>PRINT BILL</span>
+                {isPrinting ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  isConnected ? <Bluetooth size={22} /> : <Printer size={22} />
+                )}
+                <span>{isPrinting ? 'CONNECTING...' : 'PRINT BILL'}</span>
               </button>
             </div>
 

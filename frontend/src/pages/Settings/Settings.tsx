@@ -569,19 +569,31 @@ const Settings = () => {
                                 <div className="space-y-4">
                                     <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Printer Maintenance</h3>
                                     <button 
-                                        disabled={!isConnected}
+                                        disabled={!isConnected || loading}
                                         onClick={async () => {
-                                            const encoder = new TextEncoder();
-                                            const testData = new Uint8Array([0x1B, 0x40, ...encoder.encode("Printer Connection Successful!\nReady for wireless billing.\n\n"), 0x0A, 0x0A, 0x1D, 0x56, 0x42, 0x00]);
+                                            setLoading(true);
                                             try {
-                                                // Assuming we have a global way to use the print function or exposing it.
-                                                // For now, this is a placeholder to show accessibility.
-                                            } catch (e) {}
+                                                const encoder = new TextEncoder();
+                                                const testData = new Uint8Array([
+                                                    0x1B, 0x40, // Initialize
+                                                    0x1B, 0x61, 0x01, // Center
+                                                    ...encoder.encode("FRESH NAAD\n"),
+                                                    ...encoder.encode("Printer Test Successful!\n"),
+                                                    ...encoder.encode(new Date().toLocaleString() + "\n\n"),
+                                                    0x0A, 0x0A, 0x1D, 0x56, 0x42, 0x00 // Cut
+                                                ]);
+                                                await print(testData);
+                                                alert('Test page sent to printer!');
+                                            } catch (e: any) {
+                                                alert('Print failed: ' + e.message);
+                                            } finally {
+                                                setLoading(false);
+                                            }
                                         }}
                                         className="w-full flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all disabled:opacity-50"
                                     >
                                         <div className="flex items-center gap-3 text-slate-700 font-bold text-sm">
-                                            <CheckCircle2 size={18} className="text-slate-400" />
+                                            {loading ? <Loader2 className="w-[18px] h-[18px] animate-spin text-blue-600" /> : <CheckCircle2 size={18} className="text-emerald-500" />}
                                             Print Test Page
                                         </div>
                                         <Save size={16} className="text-slate-300" />
