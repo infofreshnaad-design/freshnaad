@@ -248,6 +248,9 @@ model PurchaseReturnItem {
   price            Float
   taxAmount        Float
   total            Float
+
+  @@index([purchaseReturnId])
+  @@index([productId])
 }
 
 model InventoryLog {
