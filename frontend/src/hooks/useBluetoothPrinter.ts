@@ -30,15 +30,9 @@ export const useBluetoothPrinter = () => {
       const bluetooth = (navigator as any).bluetooth;
       if (!bluetooth) throw new Error('Bluetooth not supported. Use Chrome/Edge over HTTPS.');
 
+      // Switching to a more inclusive filter
       const dev = await bluetooth.requestDevice({
-        filters: [
-          { services: SUPPORTED_SERVICES },
-          { namePrefix: 'TP' },
-          { namePrefix: 'InnerPrinter' },
-          { namePrefix: 'Printer' },
-          { namePrefix: 'MTP' },
-          { namePrefix: 'RP' },
-        ],
+        acceptAllDevices: true,
         optionalServices: SUPPORTED_SERVICES,
       });
 
@@ -53,9 +47,27 @@ export const useBluetoothPrinter = () => {
         } catch (e) { continue; }
       }
 
+      // FALLBACK: If standard services fail, try to get ANY service
+      if (!service) {
+        try {
+          const services = await server.getPrimaryServices();
+          if (services.length > 0) service = services[0];
+        } catch (e) { console.warn('Could not find primary services from scanner'); }
+      }
+
       if (!service) throw new Error('Could not find a compatible printing service on this device.');
 
-      const char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+      // DYNAMIC CHARACTERISTIC FINDING
+      let char;
+      try {
+        char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+      } catch (e) {
+        // Fallback: Get all characteristics and find a writable one
+        const characteristics = await service.getCharacteristics();
+        char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+      }
+
+      if (!char) throw new Error('No writable characteristic found for printing.');
 
       setDevice(dev);
       setCharacteristic(char);
@@ -91,11 +103,27 @@ export const useBluetoothPrinter = () => {
           } catch (e) { continue; }
         }
 
+        if (!service) {
+          try {
+            const services = await server.getPrimaryServices();
+            if (services.length > 0) service = services[0];
+          } catch (e) { console.warn('Could not find primary services from scanner'); }
+        }
+
         if (service) {
-          const char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-          setCharacteristic(char);
-          setIsConnected(true);
-          return true;
+          let char;
+          try {
+            char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+          } catch (e) {
+            const characteristics = await service.getCharacteristics();
+            char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+          }
+          
+          if (char) {
+            setCharacteristic(char);
+            setIsConnected(true);
+            return true;
+          }
         }
       } catch (e) {
         console.error('Auto-repair failed:', e);
