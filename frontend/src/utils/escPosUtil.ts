@@ -98,10 +98,11 @@ export class EscPosBuilder {
 
     // Items
     order.orderItems.forEach((item: any) => {
-      const name = (item.product?.name || 'Item').padEnd(14).substring(0, 14);
-      const qty = item.quantity.toString().padStart(4);
-      const price = item.price.toFixed(0).padStart(8);
-      const total = item.total.toFixed(0).padStart(8);
+      const itemName = item.name || item.product?.name || 'Item';
+      const name = itemName.padEnd(16).substring(0, 16);
+      const qty = item.quantity.toString().padStart(3);
+      const price = (item.price || item.sellingPrice || 0).toFixed(0).padStart(6);
+      const total = (item.total || 0).toFixed(0).padStart(7);
       builder.line(`${name}${qty}${price}${total}`);
     });
 
