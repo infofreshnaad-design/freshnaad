@@ -67,9 +67,18 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
     const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
-    // Generate Simple Sequential Invoice Number
-    const orderCount = await prisma.order.count();
-    const invoiceNo = `${1001 + orderCount}`;
+    // Safer Sequential Invoice Generation (Handles deletions correctly)
+    const latestOrder = await prisma.order.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { invoiceNo: true }
+    });
+    
+    let nextNum = 1001;
+    if (latestOrder) {
+      const match = latestOrder.invoiceNo.match(/\d+/);
+      if (match) nextNum = parseInt(match[0]) + 1;
+    }
+    const invoiceNo = `${nextNum}`;
 
 
     const order = await prisma.$transaction(async (tx) => {
@@ -250,7 +259,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 
       // 4. APPLY: Delete old items
       await tx.orderItem.deleteMany({ where: { orderId: id } });
-      await tx.payments ? await tx.payment.deleteMany({ where: { orderId: id } }) : null;
+      await tx.payment.deleteMany({ where: { orderId: id } });
 
       // 5. APPLY: Create new items and update stock
       const earnRate = 100;
