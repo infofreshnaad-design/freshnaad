@@ -7,7 +7,7 @@ import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
 const Settings = () => {
     const user = useAuthStore((state: any) => state.user);
     const [activeTab, setActiveTab] = useState<'SECURITY' | 'USERS' | 'CATEGORIES' | 'PHOTOS' | 'PRINTER'>(user?.role === 'ADMIN' ? 'USERS' : 'SECURITY');
-    const { connect, disconnect, isConnected, device, error: bluetoothError } = useBluetoothPrinter();
+    const { connect, disconnect, isConnected, device, error: bluetoothError, print } = useBluetoothPrinter();
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -542,7 +542,18 @@ const Settings = () => {
                                             </div>
                                         ) : (
                                             <button 
-                                                onClick={connect}
+                                                onClick={async () => {
+                                                    try {
+                                                        const dev = await connect();
+                                                        // AUTO-RELEASE after 1 second so other phones can pair
+                                                        if (dev) {
+                                                            setTimeout(() => {
+                                                                disconnect();
+                                                                console.log('Setup pairing released for other devices');
+                                                            }, 1500);
+                                                        }
+                                                    } catch (e) {}
+                                                }}
                                                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
                                             >
                                                 <Bluetooth size={20} />
@@ -558,6 +569,21 @@ const Settings = () => {
                                         )}
                                     </div>
 
+                                    <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 flex flex-col gap-4">
+                                        <div className="flex gap-4">
+                                            <Info className="text-indigo-500 shrink-0 mt-1" size={18} />
+                                            <div className="text-xs text-indigo-700 font-medium leading-relaxed">
+                                                <p className="font-bold mb-1">Two-Phone Setup Guide:</p>
+                                                <ol className="list-decimal ml-4 space-y-1">
+                                                    <li>Click <b>Pair</b> on Phone 1.</li>
+                                                    <li>Once it shows "Connected", it will auto-release in 1 second.</li>
+                                                    <li>Now, immediately click <b>Pair</b> on Phone 2.</li>
+                                                    <li>Both phones are now authorized and can share the printer!</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                     <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex gap-4 items-start">
                                         <Info className="text-blue-500 shrink-0 mt-1" size={18} />
                                         <div className="text-xs text-blue-700 font-medium leading-relaxed">
