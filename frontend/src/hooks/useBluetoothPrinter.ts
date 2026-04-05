@@ -1,14 +1,22 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { usePrinterStore } from '../store/printerStore';
 
 // Common Thermal Printer UUIDs
 const PRINTER_SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
 const PRINTER_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
 
 export const useBluetoothPrinter = () => {
-  const [device, setDevice] = useState<any | null>(null);
-  const [characteristic, setCharacteristic] = useState<any | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { 
+    device, 
+    characteristic, 
+    isConnected, 
+    error,
+    setDevice, 
+    setCharacteristic, 
+    setIsConnected, 
+    setError,
+    disconnect: globalDisconnect
+  } = usePrinterStore();
 
   const connect = useCallback(async () => {
     try {
@@ -48,16 +56,11 @@ export const useBluetoothPrinter = () => {
       setError(err.message);
       setIsConnected(false);
     }
-  }, []);
+  }, [setDevice, setCharacteristic, setIsConnected, setError]);
 
   const disconnect = useCallback(() => {
-    if (device && device.gatt?.connected) {
-      device.gatt.disconnect();
-    }
-    setDevice(null);
-    setCharacteristic(null);
-    setIsConnected(false);
-  }, [device]);
+    globalDisconnect();
+  }, [globalDisconnect]);
 
   const print = useCallback(async (data: Uint8Array) => {
     if (!characteristic) throw new Error('Printer not connected.');

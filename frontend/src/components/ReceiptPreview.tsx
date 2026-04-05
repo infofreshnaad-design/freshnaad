@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import WhatsAppShareModal from './WhatsAppShareModal';
 import api from '../api/api';
 import { Bluetooth, Printer, Share2, X } from 'lucide-react';
@@ -11,6 +12,7 @@ interface ReceiptPreviewProps {
 }
 
 const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
+  const navigate = useNavigate();
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
   const [waStatus, setWaStatus] = React.useState<any>(order?.whatsappStatus || null);
   const [isSending, setIsSending] = React.useState(false);
@@ -18,10 +20,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
   if (!order) return null;
 
-    const handlePrint = () => {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
+    const handleUnifiedPrint = async () => {
+      if (isConnected) {
+        await handleBluetoothPrint();
+      } else {
+        handleSystemPrint();
+      }
+    };
 
+    const handleSystemPrint = () => {
+      const printWindow = window.open('', '_blank');
+      generateSystemPrintHtml(printWindow);
+    };
+
+    const generateSystemPrintHtml = (printWindow: Window | null) => {
+      if (!printWindow) return;
       const itemsHtml = order.orderItems?.map((item: any) => {
         const itemName = item.product?.name || item.name || 'Product';
         return `
@@ -66,17 +79,13 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <p style="margin: 2px 0; font-size: 10px;">123, Business Hub, MG Road</p>
               <p style="margin: 2px 0; font-size: 10px;">Bangalore - 560001</p>
             </div>
-
             <div class="dashed-border"></div>
-
             <div style="margin-bottom: 10px;">
               <div class="total-row"><span>Invoice:</span><span class="bold">${order.invoiceNo}</span></div>
               <div class="total-row"><span>Date:</span><span>${order.createdAt ? new Date(order.createdAt).toLocaleString() : new Date().toLocaleString()}</span></div>
               <div class="total-row"><span>Customer:</span><span class="bold">${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
             </div>
-
             <div class="dashed-border"></div>
-
             <table>
               <thead>
                 <tr>
@@ -89,22 +98,18 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 ${itemsHtml}
               </tbody>
             </table>
-
             <div class="dashed-border"></div>
-
             <div style="margin-top: 10px;">
               <div class="total-row grand-total">
                 <span>Total Amount:</span>
                 <span>₹${(order.grandTotal || 0).toFixed(2)}</span>
               </div>
             </div>
-
             <div style="margin-top: 30px; text-align: center; font-size: 10px; font-style: italic;">
               <p>Thank you for shopping with us!</p>
               <p style="margin: 2px 0;">Digital Bill Generated via POS Pro</p>
               <p style="margin: 2px 0; font-weight: bold;">Software by NIVAN SOLUTIONS</p>
             </div>
-
             <script>
               window.onload = () => {
                 window.print();
@@ -117,6 +122,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
       printWindow.document.close();
     };
 
+    const handleBluetoothPrint = async () => {
+      try {
+        const businessInfo = {
+          name: 'FRESH NAAD',
+          address: '123, Business Hub, MG Road, Bangalore',
+          phone: '9876543210'
+        };
+        const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
+        await print(bytes);
+      } catch (error: any) {
+        console.error('Bluetooth Print Error:', error);
+        alert('Bluetooth Print Failed: ' + error.message);
+        handleSystemPrint();
+      }
+    };
 
     const handleWhatsAppProceed = async (phone: string) => {
       setIsSending(true);
@@ -128,14 +148,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         
         if (response.data.success) {
           setWaStatus({ success: true, message: 'Message Sent Successfully' });
-          // Artificial delay to ensure UX feedback is perceived
           await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
           setWaStatus({ success: false, error: response.data.error || 'Failed to send' });
-          console.error('WhatsApp API error:', response.data.error);
         }
       } catch (error) {
-        console.error('Failed to send WhatsApp message through backend:', error);
+        console.error('WhatsApp Error:', error);
         setWaStatus({ success: false, error: 'Connection to server failed' });
       } finally {
         setIsSending(false);
@@ -143,24 +161,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
       }
     };
 
-    const handleBluetoothPrint = async () => {
-      try {
-        const businessInfo = {
-          name: 'FRESH NAAD',
-          address: '123, Business Hub, MG Road, Bangalore',
-          phone: '9876543210'
-        };
-        const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
-        await print(bytes);
-        alert('Sent to Bluetooth Printer!');
-      } catch (error: any) {
-        console.error('Bluetooth Print Error:', error);
-        alert('Bluetooth Print Failed: ' + error.message + '\n\nPlease ensure your printer is connected in Settings.');
-      }
-    };
-
     const handleManualShare = () => {
-        // Fallback for manual sharing ONLY if explicitly requested
         const items = order.orderItems?.map((item: any) => {
           const name = item.product?.name || item.name || 'Product';
           return `• ${name} x ${item.quantity} = ₹${(item.total || (item.price * item.quantity)).toFixed(2)}`;
@@ -168,9 +169,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
         const message = `*TAX INVOICE FROM MODERN POS RETAIL*\n\n` +
                         `Invoice: *${order.invoiceNo}*\n` +
-                        `Date: ${new Date().toLocaleDateString()}\n` +
-                        `Customer: ${order.customer?.name || order.customerName || 'Walk-in'}\n\n` +
-                        `*ITEMS:*\n${items}\n\n` +
                         `Subtotal: ₹${(order.subtotal || 0).toFixed(2)}\n` +
                         `*Grand Total: ₹${(order.grandTotal || 0).toFixed(2)}*\n\n` +
                         `_Digital Receipt via POS Pro_`;
@@ -224,7 +222,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 {order.orderItems?.map((item: any) => (
                   <tr key={item.id}>
                     <td className="py-2 pr-2">
-                      <p className="font-bold leading-tight">{item.product?.name || item.name || 'Product'}</p>
+                       <p className="font-bold leading-tight">{item.product?.name || item.name || 'Product'}</p>
                     </td>
                     <td className="py-2 text-center align-top">{item.quantity}</td>
                     <td className="py-2 text-right align-top font-bold">₹{(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
@@ -247,54 +245,42 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             </div>
           </div>
 
-          {/* Status Indicator */}
-          {!isSending && waStatus && (
-            <div className={`px-4 py-2 text-center text-xs font-black uppercase tracking-widest ${waStatus.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-               {waStatus.success ? (
-                 <span className="flex items-center justify-center gap-2">✅ WhatsApp: Sent Successfully</span>
-               ) : (
-                 <div className="flex flex-col gap-1">
-                   <span>❌ WhatsApp: {waStatus.error || 'Failed to send'}</span>
-                   <button onClick={handleManualShare} className="underline decoration-2 underline-offset-4 hover:text-red-900 transition-colors">
-                     Try Manual Share Instead
-                   </button>
-                 </div>
-               )}
+          <div className="p-6 bg-white border-t flex flex-col gap-4 print:hidden">
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowWhatsAppModal(true)}
+                disabled={isSending}
+                className={`flex-1 ${waStatus?.success ? 'bg-green-600' : 'bg-slate-100 text-slate-700'} py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50`}
+              >
+                {isSending ? (
+                  <div className="w-4 h-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin" />
+                ) : (
+                  <Share2 size={18} className={waStatus?.success ? 'text-white' : 'text-slate-500'} />
+                )}
+                <span className={waStatus?.success ? 'text-white' : ''}>WhatsApp</span>
+              </button>
+              
+              <button 
+                onClick={handleUnifiedPrint}
+                className={`flex-[2] ${isConnected ? 'bg-indigo-600 shadow-indigo-200' : 'bg-slate-900 shadow-slate-200'} text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl`}
+              >
+                {isConnected ? <Bluetooth size={22} /> : <Printer size={22} />}
+                <span>PRINT BILL</span>
+              </button>
             </div>
-          )}
 
-          <div className="p-6 bg-slate-50 border-t flex gap-4 print:hidden">
-            <button 
-              onClick={() => setShowWhatsAppModal(true)}
-              disabled={isSending}
-              className={`flex-1 ${waStatus?.success ? 'bg-green-600' : 'bg-slate-800'} text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50`}
-            >
-              {isSending ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Sending...</span>
-                </>
-              ) : (
-                <>
-                  <Share2 size={18} />
-                  <span>{waStatus?.success ? 'Resend WhatsApp' : 'WhatsApp'}</span>
-                </>
-              )}
-            </button>
-            <button 
-              onClick={handlePrint}
-              className="flex-1 bg-white border-2 border-slate-200 text-slate-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
-            >
-              <Printer size={18} />
-              <span>System Print</span>
-            </button>
+            {!isConnected && (
+              <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
+                Bluetooth Printer Disconnected • <span className="text-indigo-500 cursor-pointer hover:underline" onClick={() => navigate('/settings')}>Connect in Settings</span>
+              </p>
+            )}
+            
             {isConnected && (
               <button 
-                onClick={handleBluetoothPrint}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                onClick={handleSystemPrint}
+                className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest hover:text-slate-600 transition-colors"
               >
-                <Bluetooth size={18} />
-                <span>BT Print</span>
+                Use System Print Instead
               </button>
             )}
           </div>
