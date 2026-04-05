@@ -544,14 +544,7 @@ const Settings = () => {
                                             <button 
                                                 onClick={async () => {
                                                     try {
-                                                        const dev = await connect();
-                                                        // AUTO-RELEASE after 1 second so other phones can pair
-                                                        if (dev) {
-                                                            setTimeout(() => {
-                                                                disconnect();
-                                                                console.log('Setup pairing released for other devices');
-                                                            }, 1500);
-                                                        }
+                                                        await connect();
                                                     } catch (e) {}
                                                 }}
                                                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -576,9 +569,9 @@ const Settings = () => {
                                                 <p className="font-bold mb-1">Two-Phone Setup Guide:</p>
                                                 <ol className="list-decimal ml-4 space-y-1">
                                                     <li>Click <b>Pair</b> on Phone 1.</li>
-                                                    <li>Once it shows "Connected", it will auto-release in 1 second.</li>
+                                                    <li>Once connected, click the <b>Blue Bluetooth Icon</b> in the header to release it.</li>
                                                     <li>Now, immediately click <b>Pair</b> on Phone 2.</li>
-                                                    <li>Both phones are now authorized and can share the printer!</li>
+                                                    <li>Both phones are now authorized! No more auto-disconnecting.</li>
                                                 </ol>
                                             </div>
                                         </div>
