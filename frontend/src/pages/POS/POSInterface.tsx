@@ -220,14 +220,14 @@ const POSInterface: React.FC = () => {
         // 1. Set real order with server-generated ID and Invoice #
         setRecentOrder(response.data);
         
-        // 2. REFRESH STOCK: Critical to show the deduction in the grid immediately
-        await fetchProducts();
+        // 2. REFRESH STOCK: In the true background to avoid UI freeze
+        fetchProducts().catch(err => console.error('Background refresh error:', err));
       } else {
         await addToSyncQueue('CREATE_ORDER', orderData);
         setRecentOrder(orderData);
       }
 
-      // --- UI TRANSITION ---
+      // --- INSTANT UI TRANSITION ---
       clearCart();
       setIsPaymentModalOpen(false);
       setIsPreviewOpen(true);

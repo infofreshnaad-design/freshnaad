@@ -199,7 +199,10 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
     console.log(`[Order API] Success! Processed in ${Date.now() - startTime}ms`);
 
-    // 7. Background Messaging
+    // 7. IMMEDIATE RELEASE: release the client before background tasks
+    res.json(order);
+
+    // 8. Truly Background Messaging
     if (order && order.customerId) {
         prisma.customer.findUnique({ where: { id: order.customerId } })
             .then(customer => {
@@ -209,8 +212,6 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
             })
             .catch(err => console.error('Background WhatsApp Logic Error:', err));
     }
-
-    res.json(order);
   } catch (error) {
     const elapsed = Date.now() - startTime;
     console.error(`[Order API] FAILED after ${elapsed}ms:`, error);

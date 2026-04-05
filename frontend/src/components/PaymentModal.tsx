@@ -16,9 +16,36 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   
   const [amountPaid, setAmountPaid] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
-   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
-   const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+
+  // Hardware Keyboard Support
+  React.useEffect(() => {
+    const handleKeys = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const numAmount = parseFloat(amountPaid);
+        if (numAmount >= grandTotal && !loading) {
+          submitPayment();
+        }
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeys);
+    return () => window.removeEventListener('keydown', handleKeys);
+  }, [amountPaid, grandTotal, loading]);
+
+  const submitPayment = async () => {
+    setLoading(true);
+    try {
+      await onPaymentComplete(paymentMethod, amountPaid);
+    } catch (err) {
+      console.error('Payment Error:', err);
+      setLoading(false);
+    }
+  };
 
   const handleKeypadInput = (val: string) => {
     setAmountPaid((prev) => (prev === '0' ? val : prev + val));
@@ -158,10 +185,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                 <div className="flex flex-col gap-4 w-full max-w-[320px]">
                    <button 
                     disabled={loading}
-                    onClick={() => {
-                      setLoading(true);
-                      onPaymentComplete(paymentMethod, grandTotal.toString());
-                    }}
+                    onClick={submitPayment}
                     className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loading ? <div className="h-6 w-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div> : <><CheckCircle2 size={24} /> MARK AS SUCCESS</>}
@@ -185,17 +209,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                 onInput={handleKeypadInput}
                 onDelete={handleKeypadDelete}
                 onClear={handleKeypadClear}
-                onConfirm={async () => {
-                  if (parseFloat(amountPaid) >= grandTotal && !loading) {
-                    setLoading(true);
-                    try {
-                      await onPaymentComplete(paymentMethod, amountPaid);
-                    } catch (err) {
-                      console.error('Payment Modal Error:', err);
-                      setLoading(false); // Only reset if failed
-                    }
-                  }
-                }}
+                onConfirm={submitPayment}
               />
            )}
         </div>
