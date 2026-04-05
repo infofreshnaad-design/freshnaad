@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePrinterStore } from '../store/printerStore';
 
 // Common Thermal Printer UUIDs (Expanded for broader compatibility)
@@ -166,6 +166,26 @@ export const useBluetoothPrinter = () => {
       throw err;
     }
   }, [characteristic, ensureConnected]);
+
+  // 3. HEARTBEAT / KEEP-ALIVE
+  // To prevent printers from timing out and disconnecting internally
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isConnected && characteristic && device?.gatt.connected) {
+      console.log('Starting Bluetooth Heartbeat...');
+      interval = setInterval(async () => {
+        try {
+          if (device?.gatt.connected && characteristic) {
+            // Send a NUL byte to keep the connection alive
+            await characteristic.writeValue(new Uint8Array([0x00]));
+          }
+        } catch (e) {
+          console.warn('Heartbeat failed, printer might have sleep mode enabled.');
+        }
+      }, 20000); // Send heartbeat every 20 seconds
+    }
+    return () => clearInterval(interval);
+  }, [isConnected, characteristic, device]);
 
   return { connect, disconnect, print, isConnected, device, error, ensureConnected };
 };
