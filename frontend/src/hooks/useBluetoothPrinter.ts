@@ -87,46 +87,54 @@ export const useBluetoothPrinter = () => {
     }
   }, [setDevice, setCharacteristic, setIsConnected, setError]);
 
-  const ensureConnected = useCallback(async () => {
+  const ensureConnected = useCallback(async (retries = 10) => {
     if (device && device.gatt.connected && characteristic) return true;
     
     if (device) {
-      try {
-        console.log('Attempting to repair Bluetooth connection...');
-        const server = await device.gatt.connect();
-        
-        let service;
-        for (const uuid of SUPPORTED_SERVICES) {
-          try {
-            service = await server.getPrimaryService(uuid);
-            if (service) break;
-          } catch (e) { continue; }
-        }
-
-        if (!service) {
-          try {
-            const services = await server.getPrimaryServices();
-            if (services.length > 0) service = services[0];
-          } catch (e) { console.warn('Could not find primary services from scanner'); }
-        }
-
-        if (service) {
-          let char;
-          try {
-            char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-          } catch (e) {
-            const characteristics = await service.getCharacteristics();
-            char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
-          }
+      for (let i = 0; i < retries; i++) {
+        try {
+          console.log(`Connection attempt ${i + 1}/${retries}...`);
+          const server = await device.gatt.connect();
           
-          if (char) {
-            setCharacteristic(char);
-            setIsConnected(true);
-            return true;
+          let service;
+          for (const uuid of SUPPORTED_SERVICES) {
+            try {
+              service = await server.getPrimaryService(uuid);
+              if (service) break;
+            } catch (e) { continue; }
+          }
+
+          if (!service) {
+            try {
+              const services = await server.getPrimaryServices();
+              if (services.length > 0) service = services[0];
+            } catch (e) { console.warn('Could not find primary services'); }
+          }
+
+          if (service) {
+            let char;
+            try {
+              char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+            } catch (e) {
+              const characteristics = await service.getCharacteristics();
+              char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+            }
+            
+            if (char) {
+              setCharacteristic(char);
+              setIsConnected(true);
+              return true;
+            }
+          }
+        } catch (e: any) {
+          console.warn(`Printer busy or connection failed. Retrying... (${i + 1})`);
+          // If printer is busy (connected to another device), wait 500ms and retry
+          if (i < retries - 1) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+          } else {
+            console.error('All connection retries failed:', e);
           }
         }
-      } catch (e) {
-        console.error('Auto-repair failed:', e);
       }
     }
     return false;

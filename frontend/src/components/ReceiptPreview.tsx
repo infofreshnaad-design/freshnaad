@@ -296,7 +296,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 ) : (
                   isConnected ? <Bluetooth size={22} /> : <Printer size={22} />
                 )}
-                <span>{isPrinting ? 'CONNECTING...' : 'PRINT BILL'}</span>
+                <span>
+                  {isPrinting 
+                    ? (isConnected ? 'PRINTING...' : 'WAITING FOR PRINTER...') 
+                    : 'PRINT BILL'}
+                </span>
               </button>
             </div>
 
