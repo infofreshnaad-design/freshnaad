@@ -34,6 +34,7 @@ const POSInterface: React.FC = () => {
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const isOnline = useNetworkStatus();
   
@@ -209,6 +210,7 @@ const POSInterface: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
 
+    setIsSyncing(true);
     try {
       if (isOnline) {
         const response = await api.post('/orders', orderData, {
@@ -232,15 +234,18 @@ const POSInterface: React.FC = () => {
 
     } catch (error: any) {
       console.error('Payment Sync Error:', error);
-      // Fallback: If online failed, try offline sync or alert
+      const serverError = error.response?.data?.error || error.message;
+      
       if (isOnline) {
-        alert('Payment failed to sync with server. Order saved locally for sync.');
+        alert(`Payment failed to sync: ${serverError}\n\nOrder saved locally for later sync.`);
         await addToSyncQueue('CREATE_ORDER', orderData);
         setRecentOrder(orderData);
         clearCart();
         setIsPaymentModalOpen(false);
         setIsPreviewOpen(true);
       }
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -248,6 +253,14 @@ const POSInterface: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
+      {/* Loading Overlay */}
+      {isSyncing && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-lg font-semibold text-indigo-900 animate-pulse">Syncing Order with Server...</p>
+          <p className="text-sm text-slate-500">Please do not refresh the page</p>
+        </div>
+      )}
       {/* Top Header */}
       <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
         <div className="flex items-center gap-2">

@@ -64,6 +64,9 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
 
 // Create new order
 router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  console.log(`[Order API] Starting creation with ${req.body.orderItems?.length} items`);
+  const startTime = Date.now();
+
   try {
     const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
@@ -72,7 +75,14 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
     }
 
     const order = await prisma.$transaction(async (tx) => {
-      // 1. Generate Sequential Invoice Number INSIDE transaction (Prevent collisions)
+      // 1. PRE-FETCH ALL PRODUCTS IN ONE GO (HUGE Performance Gain)
+      const productIds = [...new Set(orderItems.map(item => item.productId || item.id))];
+      const productsFromDb = await tx.product.findMany({
+        where: { id: { in: productIds } }
+      });
+      const productMap = new Map(productsFromDb.map(p => [p.id, p]));
+
+      // 2. Generate Sequential Invoice Number
       const latestOrder = await tx.order.findFirst({
         orderBy: { createdAt: 'desc' },
         select: { invoiceNo: true }
@@ -85,28 +95,20 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       }
       const invoiceNo = `${nextNum}`;
 
-      // 2. Calculate points earned (1 point per ₹100 of grandTotal)
-      const earnRate = 100;
-      const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
-
-      // 3. Verify points if redeeming
-      if (customerId && loyaltyPointsRedeemed > 0) {
-        const customer = await tx.customer.findUnique({ where: { id: customerId } });
-        if (!customer) throw new Error('Customer not found');
-        if (customer.loyaltyPoints < loyaltyPointsRedeemed) throw new Error('Insufficient loyalty points');
-      }
-
-      // 4. Validate and Check Stock Levels
+      // 3. Validation & Stock Check
       for (const item of orderItems) {
         const pid = item.productId || item.id;
-        const product = await tx.product.findUnique({ where: { id: pid } });
-        if (!product) throw new Error(`Product ${item.name || pid} not found`);
-        if (product.stockQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stockQuantity}`);
+        const p = productMap.get(pid);
+        if (!p) throw new Error(`Product ID ${pid} not found in database.`);
+        if (p.stockQuantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stockQuantity}, Requested: ${item.quantity}`);
         }
       }
 
-      // 5. Create the order
+      // 4. Create Order + Items + Payment in ONE nested call
+      const earnRate = 100;
+      const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
+
       const newOrder = await tx.order.create({
         data: {
           invoiceNo,
@@ -122,12 +124,10 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           orderItems: {
             create: orderItems.map((item) => {
               const pid = item.productId || item.id;
-              const price = item.price || item.sellingPrice;
-              const gst = parseFloat(item.gstRate ?? 18);
+              const p = productMap.get(pid);
+              const price = item.price || item.sellingPrice || p.sellingPrice;
+              const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
               
-              if (!pid) throw new Error("Missing Product ID for item");
-              if (price === undefined || price === null) throw new Error(`Missing price for product: ${item.name}`);
-
               return {
                 productId: pid,
                 quantity: item.quantity,
@@ -152,37 +152,42 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         }
       });
 
-      // 6. Deduct inventory and log it
-      for (const item of orderItems) {
+      // 5. Consolidated Updates (Stock & Logs)
+      // Parallelize update promises to resolve faster
+      const updatePromises = orderItems.map(item => {
         const pid = item.productId || item.id;
-        await tx.product.update({
-          where: { id: pid },
-          data: { stockQuantity: { decrement: item.quantity } }
-        });
+        return [
+          tx.product.update({
+            where: { id: pid },
+            data: { stockQuantity: { decrement: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: pid,
+              type: 'OUT',
+              quantity: item.quantity,
+              reason: `Order ${invoiceNo}`
+            }
+          })
+        ];
+      }).flat();
 
-        await tx.inventoryLog.create({
-          data: {
-            productId: pid,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason: `Order ${invoiceNo}`
-          }
-        });
-      }
-
-      // 7. Update customer loyalty points and total spent
       if (customerId) {
-        await tx.customer.update({
-          where: { id: customerId },
-          data: {
-            loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
-            totalSpent: { increment: Number(grandTotal) },
-            lastPurchaseDate: new Date()
-          }
-        });
+        updatePromises.push(
+          tx.customer.update({
+            where: { id: customerId },
+            data: {
+              loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
+              totalSpent: { increment: Number(grandTotal) },
+              lastPurchaseDate: new Date()
+            }
+          })
+        );
       }
 
-      // 8. Emit real-time events
+      await Promise.all(updatePromises);
+
+      // 6. Socket Events (Optional Emit)
       const io = req.app.get('io');
       if (io) {
         io.emit('INVENTORY_UPDATE', { items: orderItems });
@@ -190,9 +195,11 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       }
 
       return newOrder;
-    });
+    }, { timeout: 15000 }); // Increase transaction timeout for large orders
 
-    // 9. Automated WhatsApp Messaging (Background)
+    console.log(`[Order API] Success! Processed in ${Date.now() - startTime}ms`);
+
+    // 7. Background Messaging
     if (order && order.customerId) {
         prisma.customer.findUnique({ where: { id: order.customerId } })
             .then(customer => {
@@ -205,8 +212,12 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
     res.json(order);
   } catch (error) {
-    console.error('CRITICAL: Order Creation Error:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error during order creation' });
+    const elapsed = Date.now() - startTime;
+    console.error(`[Order API] FAILED after ${elapsed}ms:`, error);
+    res.status(500).json({ 
+      error: error.message || 'Internal Server Error',
+      details: error.code || 'TRANSACTION_FAILED'
+    });
   }
 });
 
