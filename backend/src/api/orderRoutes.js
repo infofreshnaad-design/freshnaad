@@ -67,42 +67,46 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
     const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
-    // Safer Sequential Invoice Generation (Handles deletions correctly)
-    const latestOrder = await prisma.order.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { invoiceNo: true }
-    });
-    
-    let nextNum = 1001;
-    if (latestOrder) {
-      const match = latestOrder.invoiceNo.match(/\d+/);
-      if (match) nextNum = parseInt(match[0]) + 1;
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(400).json({ error: 'Order must contain at least one item.' });
     }
-    const invoiceNo = `${nextNum}`;
-
 
     const order = await prisma.$transaction(async (tx) => {
-      // 1. Calculate points earned (1 point per ₹100 of grandTotal)
+      // 1. Generate Sequential Invoice Number INSIDE transaction (Prevent collisions)
+      const latestOrder = await tx.order.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { invoiceNo: true }
+      });
+      
+      let nextNum = 1001;
+      if (latestOrder) {
+        const match = latestOrder.invoiceNo.match(/\d+/);
+        if (match) nextNum = parseInt(match[0]) + 1;
+      }
+      const invoiceNo = `${nextNum}`;
+
+      // 2. Calculate points earned (1 point per ₹100 of grandTotal)
       const earnRate = 100;
       const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
-      // 2. Verify points if redeeming
+      // 3. Verify points if redeeming
       if (customerId && loyaltyPointsRedeemed > 0) {
         const customer = await tx.customer.findUnique({ where: { id: customerId } });
         if (!customer) throw new Error('Customer not found');
         if (customer.loyaltyPoints < loyaltyPointsRedeemed) throw new Error('Insufficient loyalty points');
       }
 
-      // 3. Check Stock Levels (Guard against negative stock)
+      // 4. Validate and Check Stock Levels
       for (const item of orderItems) {
-        const product = await tx.product.findUnique({ where: { id: item.id } });
-        if (!product) throw new Error(`Product ${item.name} not found`);
+        const pid = item.productId || item.id;
+        const product = await tx.product.findUnique({ where: { id: pid } });
+        if (!product) throw new Error(`Product ${item.name || pid} not found`);
         if (product.stockQuantity < item.quantity) {
           throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stockQuantity}`);
         }
       }
 
-      // 4. Create the order
+      // 5. Create the order
       const newOrder = await tx.order.create({
         data: {
           invoiceNo,
@@ -117,14 +121,20 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           status: 'COMPLETED',
           orderItems: {
             create: orderItems.map((item) => {
-              const gst = parseFloat(item.gstRate ?? item.product?.gstRate ?? 18);
+              const pid = item.productId || item.id;
+              const price = item.price || item.sellingPrice;
+              const gst = parseFloat(item.gstRate ?? 18);
+              
+              if (!pid) throw new Error("Missing Product ID for item");
+              if (price === undefined || price === null) throw new Error(`Missing price for product: ${item.name}`);
+
               return {
-                productId: item.id,
+                productId: pid,
                 quantity: item.quantity,
-                price: item.sellingPrice,
+                price: price,
                 discount: item.discount || 0,
-                taxAmount: (item.sellingPrice * (gst / 100)) * item.quantity,
-                total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * (gst / 100)) * item.quantity)
+                taxAmount: (price * (gst / 100)) * item.quantity,
+                total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)
               };
             })
           },
@@ -137,29 +147,22 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           }
         },
         include: {
-          orderItems: {
-            include: {
-              product: true
-            }
-          },
+          orderItems: { include: { product: true } },
           payments: true
         }
       });
 
-      // 5. Deduct inventory and log it
+      // 6. Deduct inventory and log it
       for (const item of orderItems) {
+        const pid = item.productId || item.id;
         await tx.product.update({
-          where: { id: item.id },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity
-            }
-          }
+          where: { id: pid },
+          data: { stockQuantity: { decrement: item.quantity } }
         });
 
         await tx.inventoryLog.create({
           data: {
-            productId: item.id,
+            productId: pid,
             type: 'OUT',
             quantity: item.quantity,
             reason: `Order ${invoiceNo}`
@@ -167,23 +170,19 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         });
       }
 
-      // 6. Update customer loyalty points and total spent
+      // 7. Update customer loyalty points and total spent
       if (customerId) {
         await tx.customer.update({
           where: { id: customerId },
           data: {
-            loyaltyPoints: {
-              increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0)
-            },
-            totalSpent: {
-              increment: Number(grandTotal)
-            },
+            loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
+            totalSpent: { increment: Number(grandTotal) },
             lastPurchaseDate: new Date()
           }
         });
       }
 
-      // 7. Emit real-time events for other terminals
+      // 8. Emit real-time events
       const io = req.app.get('io');
       if (io) {
         io.emit('INVENTORY_UPDATE', { items: orderItems });
@@ -193,25 +192,21 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       return newOrder;
     });
 
-    // 8. Automated WhatsApp Messaging (Background - Non-blocking for terminal speed)
+    // 9. Automated WhatsApp Messaging (Background)
     if (order && order.customerId) {
-        // Fire and forget - don't await so the terminal gets an instant response
         prisma.customer.findUnique({ where: { id: order.customerId } })
             .then(customer => {
                 if (customer && customer.phone) {
                     return whatsappUtil.sendReceipt(order, customer.phone, req.headers.host);
                 }
             })
-            .then(waResult => {
-                if (waResult) order.whatsappStatus = waResult;
-            })
-            .catch(err => console.error('Background WhatsApp Automation Error:', err));
+            .catch(err => console.error('Background WhatsApp Logic Error:', err));
     }
 
     res.json(order);
   } catch (error) {
-    console.error('Order Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('CRITICAL: Order Creation Error:', error);
+    res.status(500).json({ error: error.message || 'Internal Server Error during order creation' });
   }
 });
 
