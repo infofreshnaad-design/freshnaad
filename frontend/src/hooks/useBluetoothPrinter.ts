@@ -137,17 +137,34 @@ export const useBluetoothPrinter = () => {
   }, [globalDisconnect]);
 
   const print = useCallback(async (data: Uint8Array) => {
-    const ok = await ensureConnected();
-    if (!ok) throw new Error('Printer is offline. Please reconnect in Settings.');
-    
-    if (!characteristic) throw new Error('Invalid characteristic.');
+    try {
+      const ok = await ensureConnected();
+      if (!ok) throw new Error('Printer is offline. Please reconnect in Settings.');
+      
+      if (!characteristic) throw new Error('Invalid characteristic handle.');
 
-    const CHUNK_SIZE = 512;
-    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-      const chunk = data.slice(i, i + CHUNK_SIZE);
-      await characteristic.writeValue(chunk);
+      // 1. TRANSMIT DATA
+      const CHUNK_SIZE = 512;
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        const chunk = data.slice(i, i + CHUNK_SIZE);
+        await characteristic.writeValue(chunk);
+      }
+
+      // 2. SHARED MODE: Release the connection so other devices can print
+      // We add a tiny 1-second delay to ensure the printer's internal buffer is clear
+      setTimeout(() => {
+        if (device && device.gatt.connected) {
+          console.log('Releasing printer for other devices...');
+          device.gatt.disconnect();
+          setIsConnected(false);
+        }
+      }, 1000);
+
+    } catch (err: any) {
+      console.error('Print Error:', err);
+      throw err;
     }
-  }, [characteristic, ensureConnected]);
+  }, [device, characteristic, ensureConnected, setIsConnected]);
 
   return { connect, disconnect, print, isConnected, device, error, ensureConnected };
 };
