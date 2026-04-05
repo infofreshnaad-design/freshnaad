@@ -38,6 +38,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   }, [amountPaid, grandTotal, loading]);
 
   const submitPayment = async () => {
+    const numAmount = parseFloat(amountPaid);
+    if (numAmount < grandTotal) {
+      alert(`Invalid Amount! You must collect at least ₹${grandTotal.toFixed(2)} to complete this sale.`);
+      return;
+    }
+    
     setLoading(true);
     try {
       await onPaymentComplete(paymentMethod, amountPaid);
@@ -137,7 +143,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                   <span className="font-bold text-xs">CASH</span>
                 </button>
                 <button
-                  onClick={() => setPaymentMethod('UPI')}
+                  onClick={() => { setPaymentMethod('UPI'); setAmountPaid(grandTotal.toString()); }}
                   className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
                     paymentMethod === 'UPI' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 bg-white hover:border-slate-300 text-slate-400'
                   }`}
@@ -146,7 +152,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                   <span className="font-bold text-xs">UPI QR</span>
                 </button>
                 <button
-                  onClick={() => setPaymentMethod('CARD')}
+                  onClick={() => { setPaymentMethod('CARD'); setAmountPaid(grandTotal.toString()); }}
                   className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
                     paymentMethod === 'CARD' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 bg-white hover:border-slate-300 text-slate-400'
                   }`}

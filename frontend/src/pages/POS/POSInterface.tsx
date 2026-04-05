@@ -254,11 +254,11 @@ const POSInterface: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
       {/* Loading Overlay */}
+      {/* Syncing Indicator (Subtle) */}
       {isSyncing && (
-        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-lg font-semibold text-indigo-900 animate-pulse">Syncing Order with Server...</p>
-          <p className="text-sm text-slate-500">Please do not refresh the page</p>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
+          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-[10px] font-black uppercase tracking-widest">Processing...</span>
         </div>
       )}
       {/* Top Header */}
