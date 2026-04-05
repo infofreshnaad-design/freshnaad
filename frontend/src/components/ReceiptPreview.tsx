@@ -29,13 +29,18 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         
         if (connected) {
           await handleBluetoothPrint();
+          // Auto-close after Bluetooth print
+          onClose();
         } else {
-          // If auto-repair fails and we were supposed to be connected, or just not connected
+          // If auto-repair fails, fallback to system print
           handleSystemPrint();
+          // Auto-close after launching system print
+          onClose();
         }
       } catch (error) {
         console.error('Print logic error:', error);
         handleSystemPrint();
+        onClose();
       } finally {
         setIsPrinting(false);
       }
