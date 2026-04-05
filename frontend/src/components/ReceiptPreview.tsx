@@ -261,6 +261,14 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <p className="mt-1">Digital Bill Generated via POS Pro</p>
               <p className="mt-1 font-bold">Software by NIVAN SOLUTIONS</p>
             </div>
+
+            {/* Sync Overlay / Status */}
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${order.isSyncing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                {order.isSyncing ? 'Syncing with Server...' : 'Server Sync: OK'}
+              </span>
+            </div>
           </div>
 
           <div className="p-6 bg-white border-t flex flex-col gap-4 print:hidden">

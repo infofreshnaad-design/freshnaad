@@ -191,9 +191,11 @@ const POSInterface: React.FC = () => {
 
   const handlePaymentComplete = async (method: string, amount: string) => {
     const { subtotal, taxTotal, grandTotal } = getTotals();
+    const tempInvoiceNo = `POS-P${Math.floor(Math.random() * 9000) + 1000}`; // Short, clean temporary ID
+    
     const orderData = {
       id: crypto.randomUUID(), 
-      invoiceNo: `POS-${Date.now()}`, // Template ID until server responds
+      invoiceNo: tempInvoiceNo,
       orderItems: cart.map((item: any) => ({
         ...item,
         price: item.sellingPrice,
@@ -208,59 +210,51 @@ const POSInterface: React.FC = () => {
       loyaltyPointsRedeemed: appliedPoints,
       customerId: customer?.id || null,
       createdAt: new Date().toISOString(),
+      isSyncing: true // Visual flag for the receipt
     };
 
-    setIsSyncing(true);
-    try {
-      if (isOnline) {
-        const response = await api.post('/orders', orderData, {
-          headers: { 'x-terminal-id': 'T1' }
-        });
-        
-        // 1. Set real order with server-generated ID and Invoice #
-        setRecentOrder(response.data);
-        
-        // 2. REFRESH STOCK: In the true background to avoid UI freeze
-        fetchProducts().catch(err => console.error('Background refresh error:', err));
-      } else {
-        await addToSyncQueue('CREATE_ORDER', orderData);
-        setRecentOrder(orderData);
-      }
+    // --- INSTANT UI TRANSITION ---
+    // We clear the cart and show the receipt BEFORE sending to the server
+    setRecentOrder(orderData);
+    clearCart();
+    setIsPaymentModalOpen(false);
+    setIsPreviewOpen(true);
 
-      // --- INSTANT UI TRANSITION ---
-      clearCart();
-      setIsPaymentModalOpen(false);
-      setIsPreviewOpen(true);
-
-    } catch (error: any) {
-      console.error('Payment Sync Error:', error);
-      const serverError = error.response?.data?.error || error.message;
-      
-      if (isOnline) {
-        alert(`Payment failed to sync: ${serverError}\n\nOrder saved locally for later sync.`);
+    // --- BACKGROUND SILENT SYNC ---
+    const runBackgroundSync = async () => {
+      try {
+        if (isOnline) {
+          const response = await api.post('/orders', orderData, {
+            headers: { 'x-terminal-id': 'T1' }
+          });
+          
+          // Once server responds, update the receipt with the REAL invoice No
+          setRecentOrder({
+            ...response.data,
+            isSyncing: false
+          });
+          
+          // Refresh products silently in far background
+          setTimeout(() => fetchProducts().catch(() => {}), 500);
+        } else {
+          await addToSyncQueue('CREATE_ORDER', orderData);
+          setRecentOrder({ ...orderData, isSyncing: false });
+        }
+      } catch (error: any) {
+        console.error('Background Sync Failed:', error);
+        // Silently queue for later retry
         await addToSyncQueue('CREATE_ORDER', orderData);
-        setRecentOrder(orderData);
-        clearCart();
-        setIsPaymentModalOpen(false);
-        setIsPreviewOpen(true);
       }
-    } finally {
-      setIsSyncing(false);
-    }
+    };
+
+    runBackgroundSync(); // Fire and forget
   };
 
   const { subtotal, taxTotal, grandTotal } = getTotals();
 
   return (
     <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
-      {/* Loading Overlay */}
-      {/* Syncing Indicator (Subtle) */}
-      {isSyncing && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
-          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-[10px] font-black uppercase tracking-widest">Processing...</span>
-        </div>
-      )}
+      {/* Zero-Processing Main Interface */}
       {/* Top Header */}
       <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
         <div className="flex items-center gap-2">
