@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins } from 'lucide-react';
+import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
@@ -9,6 +9,7 @@ import { Product, CartItem } from '../../types';
 import { offlineDB } from '../../utils/offlineDB';
 import { addToSyncQueue } from '../../utils/syncQueue';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
+import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
 import InstallPrompt from '../../components/InstallPrompt';
 import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 import RedeemPointsModal from '../../components/RedeemPointsModal';
@@ -37,6 +38,7 @@ const POSInterface: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const isOnline = useNetworkStatus();
+  const { isConnected, disconnect, ensureConnected } = useBluetoothPrinter();
   
   const customer = usePOSStore(state => state.customer);
   const setCustomer = usePOSStore(state => state.setCustomer);
@@ -266,6 +268,15 @@ const POSInterface: React.FC = () => {
             {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
             <span className="hidden xs:block">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
           </div>
+
+          <button 
+            onClick={() => isConnected ? disconnect() : ensureConnected().catch(() => {})}
+            className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border transition-all ${isConnected ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-slate-500/10 border-slate-500/50 text-slate-400'}`}
+            title={isConnected ? "Click to release printer for other phones" : "Click to connect to printer"}
+          >
+            {isConnected ? <Bluetooth size={12} /> : <BluetoothOff size={12} />}
+            <span className="hidden xs:block">{isConnected ? 'PRINTER: ON' : 'PRINTER: OFF'}</span>
+          </button>
           <button 
             onClick={toggleFullscreen}
             className="p-1.5 md:p-2 hover:bg-blue-700 rounded-lg transition-all hidden xs:block"
