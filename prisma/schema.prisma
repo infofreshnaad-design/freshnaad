@@ -198,6 +198,9 @@ model SalesReturnItem {
   price         Float
   taxAmount     Float
   total         Float
+
+  @@index([salesReturnId])
+  @@index([productId])
 }
 
 model OrderItem {
@@ -211,6 +214,9 @@ model OrderItem {
   discount   Float   @default(0)
   taxAmount Float
   total     Float
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model PurchaseReturn {
@@ -252,6 +258,8 @@ model InventoryLog {
   quantity   Int
   reason     String?
   createdAt  DateTime @default(now())
+
+  @@index([productId])
 }
 
 model Payment {

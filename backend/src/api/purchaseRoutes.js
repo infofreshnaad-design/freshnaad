@@ -88,26 +88,23 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         }
       });
 
-      // 2. Increment inventory and log it
-      for (const item of purchaseItems) {
-        await tx.product.update({
+      // 2. Parallel Inventory Updates
+      const inventoryUpdates = purchaseItems.map(item => [
+        tx.product.update({
           where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              increment: item.quantity
-            }
-          }
-        });
-
-        await tx.inventoryLog.create({
+          data: { stockQuantity: { increment: item.quantity } }
+        }),
+        tx.inventoryLog.create({
           data: {
             productId: item.productId,
             type: 'IN',
             quantity: item.quantity,
             reason: `Purchase ${invoiceNo}`
           }
-        });
-      }
+        })
+      ]).flat();
+
+      await Promise.all(inventoryUpdates);
 
       // 3. Emit real-time events for other terminals
       const io = req.app.get('io');
@@ -215,40 +212,49 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 
       if (!oldPurchase) throw new Error('Purchase not found');
 
-      // 1. REVERSE: Decrement stock for old items
+      // 1. Calculate Inventory Changes
+      const updatePromises = [];
+      
+      // Reverse old items (Decrement)
       for (const item of oldPurchase.purchaseItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stockQuantity: { decrement: item.quantity } }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason: `Edit Reverse: ${oldPurchase.invoiceNo}`
-          }
-        });
+        updatePromises.push(
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: { decrement: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: item.productId,
+              type: 'OUT',
+              quantity: item.quantity,
+              reason: `Edit Reverse: ${oldPurchase.invoiceNo}`
+            }
+          })
+        );
       }
 
-      // 2. APPLY: Delete old and create new
-      await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
-
+      // Apply new items (Increment)
       for (const item of newItems) {
         const pid = item.productId || item.id;
-        await tx.product.update({
-          where: { id: pid },
-          data: { stockQuantity: { increment: item.quantity } }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: pid,
-            type: 'IN',
-            quantity: item.quantity,
-            reason: `Edit Apply: ${oldPurchase.invoiceNo}`
-          }
-        });
+        updatePromises.push(
+          tx.product.update({
+            where: { id: pid },
+            data: { stockQuantity: { increment: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: pid,
+              type: 'IN',
+              quantity: item.quantity,
+              reason: `Edit Apply: ${oldPurchase.invoiceNo}`
+            }
+          })
+        );
       }
+
+      // 2. Delete old and Execute updates in parallel
+      await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
+      await Promise.all(updatePromises);
 
       return await tx.purchase.update({
         where: { id },

@@ -223,6 +223,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
 // Update existing order (Full edit with inventory reversal)
 router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+  const startTime = Date.now();
   try {
     const { id } = req.params;
     const { orderItems: newItems, subtotal, discount, taxTotal, grandTotal, paymentMode, customerId } = req.body;
@@ -233,26 +234,19 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         where: { id },
         include: { orderItems: true, customer: true }
       });
-
       if (!oldOrder) throw new Error('Order not found');
 
-      // 2. REVERSE: Increment inventory for old items
-      for (const item of oldOrder.orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stockQuantity: { increment: item.quantity } }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'IN',
-            quantity: item.quantity,
-            reason: `Edit Reverse: ${oldOrder.invoiceNo}`
-          }
-        });
-      }
+      // 2. Pre-fetch ALL products involved (Old and New)
+      const allProductIds = [...new Set([
+        ...oldOrder.orderItems.map(i => i.productId),
+        ...newItems.map(i => i.productId || i.id)
+      ])];
+      const productsFromDb = await tx.product.findMany({
+        where: { id: { in: allProductIds } }
+      });
+      const productMap = new Map(productsFromDb.map(p => [p.id, p]));
 
-      // 3. REVERSE: Loyalty and Spending
+      // 3. REVERSE: Old Loyalty and Spending
       if (oldOrder.customerId) {
         await tx.customer.update({
           where: { id: oldOrder.customerId },
@@ -263,36 +257,60 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         });
       }
 
-      // 4. APPLY: Delete old items
+      // 4. Calculate Inventory Changes
+      const updatePromises = [];
+      
+      // Reverse old items
+      for (const item of oldOrder.orderItems) {
+        updatePromises.push(
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: { increment: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: item.productId,
+              type: 'IN',
+              quantity: item.quantity,
+              reason: `Edit Reverse: ${oldOrder.invoiceNo}`
+            }
+          })
+        );
+      }
+
+      // 5. APPLY: Delete old mapping and prepare new
       await tx.orderItem.deleteMany({ where: { orderId: id } });
       await tx.payment.deleteMany({ where: { orderId: id } });
 
-      // 5. APPLY: Create new items and update stock
       const earnRate = 100;
       const newLoyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
+      // Re-apply new items
       for (const item of newItems) {
-        // Double check stock for new quantities
         const pid = item.productId || item.id;
-        const product = await tx.product.findUnique({ where: { id: pid } });
-        if (!product) throw new Error(`Product not found`);
-        
-        await tx.product.update({
-          where: { id: pid },
-          data: { stockQuantity: { decrement: item.quantity } }
-        });
+        const p = productMap.get(pid);
+        if (!p) throw new Error(`Product ${pid} not found`);
 
-        await tx.inventoryLog.create({
-          data: {
-            productId: pid,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason: `Edit Apply: ${oldOrder.invoiceNo}`
-          }
-        });
+        updatePromises.push(
+          tx.product.update({
+            where: { id: pid },
+            data: { stockQuantity: { decrement: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: pid,
+              type: 'OUT',
+              quantity: item.quantity,
+              reason: `Edit Apply: ${oldOrder.invoiceNo}`
+            }
+          })
+        );
       }
 
-      // 6. UPDATE Order Record
+      // Execute all inventory updates in parallel
+      await Promise.all(updatePromises);
+
+      // 6. Final Record Update
       const finalOrder = await tx.order.update({
         where: { id },
         data: {
@@ -306,8 +324,9 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           orderItems: {
             create: newItems.map((item) => {
               const pid = item.productId || item.id;
-              const price = item.price || item.sellingPrice;
-              const gst = parseFloat(item.gstRate || 18);
+              const p = productMap.get(pid);
+              const price = item.price || item.sellingPrice || p.sellingPrice;
+              const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
               return {
                 productId: pid,
                 quantity: item.quantity,
@@ -329,7 +348,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         include: { orderItems: { include: { product: true } }, payments: true }
       });
 
-      // 7. Update new customer loyalty/spent
+      // 7. Update new customer loyalty
       if (customerId) {
         await tx.customer.update({
           where: { id: customerId },
@@ -348,11 +367,12 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       }
 
       return finalOrder;
-    });
+    }, { timeout: 20000 });
 
+    console.log(`[Order API] Edit Success in ${Date.now() - startTime}ms`);
     res.json(updatedOrder);
   } catch (error) {
-    console.error('Update Order Error:', error);
+    console.error('[Order API] Edit FAILED:', error);
     res.status(500).json({ error: error.message });
   }
 });

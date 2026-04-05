@@ -22,7 +22,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     const returnNo = `${1001 + returnCount}`;
 
     const purchaseReturn = await prisma.$transaction(async (tx) => {
-      // 1. Create the Purchase Return
+      // 1. Create the Purchase Return with items
       const newReturn = await tx.purchaseReturn.create({
         data: {
           returnNo,
@@ -44,34 +44,29 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
             }))
           }
         },
-        include: {
-          returnItems: true
-        }
+        include: { returnItems: true }
       });
 
-      // 2. Decrement inventory (Return to Supplier) and log it
-      for (const item of returnItems) {
-        await tx.product.update({
+      // 2. Parallel Inventory Updates
+      const inventoryUpdates = returnItems.map(item => [
+        tx.product.update({
           where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity
-            }
-          }
-        });
-
-        await tx.inventoryLog.create({
+          data: { stockQuantity: { decrement: item.quantity } }
+        }),
+        tx.inventoryLog.create({
           data: {
             productId: item.productId,
             type: 'OUT',
             quantity: item.quantity,
             reason: `Purchase Return ${returnNo}`
           }
-        });
-      }
+        })
+      ]).flat();
+
+      await Promise.all(inventoryUpdates);
 
       return newReturn;
-    });
+    }, { timeout: 15000 });
 
     res.json(purchaseReturn);
   } catch (error) {
