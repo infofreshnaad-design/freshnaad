@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
@@ -57,6 +57,7 @@ const Reports = () => {
   const [customEnd, setCustomEnd] = useState('');
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState<'CSV' | 'PDF' | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState(''); // For specific party/item queries
   const [entities, setEntities] = useState<any[]>([]); // To populate dropdowns for statement/details
   const [selectedReturn, setSelectedReturn] = useState<any>(null); // For Credit Note Detailed View
@@ -134,81 +135,90 @@ const Reports = () => {
 
   const handleExport = (format: 'PDF' | 'CSV') => {
     if (!reportData) return;
+    setIsExporting(format);
 
-    let headers: string[] = [];
-    let data: any[][] = [];
-    let title = reportCategories.flatMap(c => c.reports).find(r => r.id === activeReport)?.name || 'Report';
-    const filename = `${activeReport}_${new Date().toISOString().split('T')[0]}`;
+    setTimeout(() => {
+        try {
+            let headers: string[] = [];
+            let data: any[][] = [];
+            let title = reportCategories.flatMap(c => c.reports).find(r => r.id === activeReport)?.name || 'Report';
+            const filename = `${activeReport}_${new Date().toISOString().split('T')[0]}`;
 
-    // 1. Format Data Based on Active Report
-    switch (activeReport) {
-      case 'sales':
-      case 'purchase':
-        headers = ['Date', 'Invoice', activeReport === 'sales' ? 'Customer' : 'Supplier', 'Amount'];
-        data = reportData.details.map((item: any) => [
-          new Date(item.createdAt).toLocaleDateString(),
-          item.invoiceNo,
-          activeReport === 'sales' ? (item.customer?.name || 'Walk-in') : item.supplierName,
-          `Rs.${item.grandTotal.toFixed(2)}`
-        ]);
-        break;
+            // 1. Format Data Based on Active Report
+            switch (activeReport) {
+              case 'sales':
+              case 'purchase':
+                headers = ['Date', 'Invoice', activeReport === 'sales' ? 'Customer' : 'Supplier', 'Amount'];
+                data = reportData.details.map((item: any) => [
+                  new Date(item.createdAt || item.date).toLocaleDateString(),
+                  item.invoiceNo,
+                  activeReport === 'sales' ? (item.customer?.name || 'Walk-in') : item.supplierName,
+                  `Rs.${item.grandTotal.toFixed(2)}`
+                ]);
+                break;
 
-      case 'stock-summary':
-        headers = ['ID', 'Name', 'Category', 'Stock', 'Price'];
-        data = reportData.map((item: any) => [
-          item.id.slice(0, 8),
-          item.name,
-          item.category?.name || 'N/A',
-          item.stockQuantity,
-          `Rs.${item.sellingPrice}`
-        ]);
-        break;
+              case 'stock-summary':
+                headers = ['ID', 'Name', 'Category', 'Stock', 'Price'];
+                data = reportData.map((item: any) => [
+                  item.id.slice(0, 8),
+                  item.name,
+                  item.category?.name || 'N/A',
+                  item.stockQuantity,
+                  `Rs.${item.sellingPrice}`
+                ]);
+                break;
 
-      case 'expenses':
-        headers = ['Date', 'Category', 'Amount', 'Description'];
-        data = reportData.details.map((item: any) => [
-          new Date(item.date).toLocaleDateString(),
-          item.category,
-          `Rs.${item.amount}`,
-          item.description || '-'
-        ]);
-        break;
+              case 'expenses':
+                headers = ['Date', 'Category', 'Amount', 'Description'];
+                data = reportData.details.map((item: any) => [
+                  new Date(item.date).toLocaleDateString(),
+                  item.category,
+                  `Rs.${item.amount}`,
+                  item.description || '-'
+                ]);
+                break;
 
-      case 'supplier-ledger':
-        headers = ['Date', 'Invoice', 'Status', 'Bill Amt', 'Balance'];
-        data = (reportData.purchases || []).map((p: any) => [
-          new Date(p.date || p.createdAt).toLocaleDateString(),
-          p.invoiceNo,
-          p.paymentStatus,
-          `Rs.${p.grandTotal.toFixed(2)}`,
-          `Rs.${p.balanceDue.toFixed(2)}`
-        ]);
-        title = `Ledger: ${reportData.name}`;
-        break;
+              case 'supplier-ledger':
+                headers = ['Date', 'Invoice', 'Status', 'Bill Amt', 'Balance'];
+                data = (reportData.purchases || []).map((p: any) => [
+                  new Date(p.date || p.createdAt).toLocaleDateString(),
+                  p.invoiceNo,
+                  p.paymentStatus,
+                  `Rs.${p.grandTotal.toFixed(2)}`,
+                  `Rs.${p.balanceDue.toFixed(2)}`
+                ]);
+                title = `Ledger: ${reportData.name}`;
+                break;
 
-      default:
-        // Generic fallback for any other list of objects
-        if (Array.isArray(reportData)) {
-          headers = Object.keys(reportData[0] || {});
-          data = reportData.map(row => Object.values(row));
-        } else if (reportData.details && Array.isArray(reportData.details)) {
-          headers = Object.keys(reportData.details[0] || {});
-          data = reportData.details.map((row: any) => Object.values(row));
+              default:
+                // Generic fallback for any other list of objects
+                if (Array.isArray(reportData)) {
+                  headers = Object.keys(reportData[0] || {});
+                  data = reportData.map(row => Object.values(row));
+                } else if (reportData.details && Array.isArray(reportData.details)) {
+                  headers = Object.keys(reportData.details[0] || {});
+                  data = reportData.details.map((row: any) => Object.values(row));
+                }
+            }
+
+            // 2. Trigger Export
+            if (format === 'CSV') {
+                const csvData = data.map(row => {
+                    const obj: any = {};
+                    headers.forEach((h, i) => obj[h] = row[i]);
+                    return obj;
+                });
+                exportUtils.exportToCSV(csvData.length > 0 ? csvData : reportData, filename);
+            } else {
+                exportUtils.exportToPDF({ title, headers, data, filename });
+            }
+        } catch (error) {
+            console.error('Export Failed:', error);
+            alert('Failed to generate export file. Please check console for details.');
+        } finally {
+            setIsExporting(null);
         }
-    }
-
-    // 2. Trigger Export
-    if (format === 'CSV') {
-        // Flatten data for CSV if it was mapped for PDF
-        const csvData = data.map(row => {
-            const obj: any = {};
-            headers.forEach((h, i) => obj[h] = row[i]);
-            return obj;
-        });
-        exportUtils.exportToCSV(csvData.length > 0 ? csvData : reportData, filename);
-    } else {
-        exportUtils.exportToPDF({ title, headers, data, filename });
-    }
+    }, 100); // Small delay to let the UI update the button state
   };
 
   const renderReportContent = () => {
@@ -952,15 +962,19 @@ const Reports = () => {
               <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
                 <button 
                   onClick={() => handleExport('CSV')}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs hover:bg-emerald-100 transition-all border border-emerald-100"
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs hover:bg-emerald-100 transition-all border border-emerald-100 disabled:opacity-50"
                 >
-                  <FileSpreadsheet size={16} /> EXPORT CSV
+                  {isExporting === 'CSV' ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />} 
+                  {isExporting === 'CSV' ? 'DOWNLOADING...' : 'EXPORT CSV'}
                 </button>
                 <button 
                   onClick={() => handleExport('PDF')}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-xs hover:bg-red-100 transition-all border border-red-100"
+                  disabled={isExporting !== null}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-xs hover:bg-red-100 transition-all border border-red-100 disabled:opacity-50"
                 >
-                  <FileText size={16} /> EXPORT PDF
+                  {isExporting === 'PDF' ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />} 
+                  {isExporting === 'PDF' ? 'GENERATING...' : 'EXPORT PDF'}
                 </button>
               </div>
             )}
