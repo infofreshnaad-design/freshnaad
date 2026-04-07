@@ -35,15 +35,15 @@ function App() {
           {/* Mobile Toggle */}
           <button 
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden fixed top-4 left-4 z-40 bg-slate-900 text-white p-3 rounded-2xl shadow-xl shadow-blue-500/20"
+            className="md:hidden fixed top-3 left-3 z-40 bg-slate-900 text-white p-3.5 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-90 transition-transform"
           >
-            <Menu size={24} />
+            <Menu size={20} />
           </button>
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         </>
       )}
       
-      <div className={`flex-1 overflow-auto w-full ${token ? 'pt-16 md:pt-0' : ''}`}>
+      <div className={`flex-1 overflow-auto w-full ${token ? 'pt-14 md:pt-0' : ''}`}>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={!token ? <LoginPage /> : <Navigate to="/" replace />} />

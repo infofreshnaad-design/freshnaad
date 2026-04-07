@@ -66,23 +66,23 @@ const AdminDashboard = () => {
     }, []);
 
     if (loading) return (
-        <div className="p-8 bg-slate-900 min-h-screen flex items-center justify-center">
+        <div className="p-4 md:p-8 bg-slate-900 min-h-screen flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-                <RefreshCcw className="text-blue-500 animate-spin" size={48} />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Initializing Command Center...</p>
+                <RefreshCcw className="text-blue-500 animate-spin" size={32} />
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Initializing Command Center...</p>
             </div>
         </div>
     );
 
     return (
-        <div className="p-8 bg-slate-900 min-h-screen font-sans text-white">
+        <div className="p-4 md:p-8 bg-slate-900 min-h-screen font-sans text-white">
             <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-10">
                     <div>
-                        <h1 className="text-4xl font-black tracking-tight mb-2">Global Command Center</h1>
-                        <p className="text-slate-400 font-medium flex items-center gap-2">
+                        <h1 className="text-2xl md:text-4xl font-black tracking-tight mb-2">Global Command Center</h1>
+                        <p className="text-slate-400 font-medium text-xs md:text-base flex flex-wrap items-center gap-2">
                             Real-time enterprise monitoring. 
-                            <span className="text-[10px] bg-white/5 px-2 py-1 rounded-md text-slate-500 font-mono">
+                            <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded-md text-slate-500 font-mono">
                                 LAST REFRESHED: {new Date(stats.lastSync).toLocaleTimeString()}
                             </span>
                         </p>
@@ -102,66 +102,66 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-8 mb-8 md:mb-10">
                     <button 
                         onClick={() => navigate('/reports')}
-                        className="text-left bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
+                        className="text-left bg-white/5 backdrop-blur-xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
                     >
-                        <div className="absolute top-0 right-0 p-8 text-blue-500/10 group-hover:text-blue-500/20 transition-colors">
-                            <TrendingUp size={80} />
+                        <div className="absolute top-0 right-0 p-4 md:p-8 text-blue-500/10 group-hover:text-blue-500/20 transition-colors">
+                            <TrendingUp size={40} className="md:w-20 md:h-20" />
                         </div>
-                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                            Live Revenue <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-slate-400 font-bold text-[8px] md:text-xs uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
+                            Revenue <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
-                        <h2 className="text-4xl font-black">₹{stats.totalRevenue.toLocaleString()}</h2>
+                        <h2 className="text-xl md:text-4xl font-black truncate">₹{stats.totalRevenue.toLocaleString()}</h2>
                     </button>
 
                     <button 
                         onClick={() => navigate('/reports')}
-                        className="text-left bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
+                        className="text-left bg-white/5 backdrop-blur-xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
                     >
-                        <div className="absolute top-0 right-0 p-8 text-green-500/10 group-hover:text-green-500/20 transition-colors">
-                            <ShoppingBag size={80} />
+                        <div className="absolute top-0 right-0 p-4 md:p-8 text-green-500/10 group-hover:text-green-500/20 transition-colors">
+                            <ShoppingBag size={40} className="md:w-20 md:h-20" />
                         </div>
-                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                            Total Orders <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-slate-400 font-bold text-[8px] md:text-xs uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
+                            Orders <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
-                        <h2 className="text-4xl font-black">{stats.totalOrders}</h2>
+                        <h2 className="text-xl md:text-4xl font-black">{stats.totalOrders}</h2>
                     </button>
 
                     <button 
                         onClick={() => navigate('/inventory')}
-                        className="text-left bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
+                        className="text-left bg-white/5 backdrop-blur-xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
                     >
-                        <div className="absolute top-0 right-0 p-8 text-orange-500/10 group-hover:text-orange-500/20 transition-colors">
-                            <AlertTriangle size={80} />
+                        <div className="absolute top-0 right-0 p-4 md:p-8 text-orange-500/10 group-hover:text-orange-500/20 transition-colors">
+                            <AlertTriangle size={40} className="md:w-20 md:h-20" />
                         </div>
-                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                            Stock Alerts <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-slate-400 font-bold text-[8px] md:text-xs uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
+                            Alerts <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
-                        <h2 className="text-4xl font-black text-orange-400">{stats.lowStockAlerts}</h2>
+                        <h2 className="text-xl md:text-4xl font-black text-orange-400">{stats.lowStockAlerts}</h2>
                     </button>
 
                     <button 
                         onClick={() => navigate('/admin/devices')}
-                        className="text-left bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
+                        className="text-left bg-white/5 backdrop-blur-xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
                     >
-                        <div className="absolute top-0 right-0 p-8 text-purple-500/10 group-hover:text-purple-500/20 transition-colors">
-                            <Smartphone size={80} />
+                        <div className="absolute top-0 right-0 p-4 md:p-8 text-purple-500/10 group-hover:text-purple-500/20 transition-colors">
+                            <Smartphone size={40} className="md:w-20 md:h-20" />
                         </div>
-                        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                            Terminals <ArrowUpRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-slate-400 font-bold text-[8px] md:text-xs uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
+                            Terminals <ArrowUpRight size={10} className="md:w-3.5 md:h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </p>
-                        <h2 className="text-4xl font-black">{stats.activeTerminals}</h2>
+                        <h2 className="text-xl md:text-4xl font-black">{stats.activeTerminals}</h2>
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-                        <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                            <h3 className="text-xl font-bold flex items-center gap-3">
-                                <Clock className="text-blue-500" />
-                                Global Transaction Stream
+                    <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-3xl md:rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
+                        <div className="p-5 md:p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/[0.02]">
+                            <h3 className="text-lg md:text-xl font-bold flex items-center gap-3">
+                                <Clock className="text-blue-500" size={20} />
+                                Transaction Stream
                             </h3>
                             <button 
                                 onClick={() => navigate('/reports')}
@@ -210,10 +210,10 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl flex flex-col">
-                        <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-                            <BarChart3 className="text-purple-500" />
-                            Category Performance
+                    <div className="bg-white/5 backdrop-blur-xl rounded-3xl md:rounded-[2.5rem] border border-white/10 p-6 md:p-8 shadow-2xl flex flex-col">
+                        <h3 className="text-lg md:text-xl font-bold mb-6 md:mb-8 flex items-center gap-3">
+                            <BarChart3 className="text-purple-500" size={20} />
+                            Categories
                         </h3>
                         <div className="space-y-6 flex-1">
                             {stats.distribution.map((cat, idx) => {

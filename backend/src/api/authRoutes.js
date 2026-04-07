@@ -177,11 +177,45 @@ router.post('/admin/reset-password', async (req, res) => {
     }
 });
 
+// Create new user (Admin only)
+router.post('/users', async (req, res) => {
+    const { name, username, password, role, adminId } = req.body;
+    try {
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'ADMIN') {
+            return res.status(403).json({ message: 'Unauthorized. Admin access required.' });
+        }
+
+        const existingUser = await prisma.user.findUnique({ where: { username } });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = await prisma.user.create({
+            data: {
+                name,
+                username,
+                password: hashedPassword,
+                role: role || 'CASHIER'
+            }
+        });
+
+        res.status(201).json({ 
+            message: 'User created successfully', 
+            user: { id: newUser.id, name: newUser.name, username: newUser.username, role: newUser.role } 
+        });
+    } catch (error) {
+        console.error('User Creation Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get all users (Admin only, for user selection)
 router.get('/users', async (req, res) => {
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, email: true, role: true }
+            select: { id: true, name: true, username: true, role: true }
         });
         res.json(users);
     } catch (error) {

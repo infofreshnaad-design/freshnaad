@@ -39,8 +39,8 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-[100] w-72 bg-slate-900 flex flex-col text-slate-400 select-none 
-        transition-transform duration-300 transform md:relative md:translate-x-0 md:w-20 lg:w-64
+        fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 bg-slate-900 flex flex-col text-slate-400 select-none 
+        transition-transform duration-300 ease-in-out transform md:relative md:translate-x-0 md:w-20 lg:w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 flex items-center justify-between border-b border-slate-800">

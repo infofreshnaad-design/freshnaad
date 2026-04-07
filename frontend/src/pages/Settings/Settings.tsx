@@ -29,6 +29,14 @@ const Settings = () => {
     const [selectedUserId, setSelectedUserId] = useState('');
     const [resetPassword, setResetPassword] = useState('');
 
+    // New User state
+    const [newUserForm, setNewUserForm] = useState({
+        name: '',
+        username: '',
+        password: '',
+        role: 'CASHIER'
+    });
+
     const fetchUsers = async () => {
         if (user?.role !== 'ADMIN') return;
         try {
@@ -255,15 +263,35 @@ const Settings = () => {
         }
     };
 
+    const handleAddUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newUserForm.name || !newUserForm.username || !newUserForm.password) return;
+        setLoading(true);
+        try {
+            await api.post('/auth/users', {
+                ...newUserForm,
+                adminId: user.id
+            });
+            alert('User created successfully!');
+            setNewUserForm({ name: '', username: '', password: '', role: 'CASHIER' });
+            fetchUsers();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Error creating user');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="p-8 bg-slate-50 min-h-screen font-sans">
             <div className="max-w-4xl mx-auto">
-                <header className="mb-12">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Settings</h1>
-                    <p className="text-slate-500 font-medium text-lg">Manage your account security, users, and product categories.</p>
+                <header className="mb-8 md:mb-12">
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-2">Settings</h1>
+                    <p className="text-slate-500 font-medium text-sm md:text-lg">Manage your account security, users, and product categories.</p>
                 </header>
 
-                <div className="flex flex-wrap gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-slate-100 max-w-fit">
+                <div className="overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                    <div className="flex flex-nowrap md:flex-wrap gap-2 md:gap-4 mb-4 md:mb-8 bg-white p-1.5 md:p-2 rounded-2xl shadow-sm border border-slate-100 w-max md:w-auto">
                     {user?.role === 'ADMIN' && (
                         <button 
                             onClick={() => setActiveTab('USERS')}
@@ -296,22 +324,23 @@ const Settings = () => {
                     </button>
                     <button 
                         onClick={() => setActiveTab('PRINTER')}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${activeTab === 'PRINTER' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${activeTab === 'PRINTER' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         <Printer size={18} />
                         <span>Printer Setup</span>
                     </button>
                 </div>
+                </div>
 
-                <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden min-h-[500px]">
+                <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden min-h-[500px]">
                     {activeTab === 'SECURITY' ? (
-                        <div className="p-10">
+                        <div className="p-6 md:p-10">
                             {/* Security Form ... */}
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                                     <Key size={24} />
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-800">Change Your Password</h2>
+                                <h2 className="text-xl md:text-2xl font-black text-slate-800">Change Your Password</h2>
                             </div>
 
                             <form onSubmit={handlePasswordChange} className="space-y-6 max-w-md">
@@ -356,36 +385,82 @@ const Settings = () => {
                             </form>
                         </div>
                     ) : activeTab === 'USERS' ? (
-                        <div className="p-10">
+                        <div className="p-6 md:p-10">
                             {/* User Management ... */}
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
                                     <Users size={24} />
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-800">Administrator Control Desk</h2>
+                                <h2 className="text-xl md:text-2xl font-black text-slate-800">Administrator Control Desk</h2>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-12">
-                                <div>
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Select User to Reset</label>
-                                    <div className="space-y-3">
-                                        {users.filter(u => u.id !== user.id).map((u) => (
-                                            <button 
-                                                key={u.id}
-                                                onClick={() => setSelectedUserId(u.id)}
-                                                className={`w-full p-4 h-[72px] rounded-2xl border-2 transition-all text-left flex items-center justify-between ${selectedUserId === u.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 hover:border-slate-200'}`}
+                            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+                                <div className="space-y-8">
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono italic">Add New Team Member</label>
+                                        <form onSubmit={handleAddUser} className="space-y-4 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <input 
+                                                    placeholder="Full Name"
+                                                    className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
+                                                    value={newUserForm.name}
+                                                    onChange={e => setNewUserForm({...newUserForm, name: e.target.value})}
+                                                />
+                                                <input 
+                                                    placeholder="Username"
+                                                    className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
+                                                    value={newUserForm.username}
+                                                    onChange={e => setNewUserForm({...newUserForm, username: e.target.value})}
+                                                />
+                                            </div>
+                                            <input 
+                                                type="password"
+                                                placeholder="Password"
+                                                className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
+                                                value={newUserForm.password}
+                                                onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                                            />
+                                            <select 
+                                                className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
+                                                value={newUserForm.role}
+                                                onChange={e => setNewUserForm({...newUserForm, role: e.target.value})}
                                             >
-                                                <div>
-                                                    <p className="font-bold text-slate-800">{u.name}</p>
-                                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{u.role}</p>
-                                                </div>
-                                                {selectedUserId === u.id && <UserCheck className="text-blue-600" size={20} />}
+                                                <option value="CASHIER">Cashier (POS Only)</option>
+                                                <option value="MANAGER">Manager (Full Inventory)</option>
+                                                <option value="ADMIN">Administrator (Full System)</option>
+                                            </select>
+                                            <button 
+                                                type="submit"
+                                                disabled={loading}
+                                                className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-[10px] tracking-widest uppercase hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Plus size={16} /> Create User
                                             </button>
-                                        ))}
+                                        </form>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Select User to Reset</label>
+                                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {users.filter(u => u.id !== user.id).map((u) => (
+                                                <button 
+                                                    key={u.id}
+                                                    onClick={() => setSelectedUserId(u.id)}
+                                                    className={`w-full p-4 h-[72px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
+                                                >
+                                                    <div>
+                                                        <p className="font-bold text-slate-800">{u.name}</p>
+                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{u.role}</p>
+                                                    </div>
+                                                    {selectedUserId === u.id && <UserCheck className="text-blue-600" size={20} />}
+                                                </button>
+                                            ))}
+                                            {users.length <= 1 && <p className="text-center py-4 text-slate-400 text-xs font-bold italic">No other users found</p>}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                                <div className="bg-slate-50 p-6 md:p-8 rounded-3xl md:rounded-[2rem] border border-slate-100 flex flex-col justify-center">
                                     <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Force Password Reset</h3>
                                     <form onSubmit={handleAdminReset} className="space-y-6">
                                         <div>
@@ -411,7 +486,7 @@ const Settings = () => {
                             </div>
                         </div>
                     ) : activeTab === 'CATEGORIES' ? (
-                        <div className="p-10">
+                        <div className="p-6 md:p-10">
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">

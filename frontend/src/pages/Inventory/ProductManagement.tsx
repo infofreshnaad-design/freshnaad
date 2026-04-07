@@ -61,37 +61,37 @@ const ProductManagement = () => {
   );
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
-          <p className="text-slate-500">Manage your product catalog and stock levels</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Inventory Matrix</h1>
+          <p className="text-slate-500 font-medium text-xs md:text-base">Real-time stock management and valuation.</p>
         </div>
         <button 
           onClick={() => { setSelectedProduct(null); setIsModalOpen(true); }}
-          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
         >
           <Plus size={20} />
-          <span>Add Product</span>
+          <span>ADD PRODUCT</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-slate-100">
+      <div className="bg-white rounded-2xl md:rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+        <div className="p-4 md:p-6 border-b border-slate-50 bg-slate-50/30">
           <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
               type="text"
-              placeholder="Search products by name or barcode..."
-              className="w-full pl-12 pr-4 py-2 bg-slate-50 rounded-lg border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder="Search by name or code..."
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[800px]">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-sm uppercase tracking-wider">
                 <th className="px-6 py-4 font-semibold">Product Details</th>
