@@ -10,73 +10,140 @@ const pdfUtil = {
    * @param {Stream} res - The writable HTTP stream (express res)
    */
   generateInvoicePDF: (order, res) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
 
     // Stream the PDF directly to the response
     doc.pipe(res);
 
     // --- Header Section ---
-    doc.fillColor('#444444')
-       .fontSize(20)
-       .text('FRESH NAAD', 50, 50, { align: 'left' })
+    doc.font('Helvetica-Bold')
+       .fontSize(22)
+       .text('FRESH NAAD FOODS INDIA', { align: 'center' });
+    
+    doc.font('Helvetica')
        .fontSize(10)
-       .text('123, Business Hub, MG Road', 200, 50, { align: 'right' })
-       .text('Bangalore - 560001', 200, 65, { align: 'right' })
-       .moveDown();
+       .text('Kodassery, Pandikkad (po), Malappuram, Kerala', { align: 'center' });
+    
+    doc.moveDown(0.5);
+    
+    // FSSAI and Mob Row
+    const topOfContact = doc.y;
+    doc.fontSize(9)
+       .text(`FSSAI NO: 21326222000253`, 40, topOfContact, { align: 'left' })
+       .text(`Mob: +91 8606391315, 75608 57580`, 40, topOfContact, { align: 'right' });
 
-    doc.moveTo(50, 100).lineTo(550, 100).stroke('#EEEEEE');
+    doc.moveDown(1);
+    doc.moveTo(40, doc.y).lineTo(555, doc.y).lineWidth(1).stroke('#EEEEEE');
+    doc.moveDown(1);
 
     // --- Bill Details ---
-    doc.moveDown();
-    doc.fillColor('#000000')
-       .fontSize(12)
-       .text(`TAX INVOICE: ${order.invoiceNo}`, 50, 120, { bold: true })
-       .fontSize(10)
-       .text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 50, 135)
-       .text(`Customer: ${order.customer?.name || order.customerName || 'Walk-in'}`, 50, 150)
-       .moveDown();
+    const topOfDetails = doc.y;
+    doc.font('Helvetica-Bold').fontSize(11).text(`TAX INVOICE: ${order.invoiceNo}`, 40, topOfDetails);
+    doc.font('Helvetica').fontSize(9).text(`Date: ${new Date(order.createdAt).toLocaleDateString()} ${new Date(order.createdAt).toLocaleTimeString()}`, 40, topOfDetails + 15);
+    doc.font('Helvetica').fontSize(10).text(`Customer: ${order.customer?.name || order.customerName || 'Walk-in'}`, 40, topOfDetails + 30, { align: 'right' });
+
+    doc.moveDown(3);
 
     // --- Table Header ---
-    const tableTop = 180;
-    doc.fillColor('#F5F5F5')
-       .rect(50, tableTop, 500, 20)
+    const tableTop = doc.y;
+    doc.fillColor('#F8F9FA')
+       .rect(40, tableTop, 515, 20)
        .fill();
 
     doc.fillColor('#333333')
-       .fontSize(10)
-       .text('Item', 60, tableTop + 5)
-       .text('Qty', 280, tableTop + 5)
-       .text('Price', 350, tableTop + 5)
-       .text('Total', 500, tableTop + 5);
+       .font('Helvetica-Bold')
+       .fontSize(9)
+       .text('#', 50, tableTop + 6)
+       .text('Description', 80, tableTop + 6)
+       .text('Qty', 300, tableTop + 6)
+       .text('FRP', 360, tableTop + 6)
+       .text('MRP', 420, tableTop + 6)
+       .text('Amount', 480, tableTop + 6, { align: 'right', width: 65 });
 
-    doc.moveTo(50, tableTop + 20).lineTo(550, tableTop + 20).stroke('#DDDDDD');
+    doc.moveTo(40, tableTop + 20).lineTo(555, tableTop + 20).stroke('#DDDDDD');
 
     // --- Table Content ---
-    let y = tableTop + 30;
-    order.orderItems?.forEach((item, index) => {
-      const name = item.product?.name || item.name || 'Product';
-      doc.fontSize(9)
-         .text(name, 60, y)
-         .text(item.quantity.toString(), 280, y)
-         .text(`Rs.${item.price.toFixed(2)}`, 350, y)
-         .text(`Rs.${item.total.toFixed(2)}`, 500, y);
+    let y = tableTop + 25;
+    const items = order.orderItems || [];
+    
+    items.forEach((item, index) => {
+      const itemName = item.product?.name || item.name || 'Product';
+      doc.font('Helvetica')
+         .fontSize(9)
+         .fillColor('#000000')
+         .text((index + 1).toString(), 50, y)
+         .text(itemName.toUpperCase(), 80, y, { width: 210 })
+         .text((Number(item.quantity) || 0).toFixed(3), 300, y)
+         .text((Number(item.price) || 0).toFixed(2), 360, y)
+         .text((Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0), 420, y)
+         .font('Helvetica-Bold')
+         .text((Number(item.total) || 0).toFixed(2), 480, y, { align: 'right', width: 65 });
 
       y += 20;
+
+      // Check for page break
+      if (y > 750) {
+        doc.addPage();
+        y = 50;
+      }
     });
 
     // --- Totals Section ---
-    const totalY = y + 20;
-    doc.moveTo(50, totalY).lineTo(550, totalY).stroke('#EEEEEE');
+    const totalY = y + 10;
+    doc.moveTo(40, totalY).lineTo(555, totalY).lineWidth(0.5).dash(5, { space: 2 }).stroke('#CCCCCC').undash();
     
-    doc.fontSize(12)
-       .text('Total Amount:', 350, totalY + 10, { bold: true })
-       .text(`Rs.${order.grandTotal.toFixed(2)}`, 500, totalY + 10, { bold: true });
+    const summaryX = 350;
+    let summaryY = totalY + 15;
+
+    doc.font('Helvetica').fontSize(10);
+    
+    const drawRow = (label, value, isBold = false) => {
+      if (isBold) doc.font('Helvetica-Bold');
+      else doc.font('Helvetica');
+      
+      doc.text(label, summaryX, summaryY);
+      doc.text(value, 480, summaryY, { align: 'right', width: 65 });
+      summaryY += 18;
+    };
+
+    drawRow('Total Items:', (order.itemsCount || items.length).toString());
+    drawRow('Subtotal:', (Number(order.subtotal) || 0).toFixed(2));
+    drawRow('Discount:', (Number(order.discount) || 0).toFixed(2));
+    
+    doc.moveTo(summaryX, summaryY).lineTo(555, summaryY).stroke('#EEEEEE');
+    summaryY += 10;
+    
+    drawRow('Net Total:', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
+    drawRow('Tender:', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`);
+    
+    const balance = (Number(order.amountPaid) || 0) - (Number(order.roundedTotal) || 0);
+    drawRow('Balance:', `Rs. ${balance.toFixed(2)}`, true);
+
+    // --- Savings Badge ---
+    const savings = Number(order.savings) || 0;
+    if (savings > 0) {
+      doc.moveDown(1);
+      doc.fillColor('#28a745')
+         .font('Helvetica-Bold')
+         .fontSize(14)
+         .text(`YOU SAVED RS.${savings.toFixed(2)}`, 40, summaryY + 20, { align: 'center' });
+    }
 
     // --- Footer ---
-    doc.fontSize(8)
+    doc.fillColor('#444444')
+       .font('Helvetica')
+       .fontSize(9)
+       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 750)
+       .text(`User Index: ${order.userName || 'Staff'}`, 40, 762);
+
+    doc.font('Helvetica-Bold')
+       .fontSize(11)
+       .fillColor('#000000')
+       .text('THANK YOU VISIT AGAIN', 40, 780, { align: 'center' });
+
+    doc.fontSize(7)
        .fillColor('#999999')
-       .text('Thank you for shopping with us! Digital Receipt via POS Pro Suite.', 50, 690, { align: 'center' })
-       .text('Software by NIVAN SOLUTIONS', 50, 705, { align: 'center', bold: true });
+       .text('Software by NIVAN SOLUTIONS', 40, 800, { align: 'center' });
 
     doc.end();
   },
