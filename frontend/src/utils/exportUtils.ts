@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 /**
  * Universal Export Utility
@@ -64,7 +64,7 @@ export const exportUtils = {
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 52);
 
     // 3. Generate Table
-    doc.autoTable({
+    autoTable(doc, {
       startY: 60,
       head: [config.headers],
       body: config.data,
