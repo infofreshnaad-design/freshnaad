@@ -240,10 +240,14 @@ const POSInterface: React.FC = () => {
           });
           
           // Once server responds, update the receipt with the REAL invoice No
-          setRecentOrder({
+          // MERGE server response with local data. 
+          // This keeps local fields (totalQty, itemsCount) 
+          // while getting real server IDs (invoiceNo, id)
+          setRecentOrder((prev: any) => ({
+            ...prev,
             ...response.data,
             isSyncing: false
-          });
+          }));
           
           // Refresh products silently in far background
           setTimeout(() => fetchProducts().catch(() => {}), 500);

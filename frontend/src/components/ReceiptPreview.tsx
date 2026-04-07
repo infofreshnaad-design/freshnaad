@@ -55,11 +55,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         <tr>
           <td style="font-size: 10px; padding: 2px 0;">${item.slNo || index + 1}</td>
           <td style="font-size: 10px; padding: 2px 0; font-weight: bold;">${item.barcode || ''}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(item.quantity || 0).toFixed(3)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(item.price || 0).toFixed(2)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(item.mrp || item.price || 0).toFixed(0)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(item.gstRate || 0).toFixed(2)}</td>
-          <td style="font-size: 10px; padding: 2px 0; text-align: right; font-weight: bold;">${(item.total || 0).toFixed(2)}</td>
+          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.quantity) || 0).toFixed(3)}</td>
+          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.price) || 0).toFixed(2)}</td>
+          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.mrp || item.price || 0)).toFixed(0)}</td>
+          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.gstRate) || 0).toFixed(2)}</td>
+          <td style="font-size: 10px; padding: 2px 0; text-align: right; font-weight: bold;">${(Number(item.total) || 0).toFixed(2)}</td>
         </tr>
         <tr>
           <td></td>
@@ -128,12 +128,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div class="total-row">
                 <span>Total Items : ${order.itemsCount || 1}</span>
                 <span>Total :</span>
-                <span class="bold">${(order.subtotal || 0).toFixed(3)}</span>
+                <span class="bold">${(Number(order.subtotal) || 0).toFixed(3)}</span>
               </div>
               <div class="total-row">
-                <span>Total Qty : ${(order.totalQty || 0).toFixed(3)}</span>
+                <span>Total Qty : ${(Number(order.totalQty) || 0).toFixed(3)}</span>
                 <span>Discount :</span>
-                <span>${(order.discount || 0).toFixed(3)}</span>
+                <span>${(Number(order.discount) || 0).toFixed(3)}</span>
               </div>
               <div class="total-row">
                 <span></span>
@@ -143,21 +143,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div class="total-row" style="margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px;">
                 <span></span>
                 <span class="bold" style="font-size: 13px;">Net Total :</span>
-                <span class="bold" style="font-size: 13px;">${(order.roundedTotal || 0).toFixed(2)}</span>
+                <span class="bold" style="font-size: 13px;">${(Number(order.roundedTotal) || 0).toFixed(2)}</span>
               </div>
               <div class="total-row">
                 <span></span>
                 <span>Tender :</span>
-                <span>${(order.amountPaid || 0).toFixed(2)}</span>
+                <span>${(Number(order.amountPaid) || 0).toFixed(2)}</span>
               </div>
               <div class="total-row">
                 <span></span>
                 <span class="bold">Balance :</span>
-                <span class="bold">${balance.toFixed(2)}</span>
+                <span class="bold">${(Number(balance) || 0).toFixed(2)}</span>
               </div>
             </div>
 
-            <div class="savings">YOU SAVED RS.${(order.savings || 0).toFixed(3)}</div>
+            <div class="savings">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(3)}</div>
 
             <div class="short-id">*${(order.invoiceNo || '').slice(-4)}*</div>
 
@@ -168,9 +168,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             </div>
 
             <div class="footer-grid">
-              <div>Cash :${order.paymentMode === 'CASH' ? (order.amountPaid || 0).toFixed(2) : '0.00'}</div>
+              <div>Cash :${order.paymentMode === 'CASH' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
               <div>Counter : 001</div>
-              <div>Card :${order.paymentMode === 'CARD' ? (order.amountPaid || 0).toFixed(2) : '0.00'}</div>
+              <div>Card :${order.paymentMode === 'CARD' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
               <div>User ID :${order.userName || 'Staff'}</div>
               <div>Card Number : 0</div>
               <div>Bill Point :0</div>
@@ -281,11 +281,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                     <tr className="text-[10px]">
                       <td className="py-1">{item.slNo || idx + 1}</td>
                       <td className="py-1 font-bold">{item.barcode || 'N/A'}</td>
-                      <td className="py-1">{(item.quantity || 0).toFixed(3)}</td>
-                      <td className="py-1">{(item.price || 0).toFixed(2)}</td>
-                      <td className="py-1">{(item.mrp || item.price || 0).toFixed(0)}</td>
-                      <td className="py-1">{(item.gstRate || 0).toFixed(2)}</td>
-                      <td className="py-1 text-right font-bold">{(item.total || 0).toFixed(2)}</td>
+                      <td className="py-1">{(Number(item.quantity) || 0).toFixed(3)}</td>
+                      <td className="py-1">{(Number(item.price) || 0).toFixed(2)}</td>
+                      <td className="py-1">{(Number(item.mrp || item.price || 0)).toFixed(0)}</td>
+                      <td className="py-1">{(Number(item.gstRate) || 0).toFixed(2)}</td>
+                      <td className="py-1 text-right font-bold">{(Number(item.total) || 0).toFixed(2)}</td>
                     </tr>
                     <tr className="text-[9px] uppercase text-slate-500 border-b border-slate-50">
                       <td></td>
@@ -300,7 +300,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between">
                  <div className="flex flex-col gap-1">
                    <span>Total Items : {order.itemsCount || 1}</span>
-                   <span>Total Qty : {(order.totalQty || 0).toFixed(3)}</span>
+                   <span>Total Qty : {(Number(order.totalQty) || 0).toFixed(3)}</span>
                  </div>
                  <div className="flex gap-4 text-right">
                     <div className="flex flex-col gap-1">
@@ -309,8 +309,8 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                       <p>Return :</p>
                     </div>
                     <div className="flex flex-col gap-1 font-bold">
-                      <p>{(order.subtotal || 0).toFixed(3)}</p>
-                      <p>{(order.discount || 0).toFixed(3)}</p>
+                      <p>{(Number(order.subtotal) || 0).toFixed(3)}</p>
+                      <p>{(Number(order.discount) || 0).toFixed(3)}</p>
                       <p>0.000</p>
                     </div>
                  </div>
@@ -318,21 +318,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
               <div className="flex justify-between items-center py-2 border-y border-dashed border-slate-300 mt-2">
                  <span className="text-base font-black">Net Total :</span>
-                 <span className="text-base font-black">₹{(order.roundedTotal || 0).toFixed(2)}</span>
+                 <span className="text-base font-black">₹{(Number(order.roundedTotal) || 0).toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between pt-1">
                  <span>Tender :</span>
-                 <span>₹{(order.amountPaid || 0).toFixed(2)}</span>
+                 <span>₹{(Number(order.amountPaid) || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold">
                  <span>Balance :</span>
-                 <span>₹{((parseFloat(order.amountPaid) || 0) - (parseFloat(order.roundedTotal) || 0)).toFixed(2)}</span>
+                 <span>₹{((Number(order.amountPaid) || 0) - (Number(order.roundedTotal) || 0)).toFixed(2)}</span>
               </div>
             </div>
 
             <div className="mt-8 text-center">
-               <p className="text-lg font-black">YOU SAVED RS.{(order.savings || 0).toFixed(3)}</p>
+               <p className="text-lg font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(3)}</p>
             </div>
 
             <div className="mt-4 text-center">
@@ -346,9 +346,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             </div>
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 py-3 text-[9px] text-slate-600">
-              <div className="flex justify-between"><span>Cash:</span><span>{(order.paymentMode === 'CASH' ? order.amountPaid : 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash:</span><span>{(order.paymentMode === 'CASH' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Counter:</span><span>001</span></div>
-              <div className="flex justify-between"><span>Card:</span><span>{(order.paymentMode === 'CARD' ? order.amountPaid : 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Card:</span><span>{(order.paymentMode === 'CARD' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>User ID:</span><span>{order.userName || 'Staff'}</span></div>
               <div className="flex justify-between"><span>Card No:</span><span>0</span></div>
               <div className="flex justify-between"><span>Bill Pt:</span><span>0</span></div>
