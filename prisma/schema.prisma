@@ -334,3 +334,9 @@ model PurchaseItem {
   taxAmount  Float
   total      Float
 }
+
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}

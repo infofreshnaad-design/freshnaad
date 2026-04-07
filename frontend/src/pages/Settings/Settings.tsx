@@ -11,6 +11,8 @@ const Settings = () => {
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
+    const [expenseCategories, setExpenseCategories] = useState<any[]>([]);
+    const [categoryManagerType, setCategoryManagerType] = useState<'PRODUCT' | 'EXPENSE'>('PRODUCT');
     const [products, setProducts] = useState<any[]>([]);
     const [searchProduct, setSearchProduct] = useState('');
     const [newCategoryName, setNewCategoryName] = useState('');
@@ -46,6 +48,15 @@ const Settings = () => {
         }
     };
 
+    const fetchExpenseCategories = async () => {
+        try {
+            const response = await api.get('/expense-categories');
+            setExpenseCategories(response.data);
+        } catch (error) {
+            console.error('Error fetching expense categories:', error);
+        }
+    };
+
     const fetchProducts = async () => {
         setLoading(true);
         try {
@@ -60,7 +71,10 @@ const Settings = () => {
 
     useEffect(() => {
         if (activeTab === 'USERS') fetchUsers();
-        if (activeTab === 'CATEGORIES') fetchCategories();
+        if (activeTab === 'CATEGORIES') {
+            fetchCategories();
+            fetchExpenseCategories();
+        }
         if (activeTab === 'PHOTOS') fetchProducts();
     }, [activeTab]);
 
@@ -145,6 +159,49 @@ const Settings = () => {
             fetchCategories();
         } catch (error) {
             alert('Error deleting category');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddExpenseCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCategoryName) return;
+        setLoading(true);
+        try {
+            await api.post('/expense-categories', { name: newCategoryName });
+            setNewCategoryName('');
+            fetchExpenseCategories();
+        } catch (error) {
+            alert('Error adding expense category');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateExpenseCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCategory?.name) return;
+        setLoading(true);
+        try {
+            await api.put(`/expense-categories/${editingCategory.id}`, { name: editingCategory.name });
+            setEditingCategory(null);
+            fetchExpenseCategories();
+        } catch (error) {
+            alert('Error updating expense category');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteExpenseCategory = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this expense category?')) return;
+        setLoading(true);
+        try {
+            await api.delete(`/expense-categories/${id}`);
+            fetchExpenseCategories();
+        } catch (error) {
+            alert('Error deleting expense category');
         } finally {
             setLoading(false);
         }
@@ -355,21 +412,40 @@ const Settings = () => {
                         </div>
                     ) : activeTab === 'CATEGORIES' ? (
                         <div className="p-10">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-                                    <Tag size={24} />
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                                        <Tag size={24} />
+                                    </div>
+                                    <h2 className="text-2xl font-black text-slate-800">Manager</h2>
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-800">Product Categories</h2>
+                                
+                                <div className="flex bg-slate-100 p-1 rounded-xl">
+                                    <button 
+                                        onClick={() => setCategoryManagerType('PRODUCT')}
+                                        className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${categoryManagerType === 'PRODUCT' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Product Categories
+                                    </button>
+                                    <button 
+                                        onClick={() => setCategoryManagerType('EXPENSE')}
+                                        className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${categoryManagerType === 'EXPENSE' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Expense Categories
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-12">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Add New Category</label>
-                                    <form onSubmit={handleAddCategory} className="flex gap-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">
+                                        Add New {categoryManagerType === 'PRODUCT' ? 'Category' : 'Expense Category'}
+                                    </label>
+                                    <form onSubmit={categoryManagerType === 'PRODUCT' ? handleAddCategory : handleAddExpenseCategory} className="flex gap-2">
                                         <input 
                                             type="text"
                                             className="flex-1 p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800 outline-none"
-                                            placeholder="e.g. Beverages"
+                                            placeholder={categoryManagerType === 'PRODUCT' ? "e.g. Beverages" : "e.g. Office Snacks"}
                                             value={newCategoryName}
                                             onChange={(e) => setNewCategoryName(e.target.value)}
                                         />
@@ -385,7 +461,7 @@ const Settings = () => {
                                     <div className="mt-12">
                                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Existing Categories</label>
                                         <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {categories.length > 0 ? categories.map((cat) => (
+                                            {(categoryManagerType === 'PRODUCT' ? categories : expenseCategories).length > 0 ? (categoryManagerType === 'PRODUCT' ? categories : expenseCategories).map((cat) => (
                                                 <div key={cat.id} className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-200 hover:bg-emerald-50/30 transition-all">
                                                     {editingCategory?.id === cat.id ? (
                                                         <input 
@@ -393,8 +469,8 @@ const Settings = () => {
                                                             className="flex-1 bg-transparent border-none font-bold text-slate-800 outline-none"
                                                             value={editingCategory.name}
                                                             onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
-                                                            onBlur={handleUpdateCategory}
-                                                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory(e)}
+                                                            onBlur={categoryManagerType === 'PRODUCT' ? handleUpdateCategory : handleUpdateExpenseCategory}
+                                                            onKeyDown={(e) => e.key === 'Enter' && (categoryManagerType === 'PRODUCT' ? handleUpdateCategory(e) : handleUpdateExpenseCategory(e))}
                                                         />
                                                     ) : (
                                                         <span className="font-bold text-slate-700">{cat.name}</span>
@@ -404,12 +480,14 @@ const Settings = () => {
                                                         <button 
                                                             onClick={() => setEditingCategory(cat)}
                                                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg"
+                                                            title="Edit"
                                                         >
                                                             <Edit2 size={16} />
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleDeleteCategory(cat.id)}
+                                                            onClick={() => categoryManagerType === 'PRODUCT' ? handleDeleteCategory(cat.id) : handleDeleteExpenseCategory(cat.id)}
                                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg"
+                                                            title="Delete"
                                                         >
                                                             <Trash2 size={16} />
                                                         </button>
@@ -427,7 +505,9 @@ const Settings = () => {
                                 <div className="bg-emerald-50/50 p-8 rounded-[2.5rem] border border-emerald-100/50">
                                     <h3 className="font-black text-emerald-800 mb-4 uppercase tracking-widest text-xs">Pro Tip</h3>
                                     <p className="text-emerald-700/70 text-sm leading-relaxed font-medium">
-                                        Use categories to organize your POS terminal. This will create quick-access tabs in the billing interface for faster checkout. Keep names short and descriptive.
+                                        {categoryManagerType === 'PRODUCT' 
+                                            ? 'Use categories to organize your POS terminal. This will create quick-access tabs in the billing interface for faster checkout. Keep names short and descriptive.'
+                                            : 'Expense categories help you track your business outflows clearly in the Expense Tracker and reporting charts. Add all recurring cost areas here.'}
                                     </p>
                                 </div>
                             </div>

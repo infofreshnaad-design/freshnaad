@@ -5,6 +5,7 @@ import { exportUtils } from '../../utils/exportUtils';
 
 const ExpenseManagement = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -29,6 +30,15 @@ const ExpenseManagement = () => {
 
   useEffect(() => {
     fetchExpenses();
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/expense-categories');
+        setCategories(response.data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
   }, []);
 
   const handleSaveExpense = async () => {
@@ -250,12 +260,13 @@ const ExpenseManagement = () => {
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
                 >
                   <option value="GENERAL">General</option>
-                  <option value="SALARY">Salary</option>
-                  <option value="RENT">Rent</option>
-                  <option value="UTILITIES">Utilities</option>
-                  <option value="INVENTORY">Inventory</option>
-                  <option value="MARKETING">Marketing</option>
-                  <option value="OTHER">Other</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  {/* Ensure existing legacy categories still show up when editing */}
+                  {formData.type && formData.type !== 'GENERAL' && !categories.some(c => c.name === formData.type) && (
+                    <option value={formData.type}>{formData.type}</option>
+                  )}
                 </select>
               </div>
 
