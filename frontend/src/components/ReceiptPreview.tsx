@@ -157,8 +157,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
             <div class="savings" style="font-size: 11px; margin: 5px 0;">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(3)}</div>
 
-            <div class="short-id" style="font-size: 24px; font-weight: 900; margin: 5px 0;">*${(order.invoiceNo || '').slice(-4)}*</div>
-
             <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; border-top: 1px dashed #000; padding-top: 2px;">
               <span>SGST : 0</span>
               <span>CGST : 0</span>
@@ -329,10 +327,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
             <div className="mt-4 text-center">
                <p className="text-sm font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(3)}</p>
-            </div>
-
-            <div className="mt-2 text-center">
-               <p className="text-2xl font-black tracking-tighter">*{(order.invoiceNo || '').slice(-4)}*</p>
             </div>
 
             <div className="flex justify-between border-y border-dashed border-slate-300 py-1 text-[9px] font-bold text-slate-500 mt-3">
