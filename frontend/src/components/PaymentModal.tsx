@@ -18,8 +18,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   const [isAmountCustom, setIsAmountCustom] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
+
+  // Reset confirmation if anything changes
+  useEffect(() => {
+    setIsConfirming(false);
+  }, [amountPaid, paymentMethod, customer]);
 
   // Smarter Sync: Auto-update if total changes (e.g. loyalty points applied)
   useEffect(() => {
@@ -45,9 +51,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   }, [amountPaid, loading]);
 
   const submitPayment = async () => {
+    if (loading) return;
+    
     const numAmount = parseFloat(amountPaid) || 0;
+
+    // Safety Step 1: Request Confirmation first
+    if (!isConfirming) {
+      setIsConfirming(true);
+      return;
+    }
     
     if (numAmount === 0 && !window.confirm('You are processing this bill with ₹0 payment. Is this a credit sale?')) {
+      setIsConfirming(false);
       return;
     }
 
@@ -67,7 +82,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   };
 
   const handleKeypadInput = (val: string) => {
-    setAmountPaid((prev) => {
+    setAmountPaid((prev: string) => {
       // Clear on first edit or if zero
       if (!isAmountCustom || prev === '0') {
         setIsAmountCustom(true);
@@ -79,7 +94,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
 
   const handleKeypadDelete = () => {
     setIsAmountCustom(true);
-    setAmountPaid((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
+    setAmountPaid((prev: string) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
   };
 
   const handleKeypadClear = () => {
@@ -215,14 +230,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
           <button 
             disabled={loading}
             onClick={submitPayment}
-            className="w-full bg-slate-900 text-white h-16 md:h-20 rounded-3xl font-black text-xl flex items-center justify-center gap-3 hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl disabled:opacity-50"
+            className={`w-full h-16 md:h-20 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-1 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 ${isConfirming ? 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'}`}
           >
             {loading ? (
               <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <CheckCircle2 size={24} />
-                <span>PROCESS CHECKOUT</span>
+                <div className="flex items-center gap-3 text-white">
+                  {isConfirming ? <CheckCircle2 size={24} /> : <Banknote size={24} />}
+                  <span>{isConfirming ? 'CONFIRM PAYMENT' : 'PROCESS CHECKOUT'}</span>
+                </div>
+                {isConfirming && (
+                  <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
+                    {paymentMethod} • ₹{amountPaid}
+                  </span>
+                )}
               </>
             )}
           </button>
@@ -239,11 +261,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
       {isRedeemModalOpen && (
         <RedeemPointsModal 
           onClose={() => setIsRedeemModalOpen(false)}
-          points={customer?.loyaltyPoints || 0}
-          onRedeem={(pts, amount) => {
-            setLoyaltyDiscount(amount, pts);
-            setIsRedeemModalOpen(false);
-          }}
         />
       )}
     </div>
