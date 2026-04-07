@@ -95,53 +95,54 @@ const pdfUtil = {
     const summaryX = 350;
     let summaryY = totalY + 15;
 
-    doc.font('Helvetica').fontSize(10);
+    doc.font('Helvetica-Bold').fontSize(10);
     
-    const drawRow = (label, value, isBold = false) => {
+    const drawRow = (label, value, isBold = true) => {
       if (isBold) doc.font('Helvetica-Bold');
       else doc.font('Helvetica');
       
       doc.text(label, summaryX, summaryY);
       doc.text(value, 480, summaryY, { align: 'right', width: 65 });
-      summaryY += 18;
+      summaryY += 15;
     };
 
-    drawRow('Total Items:', (order.itemsCount || items.length).toString());
-    drawRow('Subtotal:', (Number(order.subtotal) || 0).toFixed(2));
-    drawRow('Discount:', (Number(order.discount) || 0).toFixed(2));
+    drawRow('Total Items:', (order.itemsCount || items.length).toString(), false);
+    drawRow('Subtotal:', (Number(order.subtotal) || 0).toFixed(2), false);
+    drawRow('Discount:', (Number(order.discount) || 0).toFixed(2), false);
     
     doc.moveTo(summaryX, summaryY).lineTo(555, summaryY).stroke('#EEEEEE');
-    summaryY += 10;
+    summaryY += 8;
     
     drawRow('Net Total:', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
-    drawRow('Tender:', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`);
+    drawRow('Tender:', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`, false);
     drawRow('Balance:', `Rs. ${(Number(order.balance) || 0).toFixed(2)}`, true);
 
     // --- Savings Badge ---
     const savings = Number(order.savings) || 0;
     if (savings > 0) {
-      doc.moveDown(1);
+      doc.moveDown(0.5);
       doc.fillColor('#28a745')
          .font('Helvetica-Bold')
-         .fontSize(14)
-         .text(`YOU SAVED RS.${savings.toFixed(2)}`, 40, summaryY + 20, { align: 'center' });
+         .fontSize(12)
+         .text(`YOU SAVED RS.${savings.toFixed(2)}`, 40, summaryY + 5, { align: 'center' });
     }
 
     // --- Footer ---
     doc.fillColor('#444444')
        .font('Helvetica')
-       .fontSize(9)
-       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 750)
-       .text(`User Index: ${order.userName || 'Staff'}`, 40, 762);
+       .fontSize(8)
+       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 755)
+       .text(`User Index: ${order.userName || 'Staff'}`, 40, 765);
 
     doc.font('Helvetica-Bold')
-       .fontSize(11)
+       .fontSize(10)
        .fillColor('#000000')
        .text('THANK YOU VISIT AGAIN', 40, 780, { align: 'center' });
 
-    doc.fontSize(7)
-       .fillColor('#999999')
-       .text('Software by NIVAN SOLUTIONS', 40, 800, { align: 'center' });
+    doc.fontSize(8)
+       .fillColor('#000000')
+       .font('Helvetica-Bold')
+       .text('SOFTWARE BY NIVAN SOLUTIONS', 40, 795, { align: 'center' });
 
     doc.end();
   },

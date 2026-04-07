@@ -170,6 +170,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <div style="margin-top: 5px; text-align: center; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; font-size: 10px;">
                THANK YOU VISIT AGAIN
             </div>
+            <div style="text-align: center; font-weight: 800; font-size: 10px; margin-top: 2px;">
+               SOFTWARE BY NIVAN SOLUTIONS
+            </div>
 
             <script>
               window.onload = () => {
@@ -333,8 +336,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between"><span>Total Pt:</span><span>0</span></div>
             </div>
 
-            <div className="mt-3 text-center border-t border-slate-900 pt-2 font-bold text-xs">
+            <div className="mt-3 text-center border-t border-slate-900 pt-2 font-bold text-xs uppercase">
               THANK YOU VISIT AGAIN
+            </div>
+            <div className="text-center font-black text-xs mt-1 uppercase">
+              SOFTWARE BY NIVAN SOLUTIONS
             </div>
           </div>
 
