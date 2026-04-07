@@ -14,7 +14,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   const { cart, customer, setCustomer, getTotals, loyaltyDiscount, appliedPoints, setLoyaltyDiscount } = usePOSStore();
   const { subtotal, taxTotal, grandTotal, roundedTotal } = getTotals();
   
-  const [amountPaid, setAmountPaid] = useState('0');
+  const [amountPaid, setAmountPaid] = useState(roundedTotal.toString());
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -39,6 +39,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
 
   const submitPayment = async () => {
     const numAmount = parseFloat(amountPaid) || 0;
+    
+    if (numAmount === 0 && !window.confirm('You are processing this bill with ₹0 payment. Is this a credit sale?')) {
+      return;
+    }
+
+    if (numAmount < roundedTotal && !customer) {
+        alert('Balance payments are only allowed for registered customers. Please select a customer first.');
+        setIsCustomerModalOpen(true);
+        return;
+    }
     
     setLoading(true);
     try {

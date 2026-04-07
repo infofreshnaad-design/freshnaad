@@ -3,6 +3,7 @@ import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maxi
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
+import useAuthStore from '../../store/authStore';
 import PaymentModal from '../../components/PaymentModal';
 import ReceiptPreview from '../../components/ReceiptPreview';
 import { Product, CartItem } from '../../types';
@@ -15,6 +16,7 @@ import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 import RedeemPointsModal from '../../components/RedeemPointsModal';
 
 const POSInterface: React.FC = () => {
+  const user = useAuthStore(state => state.user);
   const cart = usePOSStore(state => state.cart);
   const addToCart = usePOSStore(state => state.addToCart);
   const removeFromCart = usePOSStore(state => state.removeFromCart);
@@ -198,22 +200,26 @@ const POSInterface: React.FC = () => {
     const orderData = {
       id: crypto.randomUUID(), 
       invoiceNo: tempInvoiceNo,
-      orderItems: cart.map((item: any) => ({
+      orderItems: cart.map((item: any, index: number) => ({
         ...item,
+        slNo: index + 1,
         price: item.sellingPrice,
-        gstRate: item.gstRate ?? 18,
-        total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * ((item.gstRate ?? 18) / 100)) * item.quantity)
+        gstRate: item.gstRate ?? 0,
+        total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * ((item.gstRate ?? 0) / 100)) * item.quantity)
       })),
       subtotal,
       taxTotal,
       grandTotal,
       roundedTotal,
       savings,
+      totalQty: cart.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0),
+      itemsCount: cart.length,
       amountPaid: parseFloat(amount) || 0,
       paymentMode: method,
       discount: loyaltyDiscount,
       loyaltyPointsRedeemed: appliedPoints,
       customerId: customer?.id || null,
+      userName: user?.name || 'Staff',
       createdAt: new Date().toISOString(),
       isSyncing: true // Visual flag for the receipt
     };
