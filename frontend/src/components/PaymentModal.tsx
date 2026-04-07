@@ -50,10 +50,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     return () => window.removeEventListener('keydown', handleKeys);
   }, [amountPaid, loading]);
 
+  const numAmount = parseFloat(amountPaid) || 0;
+  const change = numAmount - roundedTotal;
+  const isAmountInsufficient = numAmount < roundedTotal;
+
   const submitPayment = async () => {
     if (loading) return;
     
-    const numAmount = parseFloat(amountPaid) || 0;
+    if (isAmountInsufficient) {
+      alert("Amount does not match!");
+      return;
+    }
 
     // Safety Step 1: Request Confirmation first
     if (!isConfirming) {
@@ -102,7 +109,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     setAmountPaid(roundedTotal.toString());
   };
 
-  const change = (parseFloat(amountPaid) || 0) - roundedTotal;
+
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
@@ -207,15 +214,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
             <div className={`p-4 rounded-3xl border-2 flex items-center justify-between transition-all ${isAmountCustom ? 'border-orange-500 bg-orange-50/30' : 'border-slate-100 bg-slate-50'}`}>
                <span className="text-4xl md:text-5xl font-black text-slate-800">₹{amountPaid}</span>
                <div className="text-right">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">
-                    {change >= 0 ? 'Change' : 'Balance'}
+                  <p className={`text-[10px] font-bold uppercase leading-none mb-1 ${isAmountInsufficient ? 'text-red-500' : 'text-slate-400'}`}>
+                    {isAmountInsufficient ? 'Incomplete' : (change >= 0 ? 'Change' : 'Balance')}
                   </p>
-                  <p className={`text-xl md:text-2xl font-black ${change >= 0 ? 'text-emerald-600' : 'text-orange-500'}`}>
-                    ₹{Math.abs(change).toFixed(2)}
+                  <p className={`text-xl md:text-2xl font-black ${isAmountInsufficient ? 'text-red-500' : (change >= 0 ? 'text-emerald-600' : 'text-orange-500')}`}>
+                    {isAmountInsufficient ? 'Invalid' : `₹${Math.abs(change).toFixed(2)}`}
                   </p>
                </div>
             </div>
-            {!isAmountCustom && <p className="text-[10px] text-blue-500 font-bold text-center mt-1 italic animate-pulse">Synced with Net Total</p>}
+            {isAmountInsufficient && <p className="text-[10px] text-red-500 font-bold text-center mt-1 animate-pulse italic">Amount does not match!</p>}
+            {!isAmountInsufficient && !isAmountCustom && <p className="text-[10px] text-blue-500 font-bold text-center mt-1 italic animate-pulse">Synced with Net Total</p>}
           </div>
 
           <div className="flex-1">
@@ -228,19 +236,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
           </div>
 
           <button 
-            disabled={loading}
+            disabled={loading || isAmountInsufficient}
             onClick={submitPayment}
-            className={`w-full h-16 md:h-20 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-1 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 ${isConfirming ? 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+            className={`w-full h-16 md:h-20 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-1 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 ${isAmountInsufficient ? 'bg-slate-300' : (isConfirming ? 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800')}`}
           >
             {loading ? (
               <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <div className="flex items-center gap-3 text-white">
-                  {isConfirming ? <CheckCircle2 size={24} /> : <Banknote size={24} />}
-                  <span>{isConfirming ? 'CONFIRM PAYMENT' : 'PROCESS CHECKOUT'}</span>
+                <div className={`flex items-center gap-3 ${isAmountInsufficient ? 'text-slate-500' : 'text-white'}`}>
+                  {isAmountInsufficient ? <X size={24} /> : (isConfirming ? <CheckCircle2 size={24} /> : <Banknote size={24} />)}
+                  <span>{isAmountInsufficient ? 'INSUFFICIENT AMOUNT' : (isConfirming ? 'CONFIRM PAYMENT' : 'PROCESS CHECKOUT')}</span>
                 </div>
-                {isConfirming && (
+                {isConfirming && !isAmountInsufficient && (
                   <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
                     {paymentMethod} • ₹{amountPaid}
                   </span>
