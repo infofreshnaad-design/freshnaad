@@ -265,33 +265,7 @@ const StockEntry = () => {
               )}
            </div>
 
-           {/* Low Stock Suggestions */}
-           {lowStockItems.length > 0 && cart.length === 0 && (
-               <div className="space-y-4">
-                   <div className="flex items-center justify-between px-1">
-                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Urgent restock suggestions</h3>
-                       <ShoppingBag size={14} className="text-slate-200" />
-                   </div>
-                   <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 no-scrollbar">
-                       {lowStockItems.slice(0, 5).map((p) => (
-                           <button 
-                                key={p.id}
-                                onClick={() => quickAdd(p)}
-                                className="flex-none w-40 p-4 bg-white border-2 border-slate-100 rounded-[2rem] hover:border-blue-200 hover:shadow-lg transition-all text-left group"
-                           >
-                               <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-500 font-black text-xs mb-3 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                                   {p.stockQuantity}
-                               </div>
-                               <p className="text-[13px] font-black text-slate-800 leading-tight mb-1 truncate">{p.name}</p>
-                               <p className="text-[10px] font-bold text-slate-400 uppercase">Min Stock Reached</p>
-                               <div className="mt-3 flex items-center gap-1 text-blue-600 font-black text-[10px] uppercase">
-                                   <Plus size={10} strokeWidth={4} /> Add 10 Nos
-                               </div>
-                           </button>
-                       ))}
-                   </div>
-               </div>
-           )}
+
 
            <button 
              onClick={() => {

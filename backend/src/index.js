@@ -57,7 +57,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'API with prefix is active' });
 });
 
-// Socket.io initialization (Conditional for Local Dev)
+// Manual/Vercel Cron Backup Trigger
+app.get('/api/backup/trigger', (req, res) => {
+  const { exec } = require('child_process');
+  const path = require('path');
+  const backupScript = path.join(__dirname, '../scripts/backup.js');
+  
+  exec(`node "${backupScript}"`, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Backup trigger failed: ${error.message}`);
+      return res.status(500).json({ status: 'error', message: 'Backup failed', details: error.message });
+    }
+    res.json({ status: 'ok', message: 'Backup triggered successfully', output: stdout });
+  });
+});
+
+// Socket.io & Local Cron initialization (Conditional for Local Dev)
 let io;
 if (!process.env.VERCEL) {
   const http = require('http');
@@ -78,10 +93,33 @@ if (!process.env.VERCEL) {
     console.log(`Enterprise POS is LIVE on Port ${PORT}`);
     console.log(`Local Access: http://localhost:${PORT}`);
     console.log(`Global Strategy: Serving Unified Production Build`);
+    
+    // Initialize Automated Local Backups
+    try {
+      const cron = require('node-cron');
+      const { exec } = require('child_process');
+      const path = require('path');
+      const backupScript = path.join(__dirname, '../scripts/backup.js');
+      
+      // Schedule backup to run Daily at 1:00 AM
+      cron.schedule('0 1 * * *', () => {
+        console.log(`[${new Date().toISOString()}] Cron trigger: Starting automated backup...`);
+        exec(`node "${backupScript}"`, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`Automated backup failed: ${error.message}`);
+          } else {
+            console.log(`Automated backup completed:\n${stdout}`);
+          }
+        });
+      });
+      console.log(`Automated Backups Scheduler initialized (Daily at 1:00 AM)`);
+    } catch (err) {
+      console.log('Automated Backups Scheduler failed to start:', err.message);
+    }
   });
 } else {
   // In Vercel, we just export the app
-  console.log('Vercel Serverless: App instance exported');
+  console.log('Vercel Serverless: App instance exported. Use vercel.json cron to hit /api/backup/trigger');
 }
 
 module.exports = app;
