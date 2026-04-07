@@ -14,6 +14,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [items, setItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchBill = async () => {
@@ -34,16 +35,40 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
     fetchBill();
   }, [billId]);
 
+  useEffect(() => {
+    if (isEditing && products.length === 0) {
+      api.get('/products').then(res => setProducts(res.data)).catch(console.error);
+    }
+  }, [isEditing]);
+
   const handleUpdateItem = (index: number, field: string, value: any) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
     // Recalculate total for that item
-    const price = newItems[index].price || newItems[index].sellingPrice;
+    const price = newItems[index].price || newItems[index].sellingPrice || 0;
     const qty = newItems[index].quantity;
     const gst = newItems[index].product?.gstRate || 18;
     newItems[index].total = (price * qty) + (price * (gst / 100) * qty);
     
+    setItems(newItems);
+  };
+
+  const handleProductSelect = (index: number, productId: string) => {
+    const p = products.find(prod => prod.id === productId);
+    if (!p) return;
+    const newItems = [...items];
+    const price = type === 'SALE' ? p.sellingPrice : (p.purchasePrice || p.sellingPrice || 0);
+    newItems[index] = {
+        ...newItems[index],
+        productId: p.id,
+        product: p,
+        price,
+    };
+    
+    const qty = newItems[index].quantity;
+    const gst = p.gstRate || 18;
+    newItems[index].total = (price * qty) + (price * (gst / 100) * qty);
     setItems(newItems);
   };
 
@@ -123,7 +148,18 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                                 {idx + 1}
                             </div>
                             <div>
-                                <p className="font-bold text-slate-900">{item.product?.name || 'Product'}</p>
+                                {isEditing && !item.productId ? (
+                                    <select 
+                                        className="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 mb-2 truncate max-w-[200px]"
+                                        value={item.productId || ''}
+                                        onChange={e => handleProductSelect(idx, e.target.value)}
+                                    >
+                                        <option value="">Select a product...</option>
+                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                ) : (
+                                    <p className="font-bold text-slate-900">{item.product?.name || 'Product'}</p>
+                                )}
                                 <div className="flex items-center gap-2 mt-1">
                                     {isEditing ? (
                                         <div className="flex items-center gap-2">
@@ -158,21 +194,44 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                         <p className="font-black text-slate-900">₹{item.total.toFixed(2)}</p>
                     </div>
                 ))}
+        </div>
+        
+        {isEditing && (
+            <div className="px-8 pb-4">
+                <button 
+                    onClick={() => {
+                        setItems([...items, { 
+                            productId: '', 
+                            product: null, 
+                            quantity: 1, 
+                            price: 0, 
+                            discount: 0,
+                            taxAmount: 0,
+                            total: 0 
+                        }]);
+                    }}
+                    className="w-full py-3 bg-emerald-50 text-emerald-600 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors border border-emerald-100 border-dashed"
+                >
+                    <Plus size={16} /> Add New Item Line
+                </button>
             </div>
+        )}
         </div>
 
         <div className="p-8 bg-slate-50 border-t border-slate-100 space-y-3">
             <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest pl-2">
                 <span>Subtotal</span>
-                <span>₹{bill.subtotal?.toFixed(2)}</span>
+                <span>₹{(isEditing ? items.reduce((sum, i) => sum + ((i.price || i.sellingPrice || 0) * i.quantity), 0) : bill.subtotal)?.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest pl-2">
                 <span>Tax Total</span>
-                <span>₹{bill.taxTotal?.toFixed(2)}</span>
+                <span>₹{(isEditing ? items.reduce((sum, i) => sum + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 18) / 100) * i.quantity), 0) : bill.taxTotal)?.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
                 <span className="font-black text-indigo-900 uppercase tracking-widest text-xs">Grand Total</span>
-                <span className="text-2xl font-black text-indigo-600">₹{bill.grandTotal?.toFixed(2)}</span>
+                <span className="text-2xl font-black text-indigo-600">
+                    ₹{(isEditing ? items.reduce((sum, i) => sum + (((i.price || i.sellingPrice || 0) * i.quantity) + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 18) / 100) * i.quantity)), 0) : bill.grandTotal)?.toFixed(2)}
+                </span>
             </div>
             {isEditing && (
                 <button 
