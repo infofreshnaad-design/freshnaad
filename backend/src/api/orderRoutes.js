@@ -142,12 +142,14 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
               const pid = item.productId || item.id;
               const p = productMap.get(pid);
               const price = item.price || item.sellingPrice || p.sellingPrice;
+              const mrp = item.mrp || p.mrp || price;
               const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
               
               return {
                 productId: pid,
                 quantity: item.quantity,
                 price: price,
+                mrp: mrp,
                 discount: item.discount || 0,
                 taxAmount: (price * (gst / 100)) * item.quantity,
                 total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)

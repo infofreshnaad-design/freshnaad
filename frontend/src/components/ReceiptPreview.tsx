@@ -54,10 +54,10 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         return `
         <tr>
           <td style="font-size: 10px; padding: 2px 0;">${item.slNo || index + 1}</td>
-          <td style="font-size: 10px; padding: 2px 0; font-weight: bold;">${item.barcode || ''}</td>
+          <td style="font-size: 10px; padding: 2px 0; font-weight: bold;">${item.barcode || item.product?.barcode || ''}</td>
           <td style="font-size: 10px; padding: 2px 0;">${(Number(item.quantity) || 0).toFixed(3)}</td>
           <td style="font-size: 10px; padding: 2px 0;">${(Number(item.price) || 0).toFixed(2)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.mrp || item.price || 0)).toFixed(0)}</td>
+          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
           <td style="font-size: 10px; padding: 2px 0;">${(Number(item.gstRate) || 0).toFixed(2)}</td>
           <td style="font-size: 10px; padding: 2px 0; text-align: right; font-weight: bold;">${(Number(item.total) || 0).toFixed(2)}</td>
         </tr>
@@ -280,10 +280,10 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <React.Fragment key={item.id || idx}>
                     <tr className="text-[10px]">
                       <td className="py-1">{item.slNo || idx + 1}</td>
-                      <td className="py-1 font-bold">{item.barcode || 'N/A'}</td>
+                      <td className="py-1 font-bold">{item.barcode || item.product?.barcode || 'N/A'}</td>
                       <td className="py-1">{(Number(item.quantity) || 0).toFixed(3)}</td>
                       <td className="py-1">{(Number(item.price) || 0).toFixed(2)}</td>
-                      <td className="py-1">{(Number(item.mrp || item.price || 0)).toFixed(0)}</td>
+                      <td className="py-1">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
                       <td className="py-1">{(Number(item.gstRate) || 0).toFixed(2)}</td>
                       <td className="py-1 text-right font-bold">{(Number(item.total) || 0).toFixed(2)}</td>
                     </tr>

@@ -214,6 +214,7 @@ model OrderItem {
   productId  String
   quantity   Float
   price      Float
+  mrp        Float   @default(0)
   discount   Float   @default(0)
   taxAmount Float
   total     Float
