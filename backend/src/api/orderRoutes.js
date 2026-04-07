@@ -62,6 +62,20 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
 });
 // --- END CUSTOMER WHATSAPP ROUTES ---
 
+// Get order by ID
+router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { orderItems: { include: { product: true } }, customer: true, payments: true }
+    });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create new order
 router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   console.log(`[Order API] Starting creation with ${req.body.orderItems?.length} items`);
