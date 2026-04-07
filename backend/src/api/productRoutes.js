@@ -36,7 +36,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
     const {
       name, barcode, categoryId, brand, purchasePrice, 
-      sellingPrice, gstRate, stockQuantity, unit, supplier, 
+      sellingPrice, mrp, gstRate, stockQuantity, unit, supplier, 
       image, is_active
     } = req.body;
 
@@ -52,8 +52,9 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         brand,
         purchasePrice: parseFloat(purchasePrice) || 0,
         sellingPrice: parseFloat(sellingPrice) || 0,
+        mrp: parseFloat(mrp) || 0,
         gstRate: parseFloat(gstRate ?? 18),
-        stockQuantity: parseInt(stockQuantity) || 0,
+        stockQuantity: parseFloat(stockQuantity) || 0,
         unit: unit || 'pcs',
         supplier,
         image,
@@ -74,7 +75,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     const { id } = req.params;
     const {
       name, barcode, categoryId, brand, purchasePrice, 
-      sellingPrice, gstRate, stockQuantity, unit, supplier, 
+      sellingPrice, mrp, gstRate, stockQuantity, unit, supplier, 
       image, is_active
     } = req.body;
 
@@ -83,8 +84,9 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       brand,
       purchasePrice: parseFloat(purchasePrice) || 0,
       sellingPrice: parseFloat(sellingPrice) || 0,
+      mrp: parseFloat(mrp) || 0,
       gstRate: parseFloat(gstRate ?? 18),
-      stockQuantity: parseInt(stockQuantity) || 0,
+      stockQuantity: parseFloat(stockQuantity) || 0,
       unit,
       supplier,
       image,
