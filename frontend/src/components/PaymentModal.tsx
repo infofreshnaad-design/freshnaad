@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, CheckCircle2, QrCode, CreditCard, Banknote, User, Gift, Plus } from 'lucide-react';
 import NumericKeypad from '../components/NumericKeypad';
 import usePOSStore from '../store/posStore';
@@ -11,21 +11,28 @@ interface PaymentModalProps {
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose }) => {
-  const { cart, customer, setCustomer, getTotals, loyaltyDiscount, appliedPoints, setLoyaltyDiscount } = usePOSStore();
-  const { subtotal, taxTotal, grandTotal, roundedTotal } = getTotals();
+  const { cart, customer, setCustomer, getTotals, loyaltyPointsRedeemed, appliedPoints, setLoyaltyDiscount } = usePOSStore();
+  const { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount } = getTotals();
   
   const [amountPaid, setAmountPaid] = useState(roundedTotal.toString());
+  const [isAmountCustom, setIsAmountCustom] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
 
+  // Smarter Sync: Auto-update if total changes (e.g. loyalty points applied)
+  useEffect(() => {
+    if (!isAmountCustom) {
+      setAmountPaid(roundedTotal.toString());
+    }
+  }, [roundedTotal, isAmountCustom]);
+
   // Hardware Keyboard Support
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeys = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const numAmount = parseFloat(amountPaid) || 0;
         if (!loading) {
           submitPayment();
         }
@@ -35,7 +42,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     };
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
-  }, [amountPaid, grandTotal, loading]);
+  }, [amountPaid, loading]);
 
   const submitPayment = async () => {
     const numAmount = parseFloat(amountPaid) || 0;
@@ -60,15 +67,24 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   };
 
   const handleKeypadInput = (val: string) => {
-    setAmountPaid((prev) => (prev === '0' ? val : prev + val));
+    setAmountPaid((prev) => {
+      // Clear on first edit or if zero
+      if (!isAmountCustom || prev === '0') {
+        setIsAmountCustom(true);
+        return val;
+      }
+      return prev + val;
+    });
   };
 
   const handleKeypadDelete = () => {
+    setIsAmountCustom(true);
     setAmountPaid((prev) => (prev.length > 1 ? prev.slice(0, -1) : '0'));
   };
 
   const handleKeypadClear = () => {
-    setAmountPaid('0');
+    setIsAmountCustom(false); // Reset to auto-sync
+    setAmountPaid(roundedTotal.toString());
   };
 
   const change = (parseFloat(amountPaid) || 0) - roundedTotal;
@@ -129,115 +145,105 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
             <div className="text-right">
                <p className="text-blue-200 text-[10px] font-bold uppercase mb-1">Items: {cart.length}</p>
                {loyaltyDiscount > 0 && (
-                 <p className="text-green-300 text-xs font-bold">Disc: -₹{loyaltyDiscount.toFixed(2)}</p>
+                 <p className="text-emerald-300 font-bold text-xs">Discount: -₹{loyaltyDiscount.toFixed(2)}</p>
                )}
             </div>
           </div>
 
           <div className="space-y-3">
-             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-               <CreditCard size={12} className="text-slate-400" />
-               Payment Method
-             </label>
-             <div className="grid grid-cols-3 gap-3">
-                <button
+             <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Payment Method</h3>
+             <div className="grid grid-cols-2 gap-3">
+                <button 
                   onClick={() => setPaymentMethod('CASH')}
-                  className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    paymentMethod === 'CASH' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 bg-white hover:border-slate-300 text-slate-400'
-                  }`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CASH' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <Banknote size={24} />
-                  <span className="font-bold text-xs">CASH</span>
+                  <span className="font-bold text-sm">Cash</span>
                 </button>
-                <button
-                  onClick={() => { setPaymentMethod('UPI'); setAmountPaid(grandTotal.toString()); }}
-                  className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    paymentMethod === 'UPI' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 bg-white hover:border-slate-300 text-slate-400'
-                  }`}
+                <button 
+                  onClick={() => setPaymentMethod('UPI')}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'UPI' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <QrCode size={24} />
-                  <span className="font-bold text-xs">UPI QR</span>
+                  <span className="font-bold text-sm">UPI / QR</span>
                 </button>
-                <button
-                  onClick={() => { setPaymentMethod('CARD'); setAmountPaid(grandTotal.toString()); }}
-                  className={`py-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                    paymentMethod === 'CARD' ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-slate-100 bg-white hover:border-slate-300 text-slate-400'
-                  }`}
+                <button 
+                  onClick={() => setPaymentMethod('CARD')}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CARD' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <CreditCard size={24} />
-                  <span className="font-bold text-xs">CARD</span>
+                  <span className="font-bold text-sm">Card</span>
+                </button>
+                <button 
+                  onClick={() => setPaymentMethod('CREDIT')}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CREDIT' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
+                >
+                  <User size={24} />
+                  <span className="font-bold text-sm">Credit</span>
                 </button>
              </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mt-auto">
-              <div className="p-4 bg-slate-100 rounded-2xl flex flex-col justify-center">
-                <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mb-1">Paid Amount</p>
-                <p className="text-2xl font-black text-slate-800">₹{amountPaid}</p>
-              </div>
-              <div className={`p-4 rounded-2xl flex flex-col justify-center ${change >= 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-300'}`}>
-                <p className="text-[10px] uppercase font-black tracking-widest mb-1">{change >= 0 ? 'Change' : 'Balance'}</p>
-                <p className="text-2xl font-black">₹{Math.abs(change).toFixed(2)}</p>
-              </div>
           </div>
         </div>
 
-        {/* Right Side: Keypad or QR */}
-        <div className="w-full md:w-1/2 p-8 bg-slate-900 flex flex-col justify-center gap-4 relative">
-           {paymentMethod === 'UPI' || paymentMethod === 'CARD' ? (
-             <div className="flex flex-col items-center justify-center h-full text-white text-center animate-in fade-in zoom-in-95">
-                <div className="bg-white p-6 rounded-[2.5rem] mb-8 shadow-2xl relative group">
-                   <QrCode size={200} className="text-slate-900 group-hover:scale-105 transition-transform duration-500" />
-                   <div className="absolute inset-x-0 -bottom-3 flex justify-center">
-                      <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-[10px] font-black shadow-lg">SCAN ME</span>
-                   </div>
-                </div>
-                <p className="text-2xl font-black mb-2 tracking-tight">Pay ₹{grandTotal.toFixed(2)}</p>
-                <p className="text-slate-400 text-sm mb-10 max-w-[250px] mx-auto">Please complete the payment on your device to continue.</p>
-                
-                <div className="flex flex-col gap-4 w-full max-w-[320px]">
-                   <button 
-                    disabled={loading}
-                    onClick={submitPayment}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {loading ? <div className="h-6 w-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div> : <><CheckCircle2 size={24} /> MARK AS SUCCESS</>}
-                  </button>
-                  <button 
-                    onClick={onClose}
-                    className="w-full bg-white/5 hover:bg-white/10 text-slate-400 font-bold py-4 rounded-2xl transition-all border border-white/5"
-                  >
-                    CANCEL TRANSACTION
-                  </button>
-                </div>
+        {/* Right Side: Numeric Keypad & Footer */}
+        <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col gap-6 md:gap-8 bg-white overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Amount Paid (₹)</label>
+            <div className={`p-4 rounded-3xl border-2 flex items-center justify-between transition-all ${isAmountCustom ? 'border-orange-500 bg-orange-50/30' : 'border-slate-100 bg-slate-50'}`}>
+               <span className="text-4xl md:text-5xl font-black text-slate-800">₹{amountPaid}</span>
+               <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">
+                    {change >= 0 ? 'Change' : 'Balance'}
+                  </p>
+                  <p className={`text-xl md:text-2xl font-black ${change >= 0 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                    ₹{Math.abs(change).toFixed(2)}
+                  </p>
+               </div>
+            </div>
+            {!isAmountCustom && <p className="text-[10px] text-blue-500 font-bold text-center mt-1 italic animate-pulse">Synced with Net Total</p>}
+          </div>
 
-                <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-1.5 opacity-30">
-                   <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                   <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                   <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                </div>
-             </div>
-           ) : (
-              <NumericKeypad 
-                onInput={handleKeypadInput}
-                onDelete={handleKeypadDelete}
-                onClear={handleKeypadClear}
-                onConfirm={submitPayment}
-              />
-           )}
+          <div className="flex-1">
+            <NumericKeypad 
+              onInput={handleKeypadInput}
+              onClear={handleKeypadClear}
+              onDelete={handleKeypadDelete}
+              onConfirm={submitPayment}
+            />
+          </div>
+
+          <button 
+            disabled={loading}
+            onClick={submitPayment}
+            className="w-full bg-slate-900 text-white h-16 md:h-20 rounded-3xl font-black text-xl flex items-center justify-center gap-3 hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl disabled:opacity-50"
+          >
+            {loading ? (
+              <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 size={24} />
+                <span>PROCESS CHECKOUT</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Sub-modals */}
       {isCustomerModalOpen && (
         <CustomerSelectionModal 
-           onClose={() => setIsCustomerModalOpen(false)} 
-           onSelect={(c) => { setCustomer(c); setIsCustomerModalOpen(false); }} 
+          onClose={() => setIsCustomerModalOpen(false)}
+          onSelect={(c) => { setCustomer(c); setIsCustomerModalOpen(false); }}
         />
       )}
+
       {isRedeemModalOpen && (
         <RedeemPointsModal 
-          onClose={() => setIsRedeemModalOpen(false)} 
+          onClose={() => setIsRedeemModalOpen(false)}
+          points={customer?.loyaltyPoints || 0}
+          onRedeem={(pts, amount) => {
+            setLoyaltyDiscount(amount, pts);
+            setIsRedeemModalOpen(false);
+          }}
         />
       )}
     </div>
