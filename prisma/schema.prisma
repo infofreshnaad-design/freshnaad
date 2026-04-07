@@ -62,8 +62,9 @@ model Product {
   brand          String?
   purchasePrice  Float
   sellingPrice   Float
+  mrp            Float          @default(0)
   gstRate        Float          @default(0)
-  stockQuantity  Int            @default(0)
+  stockQuantity  Float          @default(0)
   unit           String         @default("pcs")
   supplier       String?
   image          String?
@@ -120,7 +121,7 @@ model PurchaseOrderItem {
   purchaseOrderId String
   product         Product        @relation(fields: [productId], references: [id])
   productId       String
-  quantity        Int
+  quantity        Float
   price           Float
   discount        Float          @default(0)
   discountPercent Float          @default(0)
@@ -155,6 +156,8 @@ model Order {
   discount              Float       @default(0)
   taxTotal              Float
   grandTotal            Float
+  savings               Float       @default(0)
+  roundedTotal          Float       @default(0)
   loyaltyPointsEarned   Int         @default(0)
   loyaltyPointsRedeemed Int         @default(0)
   paymentMode           String      
@@ -194,7 +197,7 @@ model SalesReturnItem {
   salesReturnId String
   product       Product     @relation(fields: [productId], references: [id])
   productId     String
-  quantity      Int
+  quantity      Float
   price         Float
   taxAmount     Float
   total         Float
@@ -209,7 +212,7 @@ model OrderItem {
   orderId    String
   product    Product @relation(fields: [productId], references: [id])
   productId  String
-  quantity   Int
+  quantity   Float
   price      Float
   discount   Float   @default(0)
   taxAmount Float
@@ -244,7 +247,7 @@ model PurchaseReturnItem {
   purchaseReturnId String
   product          Product        @relation(fields: [productId], references: [id])
   productId        String
-  quantity         Int
+  quantity         Float
   price            Float
   taxAmount        Float
   total            Float
@@ -258,7 +261,7 @@ model InventoryLog {
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
   type       String   
-  quantity   Int
+  quantity   Float
   reason     String?
   createdAt  DateTime @default(now())
 
@@ -327,7 +330,7 @@ model PurchaseItem {
   purchaseId String
   product    Product  @relation(fields: [productId], references: [id])
   productId  String
-  quantity   Int
+  quantity   Float
   price      Float
   discount   Float    @default(0)
   discountPercent Float @default(0)

@@ -17,7 +17,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
       barcode: '',
       purchasePrice: 0,
       sellingPrice: 0,
-      gstRate: 18,
+      mrp: 0,
+      gstRate: 0,
       stockQuantity: 0,
       unit: 'pcs',
       image: '',
@@ -86,6 +87,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
         ...cleanData,
         purchasePrice: Number(cleanData.purchasePrice) || 0,
         sellingPrice: Number(cleanData.sellingPrice) || 0,
+        mrp: Number(cleanData.mrp) || 0,
         gstRate: Number(cleanData.gstRate) || 0,
         stockQuantity: Number(cleanData.stockQuantity) || 0,
         categoryId: cleanData.categoryId || null
@@ -250,12 +252,27 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
             </div>
 
             <div>
+              <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Maximum Retail Price (MRP)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold text-xs">₹</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full pl-7 pr-3 py-3 bg-emerald-50/30 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800 outline-none"
+                  value={formData.mrp}
+                  onChange={(e) => setFormData({ ...formData, mrp: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+            <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">GST Rate (%)</label>
               <input
                 type="number"
+                step="0.01"
                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
                 value={formData.gstRate}
-                onChange={(e) => setFormData({ ...formData, gstRate: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, gstRate: parseFloat(e.target.value) || 0 })}
               />
             </div>
 
@@ -263,9 +280,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
               <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Opening Stock</label>
               <input
                 type="number"
+                step="0.001"
                 className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
                 value={formData.stockQuantity}
-                onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, stockQuantity: parseFloat(e.target.value) || 0 })}
               />
             </div>
           </div>

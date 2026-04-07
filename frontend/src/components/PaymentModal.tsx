@@ -12,7 +12,7 @@ interface PaymentModalProps {
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose }) => {
   const { cart, customer, setCustomer, getTotals, loyaltyDiscount, appliedPoints, setLoyaltyDiscount } = usePOSStore();
-  const { subtotal, taxTotal, grandTotal } = getTotals();
+  const { subtotal, taxTotal, grandTotal, roundedTotal } = getTotals();
   
   const [amountPaid, setAmountPaid] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -25,8 +25,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     const handleKeys = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const numAmount = parseFloat(amountPaid);
-        if (numAmount >= grandTotal && !loading) {
+        const numAmount = parseFloat(amountPaid) || 0;
+        if (!loading) {
           submitPayment();
         }
       } else if (e.key === 'Escape') {
@@ -38,11 +38,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   }, [amountPaid, grandTotal, loading]);
 
   const submitPayment = async () => {
-    const numAmount = parseFloat(amountPaid);
-    if (numAmount < grandTotal) {
-      alert(`Invalid Amount! You must collect at least ₹${grandTotal.toFixed(2)} to complete this sale.`);
-      return;
-    }
+    const numAmount = parseFloat(amountPaid) || 0;
     
     setLoading(true);
     try {
@@ -65,7 +61,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     setAmountPaid('0');
   };
 
-  const change = parseFloat(amountPaid) - grandTotal;
+  const change = (parseFloat(amountPaid) || 0) - roundedTotal;
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
@@ -117,7 +113,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
           <div className="bg-blue-600 p-6 rounded-3xl text-white shadow-xl shadow-blue-500/20 flex justify-between items-end">
             <div>
                <p className="text-blue-100 font-bold text-xs uppercase tracking-widest mb-1">Final Amount Due</p>
-               <p className="text-5xl font-black tracking-tight">₹{grandTotal.toFixed(2)}</p>
+               <p className="text-5xl font-black tracking-tight">₹{roundedTotal.toFixed(2)}</p>
+               {grandTotal !== roundedTotal && <p className="text-blue-200 text-[10px] font-bold italic mt-1">Unrounded: ₹{grandTotal.toFixed(2)}</p>}
             </div>
             <div className="text-right">
                <p className="text-blue-200 text-[10px] font-bold uppercase mb-1">Items: {cart.length}</p>
@@ -170,7 +167,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
               </div>
               <div className={`p-4 rounded-2xl flex flex-col justify-center ${change >= 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-300'}`}>
                 <p className="text-[10px] uppercase font-black tracking-widest mb-1">{change >= 0 ? 'Change' : 'Balance'}</p>
-                <p className="text-2xl font-black">₹{Math.max(0, change).toFixed(2)}</p>
+                <p className="text-2xl font-black">₹{Math.abs(change).toFixed(2)}</p>
               </div>
           </div>
         </div>

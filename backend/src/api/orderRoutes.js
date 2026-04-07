@@ -82,7 +82,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   const startTime = Date.now();
 
   try {
-    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
+    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, roundedTotal, savings, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
@@ -131,6 +131,8 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           discount,
           taxTotal,
           grandTotal,
+          roundedTotal: roundedTotal || Math.floor(grandTotal),
+          savings: savings || 0,
           paymentMode,
           loyaltyPointsEarned,
           loyaltyPointsRedeemed,

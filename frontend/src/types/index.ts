@@ -10,6 +10,7 @@ export interface Product {
   categoryId: string | null;
   category?: Category;
   purchasePrice: number;
+  mrp: number;
   sellingPrice: number;
   gstRate: number;
   stockQuantity: number;

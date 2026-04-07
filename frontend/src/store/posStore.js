@@ -57,7 +57,7 @@ const usePOSStore = create((set, get) => ({
   updateQuantity: (productId, quantity) => set((state) => ({
     cart: state.cart.map((item) => {
       if (item.id === productId) {
-        const newQty = Math.max(1, quantity);
+        const newQty = Math.max(0, quantity);
         // Prevent exceeding stock during manual update
         if (newQty > item.stockQuantity) {
           alert(`Only ${item.stockQuantity} units available in stock.`);
@@ -87,9 +87,14 @@ const usePOSStore = create((set, get) => ({
       (acc, item) => acc + ((item.sellingPrice || 0) * ((item.gstRate || 0) / 100)) * (item.quantity || 0),
       0
     );
+    const savings = cart.reduce(
+      (acc, item) => acc + ((item.mrp || item.sellingPrice || 0) - (item.sellingPrice || 0)) * (item.quantity || 0),
+      0
+    );
     const grandTotal = Math.max(0, subtotal + taxTotal - (loyaltyDiscount || 0));
+    const roundedTotal = Math.floor(grandTotal);
     
-    return { subtotal, taxTotal, grandTotal, loyaltyDiscount };
+    return { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount, savings };
   },
 }));
 

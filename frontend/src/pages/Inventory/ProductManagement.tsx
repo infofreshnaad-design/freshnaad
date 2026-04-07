@@ -128,7 +128,8 @@ const ProductManagement = () => {
                     <td className="px-6 py-4 text-slate-600 truncate">{product.category?.name || 'General'}</td>
                     <td className="px-6 py-4">
                       <p className="font-bold text-slate-800">₹{product.sellingPrice.toFixed(2)}</p>
-                      <p className="text-xs text-slate-400">Cost: ₹{product.purchasePrice.toFixed(2)}</p>
+                      <p className="text-[10px] text-emerald-600 font-bold">MRP: ₹{(product.mrp || product.sellingPrice).toFixed(2)}</p>
+                      <p className="text-xs text-slate-400 font-medium">Cost: ₹{product.purchasePrice.toFixed(2)}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${

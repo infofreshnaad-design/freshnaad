@@ -192,7 +192,7 @@ const POSInterface: React.FC = () => {
   }, [products, addToCart]);
 
   const handlePaymentComplete = async (method: string, amount: string) => {
-    const { subtotal, taxTotal, grandTotal } = getTotals();
+    const { subtotal, taxTotal, grandTotal, roundedTotal, savings } = getTotals();
     const tempInvoiceNo = `POS-P${Math.floor(Math.random() * 9000) + 1000}`; // Short, clean temporary ID
     
     const orderData = {
@@ -207,6 +207,9 @@ const POSInterface: React.FC = () => {
       subtotal,
       taxTotal,
       grandTotal,
+      roundedTotal,
+      savings,
+      amountPaid: parseFloat(amount) || 0,
       paymentMode: method,
       discount: loyaltyDiscount,
       loyaltyPointsRedeemed: appliedPoints,
@@ -460,14 +463,20 @@ const POSInterface: React.FC = () => {
                     <div className="flex flex-col items-end gap-1.5">
                       <div className="flex items-center bg-slate-100 rounded-lg p-0.5 md:p-1">
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 0.1)}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-500"
                         >
                           <Minus size={12} strokeWidth={3} />
                         </button>
-                        <span className="w-6 md:w-10 text-center font-bold text-xs md:text-base text-slate-700">{item.quantity}</span>
+                        <input 
+                          type="number" 
+                          step="0.001"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(item.id, parseFloat(e.target.value) || 0)}
+                          className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
+                        />
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 0.1)}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600"
                         >
                           <Plus size={12} strokeWidth={3} />
@@ -496,6 +505,10 @@ const POSInterface: React.FC = () => {
               <div className="flex justify-between text-xs md:text-sm text-slate-400">
                 <span>Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs md:text-sm text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">
+                <span>Total Savings</span>
+                <span>₹{getTotals().savings.toFixed(2)}</span>
               </div>
               {loyaltyDiscount > 0 && (
                 <div className="flex justify-between text-xs md:text-sm text-green-400 font-medium">

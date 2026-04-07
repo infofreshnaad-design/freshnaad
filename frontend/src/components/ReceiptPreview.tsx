@@ -59,8 +59,8 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         <tr>
           <td style="padding: 5px 0;">
             <div style="font-weight: bold;">${itemName}</div>
+            <div style="font-size: 8px; color: #666;">${item.quantity} ${item.unit || 'pcs'} x ₹${item.price.toFixed(2)} (MRP: ₹${(item.mrp || item.price).toFixed(2)})</div>
           </td>
-          <td style="padding: 5px 0; text-align: center;">${item.quantity}</td>
           <td style="padding: 5px 0; text-align: right; font-weight: bold;">₹${(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
         </tr>
       `;
@@ -107,8 +107,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <table>
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th style="text-align: center;">Qty</th>
+                  <th>Item Details</th>
                   <th style="text-align: right;">Total</th>
                 </tr>
               </thead>
@@ -118,15 +117,20 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             </table>
             <div class="dashed-border"></div>
             <div style="margin-top: 10px;">
-              <div class="total-row grand-total">
-                <span>Total Amount:</span>
-                <span>₹${(order.grandTotal || 0).toFixed(2)}</span>
+              <div class="total-row"><span>Item Total:</span><span>₹${(order.subtotal || 0).toFixed(2)}</span></div>
+              <div class="total-row" style="color: green;"><span>Total Savings:</span><span>₹${(order.savings || 0).toFixed(2)}</span></div>
+              <div class="total-row grand-total" style="border-top: 2px solid #000;">
+                <span>Rounded Total:</span>
+                <span>₹${(order.roundedTotal || Math.floor(order.grandTotal || 0)).toFixed(2)}</span>
+              </div>
+              <div class="total-row"><span>Paid Amount:</span><span>₹${(order.amountPaid || 0).toFixed(2)}</span></div>
+              <div class="total-row" style="font-weight: bold; font-size: 14px;">
+                <span>Balance Due:</span>
+                <span>₹${(Math.max(0, (order.roundedTotal || Math.floor(order.grandTotal || 0)) - (order.amountPaid || 0))).toFixed(2)}</span>
               </div>
             </div>
-            <div style="margin-top: 30px; text-align: center; font-size: 10px; font-style: italic;">
-              <p>Thank you for shopping with us!</p>
-              <p style="margin: 2px 0;">Digital Bill Generated via POS Pro</p>
-              <p style="margin: 2px 0; font-weight: bold;">Software by NIVAN SOLUTIONS</p>
+            <div style="margin-top: 30px; text-align: center; font-size: 14px; font-weight: bold; border-top: 1px dashed #000; padding-top: 10px;">
+              <p>THANK YOU VISIT AGAIN</p>
             </div>
             <script>
               window.onload = () => {
@@ -231,8 +235,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <table className="w-full mb-6">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase font-bold text-slate-400">
-                  <th className="py-2">Item</th>
-                  <th className="py-2 text-center">Qty</th>
+                  <th className="py-2">Item Details</th>
                   <th className="py-2 text-right">Total</th>
                 </tr>
               </thead>
@@ -241,25 +244,45 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <tr key={item.id}>
                     <td className="py-2 pr-2">
                        <p className="font-bold leading-tight">{item.product?.name || item.name || 'Product'}</p>
+                       <p className="text-[10px] text-slate-500">
+                         {item.quantity} {item.unit || 'pcs'} x ₹{item.price.toFixed(2)} 
+                         <span className="ml-2 font-medium">(MRP: ₹{(item.mrp || item.price).toFixed(2)})</span>
+                       </p>
                     </td>
-                    <td className="py-2 text-center align-top">{item.quantity}</td>
-                    <td className="py-2 text-right align-top font-bold">₹{(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
+                    <td className="py-2 text-right align-top font-bold text-slate-900">₹{(item.total || (item.price * item.quantity) || 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             <div className="border-t-2 border-double border-slate-300 pt-4 space-y-2">
-              <div className="flex justify-between text-lg font-black pt-2 border-t border-slate-100">
-                <span>Total Amount:</span>
-                <span>₹{(order.grandTotal || 0).toFixed(2)}</span>
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Item Total:</span>
+                <span>₹{(order.subtotal || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-emerald-600 font-bold">
+                <span>Total Savings:</span>
+                <span>₹{(order.savings || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-black pt-2 border-t-2 border-slate-900 text-slate-900">
+                <span>Rounded Total:</span>
+                <span>₹{(order.roundedTotal || Math.floor(order.grandTotal || 0)).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-slate-700">
+                <span>Paid Amount:</span>
+                <span>₹{(order.amountPaid || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-md font-black text-blue-600 pt-1">
+                <span>Balance Due:</span>
+                <span>₹{(Math.max(0, (order.roundedTotal || Math.floor(order.grandTotal || 0)) - (order.amountPaid || 0))).toFixed(2)}</span>
               </div>
             </div>
 
-            <div className="mt-8 text-center text-xs text-slate-400 italic">
-              <p>Thank you for shopping with us!</p>
-              <p className="mt-1">Digital Bill Generated via POS Pro</p>
-              <p className="mt-1 font-bold">Software by NIVAN SOLUTIONS</p>
+            <div className="mt-8 text-center border-t border-dashed border-slate-300 pt-6">
+              <p className="text-sm font-black tracking-widest text-slate-800">THANK YOU VISIT AGAIN</p>
+              <div className="mt-4 opacity-40 grayscale scale-75">
+                 <p className="text-[8px] font-bold uppercase tracking-tighter">Digital Bill via POS Pro by NIVAN SOLUTIONS</p>
+              </div>
             </div>
 
             {/* Sync Overlay / Status */}
