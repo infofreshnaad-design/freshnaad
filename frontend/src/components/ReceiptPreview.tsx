@@ -155,11 +155,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               </div>
             </div>
 
-            <div class="savings">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(3)}</div>
+            <div class="savings" style="font-size: 11px; margin: 5px 0;">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(3)}</div>
 
-            <div class="short-id">*${(order.invoiceNo || '').slice(-4)}*</div>
+            <div class="short-id" style="font-size: 24px; font-weight: 900; margin: 5px 0;">*${(order.invoiceNo || '').slice(-4)}*</div>
 
-            <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 5px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; border-top: 1px dashed #000; padding-top: 2px;">
               <span>SGST : 0</span>
               <span>CGST : 0</span>
               <span>KFC : 0</span>
@@ -175,7 +175,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div>Total Point :0</div>
             </div>
 
-            <div style="margin-top: 15px; text-align: center; font-weight: bold; border-top: 1px solid #000; padding-top: 8px;">
+            <div style="margin-top: 5px; text-align: center; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; font-size: 10px;">
                THANK YOU VISIT AGAIN
             </div>
 
@@ -327,21 +327,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               </div>
             </div>
 
-            <div className="mt-8 text-center">
-               <p className="text-lg font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(3)}</p>
-            </div>
-
             <div className="mt-4 text-center">
-               <p className="text-5xl font-black tracking-tighter">*{(order.invoiceNo || '').slice(-4)}*</p>
+               <p className="text-sm font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(3)}</p>
             </div>
 
-            <div className="flex justify-between border-y border-dashed border-slate-300 py-2 text-[9px] font-bold text-slate-500 mt-6">
+            <div className="mt-2 text-center">
+               <p className="text-2xl font-black tracking-tighter">*{(order.invoiceNo || '').slice(-4)}*</p>
+            </div>
+
+            <div className="flex justify-between border-y border-dashed border-slate-300 py-1 text-[9px] font-bold text-slate-500 mt-3">
                <span>SGST : 0</span>
                <span>CGST : 0</span>
                <span>KFC : 0</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 py-3 text-[9px] text-slate-600">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 py-2 text-[9px] text-slate-600">
               <div className="flex justify-between"><span>Cash:</span><span>{(order.paymentMode === 'CASH' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Counter:</span><span>001</span></div>
               <div className="flex justify-between"><span>Card:</span><span>{(order.paymentMode === 'CARD' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
@@ -351,7 +351,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between"><span>Total Pt:</span><span>0</span></div>
             </div>
 
-            <div className="mt-6 text-center border-t border-slate-900 pt-4 font-bold text-sm">
+            <div className="mt-3 text-center border-t border-slate-900 pt-2 font-bold text-xs">
               THANK YOU VISIT AGAIN
             </div>
           </div>
