@@ -521,57 +521,72 @@ router.get('/stock-detail/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// Test WhatsApp Configuration
+// Test WhatsApp Configuration & Diagnostics
 router.post('/test-whatsapp', auth(['ADMIN']), async (req, res) => {
+  const startTime = Date.now();
   try {
     const { phone, message } = req.body;
-    if (!phone) return res.status(400).json({ error: 'Phone number required' });
-
-    // Mock order object for testing
-    const mockOrder = {
-      invoiceNo: 'TEST-CONNECTION',
-      createdAt: new Date(),
-      subtotal: 0,
-      taxTotal: 0,
-      grandTotal: 0,
-      orderItems: []
-    };
-
-    const apiURL = whatsappUtil.getFormattedURL(process.env.WHATSAPP_API_URL);
+    
+    // 1. Gather Diagnostic Data
+    const apiURL = process.env.WHATSAPP_API_URL;
     const apiKey = process.env.WHATSAPP_API_KEY;
+    const host = req.headers.host;
+    const protocol = req.protocol || 'https';
+    const appUrlOverride = process.env.APP_URL;
+
+    const report = {
+      timestamp: new Date().toISOString(),
+      config: {
+        apiUrlPresent: !!apiURL,
+        apiKeyPresent: !!apiKey,
+        detectedHost: host,
+        appUrlOverride: appUrlOverride || 'NOT_SET',
+        publicAccessibility: !host.includes('localhost') && !host.includes('127.0.0.1')
+      },
+      tests: []
+    };
 
     if (!apiURL || !apiKey) {
       return res.status(400).json({ 
-        error: 'Missing environment variables',
-        details: { url: !!apiURL, key: !!apiKey }
+        success: false, 
+        error: 'Configuration Missing',
+        report 
       });
     }
 
-    // Attempt to send
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    // 2. Connectivity Test (Simple Message)
+    const cleanPhone = (phone || '9100000000').replace(/\D/g, '').slice(-10);
     const formattedPhone = `91${cleanPhone}`;
+    
+    console.log(`[WhatsApp Test] Sending test message to ${formattedPhone}...`);
     
     const params = new URLSearchParams();
     params.append('token', apiKey);
     params.append('to', formattedPhone);
-    params.append('body', message || 'POS Pro WhatsApp Connection Test: SUCCESS');
+    params.append('body', message || `POS Pro WhatsApp Connection Test: SUCCESS\nTime: ${new Date().toLocaleString()}`);
+
+    const testEndpoint = apiURL.includes('ultramsg.com') 
+        ? (apiURL.endsWith('/') ? `${apiURL}messages/chat` : `${apiURL}/messages/chat`)
+        : apiURL;
 
     const axios = require('axios');
-    const response = await axios.post(apiURL, params, { 
+    const response = await axios.post(testEndpoint, params, { 
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: 10000 
     });
 
     res.json({ 
         success: true, 
-        message: 'Test message triggered', 
+        duration: `${Date.now() - startTime}ms`,
+        report,
         providerResponse: response.data 
     });
   } catch (error) {
     res.status(500).json({ 
         success: false, 
+        duration: `${Date.now() - startTime}ms`,
         error: error.message, 
-        details: error.response?.data 
+        details: error.response?.data || 'No response data from provider'
     });
   }
 });

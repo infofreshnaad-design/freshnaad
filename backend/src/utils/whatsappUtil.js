@@ -58,6 +58,11 @@ const whatsappUtil = {
     try {
       console.log(`[WhatsApp] Triggering PDF Delivery to ${formattedPhone} (Invoice: ${order.invoiceNo}, Domain: ${appURL})`);
       
+      // DIAGNOSTIC CHECK: Is the host localhost? (UltraMsg cannot reach localhost)
+      if (appURL.includes('localhost') || appURL.includes('127.0.0.1')) {
+        console.warn('[WhatsApp] LOCALHOST WARNING: UltraMsg cannot access your laptop to download the PDF. Delivery WILL fail in dev mode.');
+      }
+
       const params = new URLSearchParams();
       params.append('token', apiKey);
       params.append('to', formattedPhone);
@@ -67,15 +72,20 @@ const whatsappUtil = {
 
       const response = await axios.post(docEndpoint, params, { 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 20000 // Ensuring enough time for PDF generation and delivery
+        timeout: 25000 // Invoices can take time to generate
       });
 
       console.log(`[WhatsApp] Document API Response:`, JSON.stringify(response.data));
-      return { success: true, message: 'PDF Sent Successfully' };
+      return { success: true, message: 'PDF Sent Successfully', data: response.data };
     } catch (error) {
-      const errorData = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      let errorData = error.message;
+      if (error.response?.data) {
+        errorData = typeof error.response.data === 'object' 
+          ? JSON.stringify(error.response.data) 
+          : error.response.data;
+      }
       console.error(`[WhatsApp] PDF Delivery Failure:`, errorData);
-      return { success: false, error: 'Document API Error' };
+      return { success: false, error: 'Document API Error', details: errorData };
     }
   },
 
