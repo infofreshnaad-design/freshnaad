@@ -151,17 +151,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div class="total-row">
                 <span></span>
                 <span class="bold">Balance :</span>
-                <span class="bold">${(Number(balance) || 0).toFixed(2)}</span>
+                <span class="bold">${(Number(order.balance) || 0).toFixed(2)}</span>
               </div>
             </div>
 
             <div class="savings" style="font-size: 11px; margin: 5px 0;">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(3)}</div>
-
-            <div style="display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 2px; border-top: 1px dashed #000; padding-top: 2px;">
-              <span>SGST : 0</span>
-              <span>CGST : 0</span>
-              <span>KFC : 0</span>
-            </div>
 
             <div class="footer-grid">
               <div>Cash :${order.paymentMode === 'CASH' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
@@ -321,18 +315,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               </div>
               <div className="flex justify-between font-bold">
                  <span>Balance :</span>
-                 <span>₹{((Number(order.amountPaid) || 0) - (Number(order.roundedTotal) || 0)).toFixed(2)}</span>
+                 <span>₹{(Number(order.balance) || 0).toFixed(2)}</span>
               </div>
             </div>
 
             <div className="mt-4 text-center">
                <p className="text-sm font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(3)}</p>
-            </div>
-
-            <div className="flex justify-between border-y border-dashed border-slate-300 py-1 text-[9px] font-bold text-slate-500 mt-3">
-               <span>SGST : 0</span>
-               <span>CGST : 0</span>
-               <span>KFC : 0</span>
             </div>
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 py-2 text-[9px] text-slate-600">

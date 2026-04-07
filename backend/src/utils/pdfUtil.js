@@ -115,9 +115,7 @@ const pdfUtil = {
     
     drawRow('Net Total:', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
     drawRow('Tender:', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`);
-    
-    const balance = (Number(order.amountPaid) || 0) - (Number(order.roundedTotal) || 0);
-    drawRow('Balance:', `Rs. ${balance.toFixed(2)}`, true);
+    drawRow('Balance:', `Rs. ${(Number(order.balance) || 0).toFixed(2)}`, true);
 
     // --- Savings Badge ---
     const savings = Number(order.savings) || 0;

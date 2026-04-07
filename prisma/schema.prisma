@@ -158,6 +158,8 @@ model Order {
   grandTotal            Float
   savings               Float       @default(0)
   roundedTotal          Float       @default(0)
+  amountPaid            Float       @default(0)
+  balance               Float       @default(0)
   loyaltyPointsEarned   Int         @default(0)
   loyaltyPointsRedeemed Int         @default(0)
   paymentMode           String      

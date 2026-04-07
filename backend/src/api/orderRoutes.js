@@ -13,7 +13,8 @@ router.get('/:id/pdf', async (req, res) => {
       where: { id },
       include: { 
         orderItems: { include: { product: true } }, 
-        customer: true 
+        customer: true,
+        payments: true
       }
     });
     
@@ -82,7 +83,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   const startTime = Date.now();
 
   try {
-    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, roundedTotal, savings, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
+    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, roundedTotal, savings, amountPaid, balance, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
@@ -133,6 +134,8 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           grandTotal,
           roundedTotal: roundedTotal || Math.floor(grandTotal),
           savings: savings || 0,
+          amountPaid: Number(amountPaid) || Number(roundedTotal || grandTotal),
+          balance: Number(balance) || 0,
           paymentMode,
           loyaltyPointsEarned,
           loyaltyPointsRedeemed,
@@ -245,7 +248,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   const startTime = Date.now();
   try {
     const { id } = req.params;
-    const { orderItems: newItems, subtotal, discount, taxTotal, grandTotal, paymentMode, customerId } = req.body;
+    const { orderItems: newItems, subtotal, discount, taxTotal, grandTotal, amountPaid, balance, paymentMode, customerId } = req.body;
 
     const updatedOrder = await prisma.$transaction(async (tx) => {
       // 1. Fetch old order with items
@@ -330,6 +333,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           discount,
           taxTotal,
           grandTotal,
+          amountPaid: Number(amountPaid) || Number(grandTotal),
+          balance: Number(balance) || 0,
           paymentMode,
           loyaltyPointsEarned: newLoyaltyPointsEarned,
           orderItems: {
