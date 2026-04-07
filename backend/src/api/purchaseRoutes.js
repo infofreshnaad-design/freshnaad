@@ -280,7 +280,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         },
         include: { purchaseItems: { include: { product: true } } }
       });
-    });
+    }, { timeout: 30000 });
 
     res.json(updatedPurchase);
   } catch (error) {

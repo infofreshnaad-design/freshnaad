@@ -272,25 +272,21 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         });
       }
 
-      // 4. Calculate Inventory Changes
-      const updatePromises = [];
-      
-      // Reverse old items
+      // 4. Perform Inventory Updates Sequentially for stability
+      // Reverse old items (Increment stock back)
       for (const item of oldOrder.orderItems) {
-        updatePromises.push(
-          tx.product.update({
-            where: { id: item.productId },
-            data: { stockQuantity: { increment: item.quantity } }
-          }),
-          tx.inventoryLog.create({
-            data: {
-              productId: item.productId,
-              type: 'IN',
-              quantity: item.quantity,
-              reason: `Edit Reverse: ${oldOrder.invoiceNo}`
-            }
-          })
-        );
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { increment: item.quantity } }
+        });
+        await tx.inventoryLog.create({
+          data: {
+            productId: item.productId,
+            type: 'IN',
+            quantity: item.quantity,
+            reason: `Edit Reverse: ${oldOrder.invoiceNo}`
+          }
+        });
       }
 
       // 5. APPLY: Delete old mapping and prepare new
@@ -303,27 +299,23 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       // Re-apply new items
       for (const item of newItems) {
         const pid = item.productId || item.id;
+        if (!pid) continue; // Skip empty lines
         const p = productMap.get(pid);
         if (!p) throw new Error(`Product ${pid} not found`);
 
-        updatePromises.push(
-          tx.product.update({
-            where: { id: pid },
-            data: { stockQuantity: { decrement: item.quantity } }
-          }),
-          tx.inventoryLog.create({
-            data: {
-              productId: pid,
-              type: 'OUT',
-              quantity: item.quantity,
-              reason: `Edit Apply: ${oldOrder.invoiceNo}`
-            }
-          })
-        );
+        await tx.product.update({
+          where: { id: pid },
+          data: { stockQuantity: { decrement: item.quantity } }
+        });
+        await tx.inventoryLog.create({
+          data: {
+            productId: pid,
+            type: 'OUT',
+            quantity: item.quantity,
+            reason: `Edit Apply: ${oldOrder.invoiceNo}`
+          }
+        });
       }
-
-      // Execute all inventory updates in parallel
-      await Promise.all(updatePromises);
 
       // 6. Final Record Update
       const finalOrder = await tx.order.update({
@@ -382,7 +374,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       }
 
       return finalOrder;
-    }, { timeout: 20000 });
+    }, { timeout: 30000 });
 
     console.log(`[Order API] Edit Success in ${Date.now() - startTime}ms`);
     res.json(updatedOrder);
