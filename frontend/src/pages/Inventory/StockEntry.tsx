@@ -142,6 +142,7 @@ const StockEntry = () => {
   };
 
   const quickAdd = (p: Product) => {
+      if (!supplierName.trim()) return alert('Please enter Vendor / Sourcing Partner before adding items.');
       const newItem = {
           productId: p.id,
           name: p.name,
@@ -293,7 +294,10 @@ const StockEntry = () => {
            )}
 
            <button 
-             onClick={() => setStep('add-item')}
+             onClick={() => {
+                 if (!supplierName.trim()) return alert('Please enter Vendor / Sourcing Partner before adding items.');
+                 setStep('add-item');
+             }}
              className="w-full bg-slate-900 border-b-4 border-slate-950 p-4 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-sm hover:scale-[1.01] transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
            >
               <Plus size={20} strokeWidth={3} /> {cart.length > 0 ? 'Add More Items' : 'Start Adding Items'}
