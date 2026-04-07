@@ -62,7 +62,7 @@ model Product {
   brand          String?
   purchasePrice  Float
   sellingPrice   Float
-  gstRate        Float          @default(18)
+  gstRate        Float          @default(0)
   stockQuantity  Int            @default(0)
   unit           String         @default("pcs")
   supplier       String?

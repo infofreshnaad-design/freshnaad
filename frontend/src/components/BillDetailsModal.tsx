@@ -48,7 +48,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
     // Recalculate total for that item
     const price = newItems[index].price || newItems[index].sellingPrice || 0;
     const qty = newItems[index].quantity;
-    const gst = newItems[index].product?.gstRate || 18;
+    const gst = newItems[index].product?.gstRate || 0;
     newItems[index].total = (price * qty) + (price * (gst / 100) * qty);
     
     setItems(newItems);
@@ -67,7 +67,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
     };
     
     const qty = newItems[index].quantity;
-    const gst = p.gstRate || 18;
+    const gst = p.gstRate || 0;
     newItems[index].total = (price * qty) + (price * (gst / 100) * qty);
     setItems(newItems);
   };
@@ -82,10 +82,17 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   };
 
   const handleSave = async () => {
+    // Validation: Check for empty item lines (no product selected)
+    const invalidItems = items.filter(item => !item.productId);
+    if (invalidItems.length > 0) {
+        alert("Please select a product for all item lines, or remove the empty rows before saving.");
+        return;
+    }
+
     setSaving(true);
     try {
       const subtotal = items.reduce((sum, i) => sum + ( (i.price || i.sellingPrice) * i.quantity), 0);
-      const taxTotal = items.reduce((sum, i) => sum + ( (i.price || i.sellingPrice) * ( (i.product?.gstRate || 18) / 100) * i.quantity), 0);
+      const taxTotal = items.reduce((sum, i) => sum + ( (i.price || i.sellingPrice) * ( (i.product?.gstRate || 0) / 100) * i.quantity), 0);
       const grandTotal = subtotal + taxTotal;
 
       const payload = {
@@ -225,12 +232,12 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
             </div>
             <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest pl-2">
                 <span>Tax Total</span>
-                <span>₹{(isEditing ? items.reduce((sum, i) => sum + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 18) / 100) * i.quantity), 0) : bill.taxTotal)?.toFixed(2)}</span>
+                <span>₹{(isEditing ? items.reduce((sum, i) => sum + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 0) / 100) * i.quantity), 0) : bill.taxTotal)?.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
                 <span className="font-black text-indigo-900 uppercase tracking-widest text-xs">Grand Total</span>
                 <span className="text-2xl font-black text-indigo-600">
-                    ₹{(isEditing ? items.reduce((sum, i) => sum + (((i.price || i.sellingPrice || 0) * i.quantity) + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 18) / 100) * i.quantity)), 0) : bill.grandTotal)?.toFixed(2)}
+                    ₹{(isEditing ? items.reduce((sum, i) => sum + (((i.price || i.sellingPrice || 0) * i.quantity) + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 0) / 100) * i.quantity)), 0) : bill.grandTotal)?.toFixed(2)}
                 </span>
             </div>
             {isEditing && (
