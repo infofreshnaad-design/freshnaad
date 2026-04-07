@@ -77,33 +77,38 @@ export class EscPosBuilder {
     builder.alignCenter()
            .doubleSize(true)
            .bold(true)
-           .line(businessInfo.name || 'POS BILLING')
+           .line('FRESH NAAD FOODS INDIA')
            .doubleSize(false)
            .bold(false)
-           .line(businessInfo.address || '')
-           .line(businessInfo.phone ? `Ph: ${businessInfo.phone}` : '')
+           .line('Kodassery, Pandikkad (po)')
+           .line('Malappuram, Kerala')
+           .alignLeft()
+           .line('FSSAI: 21326222000253')
+           .alignRight()
+           .line('Mob: 8606391315, 75608 57580')
+           .alignCenter()
            .line('--------------------------------');
 
     // Order Info
     builder.alignLeft()
-           .line(`Bill No: ${order.invoiceNo}`)
-           .line(`Date: ${new Date(order.createdAt).toLocaleString()}`)
-           .line(`Customer: ${order.customer?.name || 'Walk-in'}`)
+           .line(`Bill No: ${order.invoiceNo || 'N/A'}`)
+           .line(`Date: ${new Date(order.createdAt || Date.now()).toLocaleString()}`)
+           .line(`Cust: ${order.customer?.name || order.customerName || 'Walk-in'}`)
            .line('--------------------------------');
 
-    // Items Header
+    // Items Header (6 cols: #, Desc, Qty, KRP, MRP, Total)
     builder.bold(true)
-           .line('Item           Qty    Price    Total')
+           .line('#  Description       Qty   MRP   Total')
            .bold(false);
 
     // Items
-    order.orderItems.forEach((item: any) => {
-      const itemName = item.name || item.product?.name || 'Item';
-      const name = itemName.padEnd(16).substring(0, 16);
-      const qty = item.quantity.toString().padStart(3);
-      const price = (item.price || item.sellingPrice || 0).toFixed(0).padStart(6);
-      const total = (item.total || 0).toFixed(0).padStart(7);
-      builder.line(`${name}${qty}${price}${total}`);
+    (order.orderItems || []).forEach((item: any, idx: number) => {
+      const slNo = (idx + 1).toString().padEnd(3);
+      const name = (item.product?.name || item.name || 'Item').substring(0, 15).padEnd(16);
+      const qty = (Number(item.quantity) || 0).toFixed(1).padStart(5);
+      const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0).padStart(5);
+      const total = (Number(item.total) || 0).toFixed(0).padStart(6);
+      builder.line(`${slNo}${name}${qty}${mrp}${total}`);
     });
 
     builder.line('--------------------------------');

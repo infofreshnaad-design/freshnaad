@@ -53,17 +53,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         const itemName = item.product?.name || item.name || 'Product';
         return `
         <tr>
-          <td style="font-size: 10px; padding: 2px 0;">${item.slNo || index + 1}</td>
-          <td style="font-size: 10px; padding: 2px 0; font-weight: bold;">${item.barcode || item.product?.barcode || ''}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.quantity) || 0).toFixed(3)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.price) || 0).toFixed(2)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
-          <td style="font-size: 10px; padding: 2px 0;">${(Number(item.gstRate) || 0).toFixed(2)}</td>
-          <td style="font-size: 10px; padding: 2px 0; text-align: right; font-weight: bold;">${(Number(item.total) || 0).toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td colspan="6" style="font-size: 9px; text-transform: uppercase; padding-bottom: 5px; border-bottom: 1px solid #eee;">${itemName}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${item.slNo || index + 1}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-weight: bold; text-transform: uppercase;">${itemName}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.quantity) || 0).toFixed(3)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.price) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
+          <td style="font-size: 11px; padding: 4px 0; text-align: right; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${(Number(item.total) || 0).toFixed(2)}</td>
         </tr>
         `;
       }).join('');
@@ -99,9 +94,13 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
           </head>
           <body>
             <div class="text-center">
-              <h1 style="margin: 0; font-size: 16px;">FRESH NAAD</h1>
-              <p style="margin: 2px 0;">123, Business Hub, MG Road</p>
-              <p style="margin: 2px 0;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
+              <h1 style="margin: 0; font-size: 18px; font-weight: 900;">FRESH NAAD FOODS INDIA</h1>
+              <p style="margin: 2px 0; font-size: 10px;">Kodassery, Pandikkad (po), Malappuram, Kerala</p>
+              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 5px; font-weight: bold;">
+                <span>FSSAI NO: 21326222000253</span>
+                <span>Mob: +91 8606391315, 75608 57580</span>
+              </div>
+              <p style="margin: 4px 0; font-size: 10px;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
             </div>
             <div class="dashed-border"></div>
             <div style="margin-bottom: 5px;">
@@ -111,12 +110,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <thead>
                 <tr>
                   <th style="width: 5%">#</th>
-                  <th style="width: 25%">Description</th>
+                  <th style="width: 40%">Description</th>
                   <th style="width: 15%">Qty</th>
                   <th style="width: 12%">KRP</th>
                   <th style="width: 10%">MRP</th>
-                  <th style="width: 10%">Gst%</th>
-                  <th style="width: 23%; text-align: right;">Amount</th>
+                  <th style="width: 18%; text-align: right;">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -244,9 +242,15 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
           <div className="flex-1 overflow-y-auto p-6 font-mono text-[11px] text-slate-800 print:overflow-visible print:p-4" id="receipt-content">
             <div className="text-center mb-4">
-              <h1 className="text-lg font-black uppercase mb-1">FRESH NAAD</h1>
-              <p className="text-[10px]">123, Business Hub, MG Road</p>
-              <div className="flex justify-center gap-2 text-[10px] mt-1">
+              <h1 className="text-xl font-black uppercase mb-1">FRESH NAAD FOODS INDIA</h1>
+              <p className="text-[10px] leading-tight">Kodassery, Pandikkad (po),<br />Malappuram, Kerala</p>
+              
+              <div className="flex justify-between border-y border-dashed border-slate-300 py-1.5 my-2 text-[9px] font-bold">
+                <span className="text-left">FSSAI: 21326222000253</span>
+                <span className="text-right whitespace-nowrap">Mob: 8606391315, 75608 57580</span>
+              </div>
+
+              <div className="flex justify-center gap-2 text-[10px] mt-1 opacity-70">
                 <span>Date: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                 <span>Time: {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
               </div>
@@ -267,31 +271,23 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <thead>
                 <tr className="border-y border-dashed border-slate-300 text-[9px] font-bold">
                   <th className="py-1 text-left w-[5%]">#</th>
-                  <th className="py-1 text-left w-[30%]">Description</th>
+                  <th className="py-1 text-left w-[40%]">Description</th>
                   <th className="py-1 text-left w-[15%]">Qty</th>
                   <th className="py-1 text-left w-[10%]">KRP</th>
                   <th className="py-1 text-left w-[10%]">MRP</th>
-                  <th className="py-1 text-left w-[10%]">Gst%</th>
                   <th className="py-1 text-right w-[20%]">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {order.orderItems?.map((item: any, idx: number) => (
-                  <React.Fragment key={item.id || idx}>
-                    <tr className="text-[10px]">
-                      <td className="py-1">{item.slNo || idx + 1}</td>
-                      <td className="py-1 font-bold">{item.barcode || item.product?.barcode || 'N/A'}</td>
-                      <td className="py-1">{(Number(item.quantity) || 0).toFixed(3)}</td>
-                      <td className="py-1">{(Number(item.price) || 0).toFixed(2)}</td>
-                      <td className="py-1">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
-                      <td className="py-1">{(Number(item.gstRate) || 0).toFixed(2)}</td>
-                      <td className="py-1 text-right font-bold">{(Number(item.total) || 0).toFixed(2)}</td>
-                    </tr>
-                    <tr className="text-[9px] uppercase text-slate-500 border-b border-slate-50">
-                      <td></td>
-                      <td colSpan={6} className="pb-1">{item.product?.name || item.name}</td>
-                    </tr>
-                  </React.Fragment>
+                  <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
+                    <td className="py-2 align-top">{item.slNo || idx + 1}</td>
+                    <td className="py-2 font-bold uppercase">{item.product?.name || item.name}</td>
+                    <td className="py-2">{(Number(item.quantity) || 0).toFixed(3)}</td>
+                    <td className="py-2">{(Number(item.price) || 0).toFixed(2)}</td>
+                    <td className="py-2">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
+                    <td className="py-2 text-right font-black">{(Number(item.total) || 0).toFixed(2)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
