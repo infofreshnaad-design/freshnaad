@@ -33,13 +33,13 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden"
           onClick={onClose}
         />
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 flex flex-col text-slate-400 select-none 
+        fixed inset-y-0 left-0 z-[100] w-72 bg-slate-900 flex flex-col text-slate-400 select-none 
         transition-transform duration-300 transform md:relative md:translate-x-0 md:w-20 lg:w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
