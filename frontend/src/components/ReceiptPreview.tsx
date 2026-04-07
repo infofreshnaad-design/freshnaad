@@ -112,7 +112,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <th style="width: 5%">#</th>
                   <th style="width: 40%">Description</th>
                   <th style="width: 15%">Qty</th>
-                  <th style="width: 12%">KRP</th>
+                  <th style="width: 12%">FRP</th>
                   <th style="width: 10%">MRP</th>
                   <th style="width: 18%; text-align: right;">Amount</th>
                 </tr>
@@ -273,7 +273,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <th className="py-1 text-left w-[5%]">#</th>
                   <th className="py-1 text-left w-[40%]">Description</th>
                   <th className="py-1 text-left w-[15%]">Qty</th>
-                  <th className="py-1 text-left w-[10%]">KRP</th>
+                  <th className="py-1 text-left w-[10%]">FRP</th>
                   <th className="py-1 text-left w-[10%]">MRP</th>
                   <th className="py-1 text-right w-[20%]">Amount</th>
                 </tr>

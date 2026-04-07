@@ -96,7 +96,7 @@ export class EscPosBuilder {
            .line(`Cust: ${order.customer?.name || order.customerName || 'Walk-in'}`)
            .line('--------------------------------');
 
-    // Items Header (6 cols: #, Desc, Qty, KRP, MRP, Total)
+    // Items Header (6 cols: #, Desc, Qty, FRP, MRP, Total)
     builder.bold(true)
            .line('#  Description       Qty   MRP   Total')
            .bold(false);
