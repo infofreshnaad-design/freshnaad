@@ -47,6 +47,15 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
     setItems(newItems);
   };
 
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) {
+       alert("Cannot remove the last item. A bill must have at least one item.");
+       return;
+    }
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -131,6 +140,12 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                                                 onChange={e => handleUpdateItem(idx, 'price', parseFloat(e.target.value))}
                                                 className="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-black"
                                             />
+                                            <button 
+                                                onClick={() => handleRemoveItem(idx)}
+                                                className="ml-2 w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     ) : (
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
