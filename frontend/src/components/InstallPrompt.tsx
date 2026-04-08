@@ -33,7 +33,7 @@ const InstallPrompt = () => {
   return (
     <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-right-12">
       <div className="bg-slate-900 text-white p-5 rounded-[2rem] border border-white/10 shadow-2xl flex items-center gap-4 backdrop-blur-xl">
-        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+        <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20">
           <Download size={24} />
         </div>
         <div>
@@ -43,7 +43,7 @@ const InstallPrompt = () => {
         <div className="flex items-center gap-2">
           <button 
             onClick={handleInstall}
-            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
+            className="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
           >
             Install
           </button>

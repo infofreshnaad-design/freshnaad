@@ -28,14 +28,14 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden relative">
+    <div className="flex h-screen bg-brand-50 overflow-hidden relative">
       {/* Sidebar - Only show if authenticated and NOT on login page */}
       {token && (
         <>
           {/* Mobile Toggle */}
           <button 
             onClick={() => setSidebarOpen(true)}
-            className="md:hidden fixed top-3 left-3 z-40 bg-slate-900 text-white p-3.5 rounded-2xl shadow-xl shadow-blue-500/20 active:scale-90 transition-transform"
+            className="md:hidden fixed top-3 left-3 z-40 bg-brand-primary text-white p-3.5 rounded-2xl shadow-xl shadow-brand-primary/20 active:scale-90 transition-transform"
           >
             <Menu size={20} />
           </button>

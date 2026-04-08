@@ -272,10 +272,10 @@ const POSInterface: React.FC = () => {
     <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
       {/* Zero-Processing Main Interface */}
       {/* Top Header */}
-      <header className="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
+      <header className="bg-brand-primary text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="bg-white text-blue-600 p-1 rounded font-bold text-xl">POS</div>
-          <span className="font-semibold tracking-tight hidden sm:block">Retail Pro v1.0</span>
+          <div className="bg-white text-brand-primary p-1 rounded font-bold text-xl">POS</div>
+          <span className="font-semibold tracking-tight hidden sm:block">Fresh Naad POS v1.0</span>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           <div className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border ${isOnline ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
@@ -285,7 +285,7 @@ const POSInterface: React.FC = () => {
 
           <button 
             onClick={() => isConnected ? disconnect() : ensureConnected().catch(() => {})}
-            className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border transition-all ${isConnected ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-slate-500/10 border-slate-500/50 text-slate-400'}`}
+            className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border transition-all ${isConnected ? 'bg-brand-500/20 border-brand-500 text-brand-400' : 'bg-slate-500/10 border-slate-500/50 text-slate-400'}`}
             title={isConnected ? "Click to release printer for other phones" : "Click to connect to printer"}
           >
             {isConnected ? <Bluetooth size={12} /> : <BluetoothOff size={12} />}
@@ -293,7 +293,7 @@ const POSInterface: React.FC = () => {
           </button>
           <button 
             onClick={toggleFullscreen}
-            className="p-1.5 md:p-2 hover:bg-blue-700 rounded-lg transition-all hidden xs:block"
+            className="p-1.5 md:p-2 hover:bg-brand-secondary rounded-lg transition-all hidden xs:block"
             title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
@@ -309,18 +309,18 @@ const POSInterface: React.FC = () => {
         <section className="flex-1 lg:w-3/5 flex flex-col p-3 md:p-4 gap-3 md:gap-4 overflow-hidden border-b lg:border-r border-slate-200">
           <div className="relative group flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors" size={18} />
               <input
                 type="text"
                 placeholder="Search products..."
-                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-white rounded-xl shadow-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base md:text-lg transition-all"
+                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-white rounded-xl shadow-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-primary text-base md:text-lg transition-all"
                 value={search}
                 onChange={handleSearch}
               />
             </div>
             <button 
               onClick={() => setShowScanner(!showScanner)}
-              className={`px-3 md:px-4 rounded-xl shadow-sm border transition-all flex items-center justify-center ${showScanner ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-400'}`}
+              className={`px-3 md:px-4 rounded-xl shadow-sm border transition-all flex items-center justify-center ${showScanner ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'}`}
             >
               <Camera size={20} />
             </button>
@@ -343,9 +343,9 @@ const POSInterface: React.FC = () => {
             <button
               onClick={() => handleCategorySelect(null)}
               className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap transition-all ${
-                selectedCategoryId === null 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+              selectedCategoryId === null 
+                ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/30' 
+                : 'bg-white text-slate-500 hover:bg-brand-50 border border-slate-200'
               }`}
             >
               All Items
@@ -356,8 +356,8 @@ const POSInterface: React.FC = () => {
                 onClick={() => handleCategorySelect(cat.id)}
                 className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap transition-all ${
                   selectedCategoryId === cat.id 
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
+                  ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/30' 
+                  : 'bg-white text-slate-500 hover:bg-brand-50 border border-slate-200'
                 }`}
               >
                 {cat.name}
@@ -379,7 +379,7 @@ const POSInterface: React.FC = () => {
                     className={`flex flex-col bg-white rounded-xl p-2 md:p-3 shadow-sm border border-transparent transition-all text-left group relative ${
                       product.stockQuantity <= 0 
                       ? 'opacity-50 grayscale cursor-not-allowed' 
-                      : 'hover:border-blue-400 hover:shadow-md active:scale-95'
+                      : 'hover:border-brand-400 hover:shadow-md active:scale-95'
                     }`}
                   >
                     {product.stockQuantity <= 0 && (
@@ -391,13 +391,13 @@ const POSInterface: React.FC = () => {
                       {product.image ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
                       ) : (
-                        <span className="text-slate-300 font-black text-2xl md:text-3xl uppercase select-none group-hover:text-blue-400 font-mono transition-colors">
+                        <span className="text-slate-300 font-black text-2xl md:text-3xl uppercase select-none group-hover:text-brand-secondary font-mono transition-colors">
                           {product.name.charAt(0)}
                         </span>
                       )}
                     </div>
                     <div className="font-semibold text-slate-700 truncate text-xs md:text-sm mb-0.5">{product.name}</div>
-                    <div className="text-blue-600 font-bold text-sm md:text-lg">₹{product.sellingPrice.toFixed(2)}</div>
+                    <div className="text-brand-primary font-bold text-sm md:text-lg">₹{product.sellingPrice.toFixed(2)}</div>
                     <div className="text-[10px] text-slate-400 mt-0.5 flex justify-between items-end">
                       <span className="truncate">Stock: {product.stockQuantity}</span>
                     </div>
@@ -436,7 +436,7 @@ const POSInterface: React.FC = () => {
               >
                 <X size={20} />
               </button>
-              <ShoppingCart size={22} className="text-blue-600 hidden md:block" />
+              <ShoppingCart size={22} className="text-brand-primary hidden md:block" />
               <h2 className="font-bold text-lg text-slate-700">Cart ({cart.length})</h2>
             </div>
             <button 
@@ -529,11 +529,11 @@ const POSInterface: React.FC = () => {
               )}
               <div className="h-px bg-slate-800 my-2"></div>
               <div className="flex justify-between items-end">
-                <span className="text-sm md:text-lg font-bold text-blue-400">Total</span>
+                <span className="text-sm md:text-lg font-bold text-brand-300">Total</span>
                 <div className="text-right">
                   <div className="text-2xl md:text-4xl font-black text-white tracking-tight">₹{grandTotal.toFixed(2)}</div>
                   {customer && (
-                    <div className="text-[10px] text-indigo-300 mt-1">Earn: +{Math.floor(grandTotal / 100)} pts</div>
+                    <div className="text-[10px] text-brand-200 mt-1">Earn: +{Math.floor(grandTotal / 100)} pts</div>
                   )}
                 </div>
               </div>
@@ -542,7 +542,7 @@ const POSInterface: React.FC = () => {
             <div className="grid grid-cols-1 gap-2 md:gap-3">
               <button 
                 onClick={() => { setIsMobileCartOpen(false); setIsPaymentModalOpen(true); }}
-                className="py-3 md:py-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl md:rounded-2xl text-sm md:text-base shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="py-3 md:py-4 w-full bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-xl md:rounded-2xl text-sm md:text-base shadow-lg shadow-brand-primary/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 disabled={cart.length === 0}
               >
                 <CreditCard size={18} /> PROCEED TO PAYMENT
@@ -560,7 +560,7 @@ const POSInterface: React.FC = () => {
         <div className="relative">
           <ShoppingCart size={24} />
           {cart.length > 0 && (
-            <span className="absolute -top-3 -right-3 bg-blue-500 text-white text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-900 shadow-lg">
+            <span className="absolute -top-3 -right-3 bg-brand-primary text-white text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-slate-900 shadow-lg">
               {cart.length}
             </span>
           )}

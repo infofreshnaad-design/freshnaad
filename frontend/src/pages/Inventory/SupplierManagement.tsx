@@ -207,11 +207,11 @@ const SupplierManagement = () => {
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="relative flex-1 group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={20} />
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-500 transition-colors" size={20} />
                 <input 
                     type="text" 
                     placeholder="Search by vendor name, phone, or GST number..."
-                    className="w-full pl-16 pr-6 py-5 bg-white border-2 border-slate-100 rounded-[1.5rem] focus:ring-8 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all font-bold"
+                    className="w-full pl-16 pr-6 py-5 bg-white border-2 border-slate-100 rounded-[1.5rem] focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -233,7 +233,7 @@ const SupplierManagement = () => {
                     </div>
                     <div className="flex-1">
                         <h3 className="text-xl font-bold text-slate-800 leading-tight truncate pr-16">{supplier.name}</h3>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">Verified Supplier</p>
+                        <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">Verified Supplier</p>
                     </div>
                     <div className="absolute top-6 right-6 flex gap-2">
                         <button onClick={() => handleOpenModal(supplier)} className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"><Edit3 size={18}/></button>
@@ -256,10 +256,10 @@ const SupplierManagement = () => {
                     </div>
                     {supplier.gstNo && (
                       <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                            <FileText size={14} className="text-indigo-400" />
+                        <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                            <FileText size={14} className="text-brand-400" />
                         </div>
-                        <div className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase">GST: {supplier.gstNo}</div>
+                        <div className="px-3 py-1 bg-brand-50 text-brand-600 rounded-lg text-[10px] font-black uppercase">GST: {supplier.gstNo}</div>
                       </div>
                     )}
                 </div>
@@ -310,7 +310,7 @@ const SupplierManagement = () => {
                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Supplier / Firm Name *</label>
                              <input 
                                 required type="text" placeholder="e.g. FreshProduce Pvt Ltd"
-                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
+                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-brand-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                              />
@@ -321,7 +321,7 @@ const SupplierManagement = () => {
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Primary Contact</label>
                                 <input 
                                     type="tel" placeholder="+91"
-                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
+                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-brand-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                 />
@@ -330,7 +330,7 @@ const SupplierManagement = () => {
                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Email Terminal</label>
                                 <input 
                                     type="email" placeholder="vendor@info.com"
-                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
+                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-brand-500 focus:bg-white outline-none transition-all font-bold text-slate-800"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
@@ -341,7 +341,7 @@ const SupplierManagement = () => {
                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">GST Identification No.</label>
                              <input 
                                 type="text" placeholder="27XXXXX0000X1Z5"
-                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-indigo-500 focus:bg-white transition-all font-black uppercase text-sm tracking-widest text-slate-800"
+                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-brand-500 focus:bg-white transition-all font-black uppercase text-sm tracking-widest text-slate-800"
                                 value={formData.gstNo}
                                 onChange={(e) => setFormData({ ...formData, gstNo: e.target.value })}
                              />
@@ -351,17 +351,17 @@ const SupplierManagement = () => {
                              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">Business Address</label>
                              <textarea 
                                 rows={2} placeholder="Warehouse Location"
-                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-indigo-500 focus:bg-white transition-all font-bold text-slate-800"
+                                className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-brand-500 focus:bg-white transition-all font-bold text-slate-800"
                                 value={formData.address}
                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                              />
                         </div>
 
-                        <div className="group bg-indigo-50 p-6 rounded-[2rem] border-2 border-indigo-100/50">
-                             <label className="block text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">Opening Payable Balance (₹)</label>
+                        <div className="group bg-brand-50 p-6 rounded-[2rem] border-2 border-brand-100/50">
+                             <label className="block text-[10px] font-black text-brand-500 uppercase tracking-widest mb-3">Opening Payable Balance (₹)</label>
                              <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                                    <IndianRupee size={20} className="text-indigo-500" />
+                                    <IndianRupee size={20} className="text-brand-500" />
                                 </div>
                                 <input 
                                     type="number" placeholder="0.00"
@@ -370,7 +370,7 @@ const SupplierManagement = () => {
                                     onChange={(e) => setFormData({ ...formData, openingBalance: Number(e.target.value) })}
                                 />
                              </div>
-                             <p className="text-[10px] font-bold text-indigo-400 mt-3 flex items-center gap-2">
+                             <p className="text-[10px] font-bold text-brand-400 mt-3 flex items-center gap-2">
                                 <ChevronRight size={12} />
                                 Positive value means amount you owe to the vendor
                              </p>
@@ -396,7 +396,7 @@ const SupplierManagement = () => {
                 <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900">Supplier Ledger</h2>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">{ledgerData?.supplier?.name || 'Financial Statement'}</p>
+                        <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">{ledgerData?.supplier?.name || 'Financial Statement'}</p>
                     </div>
                     <button onClick={() => setIsLedgerModalOpen(false)} className="p-3 hover:bg-white rounded-2xl shadow-sm transition-all border border-slate-100">
                         <X size={20} className="text-slate-400" />
@@ -419,10 +419,10 @@ const SupplierManagement = () => {
                                     {ledgerData.summary.currentBalance.toLocaleString('en-IN')}
                                 </h3>
                             </div>
-                            <div className="p-6 bg-indigo-50 rounded-[2rem] border-2 border-indigo-100/50">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2">Opening Balance</p>
-                                <h3 className="text-4xl font-black text-indigo-900 flex items-center gap-2">
-                                    <IndianRupee size={28} className="text-indigo-200" />
+                            <div className="p-6 bg-brand-50 rounded-[2rem] border-2 border-brand-100/50">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-brand-400 mb-2">Opening Balance</p>
+                                <h3 className="text-4xl font-black text-brand-900 flex items-center gap-2">
+                                    <IndianRupee size={28} className="text-brand-200" />
                                     {ledgerData.summary.openingBalance.toLocaleString('en-IN')}
                                 </h3>
                             </div>
@@ -484,7 +484,7 @@ const SupplierManagement = () => {
                 <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900">Purchase Fulfillment</h2>
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">Full Transactional History</p>
+                        <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">Full Transactional History</p>
                     </div>
                     <button onClick={() => setIsHistoryModalOpen(false)} className="p-3 hover:bg-white rounded-2xl shadow-sm transition-all border border-slate-100">
                         <X size={20} className="text-slate-400" />
@@ -500,7 +500,7 @@ const SupplierManagement = () => {
                     ) : historyData.length > 0 ? (
                       <div className="space-y-6">
                         {historyData.map((purchase) => (
-                          <div key={purchase.id} className="p-6 border-2 border-slate-100 rounded-[2rem] hover:border-indigo-100 transition-all group">
+                          <div key={purchase.id} className="p-6 border-2 border-slate-100 rounded-[2rem] hover:border-brand-100 transition-all group">
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">

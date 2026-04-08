@@ -188,7 +188,7 @@ const SalesReturn = () => {
           </div>
         </div>
         <div className="flex gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-           <div className="px-3 py-1 bg-white rounded border border-slate-200">Return No: <span className="text-blue-600">Auto</span></div>
+           <div className="px-3 py-1 bg-white rounded border border-slate-200">Return No: <span className="text-brand-600">Auto</span></div>
            <div className="px-3 py-1 bg-white rounded border border-slate-200">Date: {new Date().toLocaleDateString()}</div>
         </div>
       </div>
@@ -204,7 +204,7 @@ const SalesReturn = () => {
                 <select 
                   value={selectedCustomerId}
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 bg-slate-50/50"
                 >
                   <option value="">Select Customer (Optional)</option>
                   {customers.map(c => (
@@ -223,7 +223,7 @@ const SalesReturn = () => {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50 text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 bg-slate-50/50 text-sm"
                   />
                 </div>
               </div>
@@ -236,7 +236,7 @@ const SalesReturn = () => {
                     placeholder="INV-XXX"
                     value={invoiceNo}
                     onChange={(e) => setInvoiceNo(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50 text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 bg-slate-50/50 text-sm"
                   />
                 </div>
               </div>
@@ -246,14 +246,14 @@ const SalesReturn = () => {
 
         {/* Add Items Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-4 bg-blue-50/50 border-b border-blue-100 flex justify-between items-center">
-             <div className="flex items-center gap-2 text-blue-700 font-bold">
+          <div className="p-4 bg-brand-50/50 border-b border-brand-100 flex justify-between items-center">
+             <div className="flex items-center gap-2 text-brand-700 font-bold">
                 <Package size={20} />
                 <span>Billed Items</span>
              </div>
              <button 
                 onClick={() => setIsItemModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg font-bold text-sm hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
              >
                 <Plus size={18} />
                 Add Items
@@ -298,7 +298,7 @@ const SalesReturn = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-slate-600">₹{item.price.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-right font-medium text-blue-600">₹{item.taxAmount.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right font-medium text-brand-600">₹{item.taxAmount.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right font-black text-slate-800">₹{item.total.toFixed(2)}</td>
                       <td className="px-6 py-4 text-right">
                         <button 
@@ -326,7 +326,7 @@ const SalesReturn = () => {
                   <span>Subtotal</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-blue-600 font-bold text-sm uppercase tracking-wider">
+                <div className="flex justify-between text-brand-600 font-bold text-sm uppercase tracking-wider">
                   <span>Tax Amount</span>
                   <span>₹{taxTotal.toFixed(2)}</span>
                 </div>
@@ -346,7 +346,7 @@ const SalesReturn = () => {
                 placeholder="Return reason (Optional)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 bg-slate-50/50"
               />
            </div>
            <div className="flex gap-3 w-full md:w-auto">
@@ -380,7 +380,7 @@ const SalesReturn = () => {
           <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                 <PlusCircle className="text-blue-600" />
+                 <PlusCircle className="text-brand-600" />
                  Add Items to Credit Note
                </h2>
                <button onClick={() => setIsItemModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
@@ -395,7 +395,7 @@ const SalesReturn = () => {
                     placeholder="Search by name or barcode..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50/50"
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/20 bg-slate-50/50"
                     autoFocus
                  />
                </div>
@@ -406,10 +406,10 @@ const SalesReturn = () => {
                     <button 
                       key={p.id}
                       onClick={() => handleAddItem(p)}
-                      className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-blue-50 border border-slate-100 hover:border-blue-200 transition-all text-left group"
+                      className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-brand-50 border border-slate-100 hover:border-brand-200 transition-all text-left group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 font-bold shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 font-bold shadow-sm group-hover:bg-brand-600 group-hover:text-white transition-colors">
                           {p.name.charAt(0)}
                         </div>
                         <div>
@@ -419,7 +419,7 @@ const SalesReturn = () => {
                       </div>
                       <div className="text-right">
                         <div className="font-black text-slate-800 text-lg">₹{p.sellingPrice.toFixed(2)}</div>
-                        <div className="text-[10px] text-blue-600 font-bold uppercase">Tax: {p.gstRate}%</div>
+                        <div className="text-[10px] text-brand-600 font-bold uppercase">Tax: {p.gstRate}%</div>
                       </div>
                     </button>
                   ))}

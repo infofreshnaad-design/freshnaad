@@ -60,7 +60,7 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
                 <input
                   type="text"
                   required
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                   value={newCustomer.name}
                   onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
                 />
@@ -69,14 +69,14 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
                 <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
                 <input
                   type="tel"
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
                   value={newCustomer.phone}
                   onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                 />
               </div>
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-2 border rounded-xl hover:bg-slate-50 text-slate-600 font-medium">Cancel</button>
-                <button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md shadow-blue-500/20">Create & Select</button>
+                <button type="submit" className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-medium shadow-md shadow-brand-500/20">Create & Select</button>
               </div>
             </form>
           ) : (
@@ -87,12 +87,12 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
                   <input
                     type="text"
                     placeholder="Search name or phone..."
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                   />
                 </div>
-                <button onClick={() => setIsCreating(true)} className="p-2.5 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200">
+                <button onClick={() => setIsCreating(true)} className="p-2.5 bg-brand-100 text-brand-600 rounded-xl hover:bg-brand-200">
                   <UserPlus size={20} />
                 </button>
               </div>
@@ -102,14 +102,14 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
                   <button
                     key={c.id}
                     onClick={() => onSelect(c)}
-                    className="w-full flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition-colors text-left group"
+                    className="w-full flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:border-brand-300 hover:bg-brand-50/50 transition-colors text-left group"
                   >
                     <div>
                       <div className="font-semibold text-slate-800">{c.name}</div>
                       <div className="text-sm text-slate-500">{c.phone || 'No phone'}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full inline-block">
+                      <div className="text-xs font-bold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full inline-block">
                         {c.loyaltyPoints} pts
                       </div>
                       <div className="text-xs text-slate-400 mt-1">

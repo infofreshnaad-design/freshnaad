@@ -68,7 +68,7 @@ const PurchaseOrders = () => {
              </div>
              <button 
                 onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })} 
-                className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
+                className="bg-brand-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-xl shadow-brand-500/20 active:scale-95"
              >
                 <Plus size={20} strokeWidth={3}/>
                 <span>Create Order</span>
@@ -77,18 +77,18 @@ const PurchaseOrders = () => {
         </header>
 
         {lowStockCount > 0 && (
-            <div className="mb-10 bg-indigo-600 rounded-[2.5rem] p-8 shadow-2xl shadow-indigo-500/20 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div className="mb-10 bg-brand-600 rounded-[2.5rem] p-8 shadow-2xl shadow-brand-500/20 text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Smart Suggestion</span>
                     </div>
                     <h2 className="text-2xl font-black mb-1">Restock Opportunity Detected</h2>
-                    <p className="text-indigo-100 font-medium">There are <span className="font-black text-white">{lowStockCount} items</span> below critical stock levels. Should we draft an order?</p>
+                    <p className="text-brand-100 font-medium">There are <span className="font-black text-white">{lowStockCount} items</span> below critical stock levels. Should we draft an order?</p>
                 </div>
                 <button 
                     onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })}
-                    className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 z-10"
+                    className="bg-white text-brand-600 px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 z-10"
                 >
                     Create Urgent Order
                 </button>
@@ -149,7 +149,7 @@ const PurchaseOrders = () => {
                             {po.status === 'PENDING' ? (
                                 <button 
                                     onClick={() => handleConvert(po)}
-                                    className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2 active:scale-95"
+                                    className="flex-1 py-4 bg-brand-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/10 flex items-center justify-center gap-2 active:scale-95"
                                 >
                                     Convert to Bill <ArrowRightLeft size={14}/>
                                 </button>

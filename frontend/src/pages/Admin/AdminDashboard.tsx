@@ -68,7 +68,7 @@ const AdminDashboard = () => {
     if (loading) return (
         <div className="p-4 md:p-8 bg-slate-900 min-h-screen flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-                <RefreshCcw className="text-blue-500 animate-spin" size={32} />
+                <RefreshCcw className="text-brand-500 animate-spin" size={32} />
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Initializing Command Center...</p>
             </div>
         </div>
@@ -107,7 +107,7 @@ const AdminDashboard = () => {
                         onClick={() => navigate('/reports')}
                         className="text-left bg-white/5 backdrop-blur-xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-all hover:-translate-y-1 active:scale-[0.98]"
                     >
-                        <div className="absolute top-0 right-0 p-4 md:p-8 text-blue-500/10 group-hover:text-blue-500/20 transition-colors">
+                        <div className="absolute top-0 right-0 p-4 md:p-8 text-brand-500/10 group-hover:text-brand-500/20 transition-colors">
                             <TrendingUp size={40} className="md:w-20 md:h-20" />
                         </div>
                         <p className="text-slate-400 font-bold text-[8px] md:text-xs uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
@@ -160,12 +160,12 @@ const AdminDashboard = () => {
                     <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-3xl md:rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
                         <div className="p-5 md:p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/[0.02]">
                             <h3 className="text-lg md:text-xl font-bold flex items-center gap-3">
-                                <Clock className="text-blue-500" size={20} />
+                                <Clock className="text-brand-500" size={20} />
                                 Transaction Stream
                             </h3>
                             <button 
                                 onClick={() => navigate('/reports')}
-                                className="text-blue-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:text-blue-300 transition-colors"
+                                className="text-brand-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:text-brand-300 transition-colors"
                             >
                                 View Full Report <ArrowUpRight size={16} />
                             </button>
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
                                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                                             <div 
                                                 className={`h-full rounded-full transition-all duration-1000 ${
-                                                    idx === 0 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 
+                                                    idx === 0 ? 'bg-brand-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 
                                                     idx === 1 ? 'bg-purple-500' : 
                                                     idx === 2 ? 'bg-green-500' : 'bg-slate-500'
                                                 }`} 
@@ -249,7 +249,7 @@ const AdminDashboard = () => {
                         </div>
                         <button 
                             onClick={() => navigate('/inventory')}
-                            className="mt-8 w-full py-4 rounded-2xl bg-white/5 hover:bg-indigo-500 text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 border border-white/5"
+                            className="mt-8 w-full py-4 rounded-2xl bg-white/5 hover:bg-brand-500 text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 border border-white/5"
                         >
                             Analyze Inventory Matrix
                         </button>

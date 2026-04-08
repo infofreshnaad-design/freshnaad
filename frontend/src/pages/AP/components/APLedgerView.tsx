@@ -60,7 +60,7 @@ const APLedgerView = () => {
 
     if (loading) return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <div className="animate-spin text-blue-500"><Clock size={48} /></div>
+            <div className="animate-spin text-brand-500"><Clock size={48} /></div>
         </div>
     );
 
@@ -136,7 +136,7 @@ const APLedgerView = () => {
                                 {tx.type === 'PURCHASE' ? <ShoppingBag size={12} className="text-white"/> : <ArrowDownLeft size={12} className="text-white"/>}
                             </div>
 
-                            <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 hover:border-blue-500 transition-all shadow-lg shadow-slate-900/5">
+                            <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 hover:border-brand-500 transition-all shadow-lg shadow-slate-900/5">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-3">

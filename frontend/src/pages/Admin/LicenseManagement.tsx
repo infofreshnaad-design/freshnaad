@@ -50,7 +50,7 @@ const LicenseManagement = () => {
           </div>
           <button 
             onClick={() => setShowGenModal(true)}
-            className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all active:scale-95"
+            className="w-full sm:w-auto bg-brand-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 hover:scale-[1.02] transition-all active:scale-95"
           >
             <Plus size={20} />
             <span className="text-sm md:text-base uppercase tracking-wider">Generate Key</span>
@@ -75,7 +75,7 @@ const LicenseManagement = () => {
                 <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Device Limit</label>
                 <input 
                   type="number" 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:ring-2 focus:ring-brand-500 outline-none transition-all"
                   value={genData.maxDevices}
                   required
                   min="1"
@@ -86,7 +86,7 @@ const LicenseManagement = () => {
                 <label className="block text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Duration (Months)</label>
                 <input 
                   type="number" 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-base focus:ring-2 focus:ring-brand-500 outline-none transition-all"
                   value={genData.expiryMonths}
                   required
                   min="1"
@@ -94,7 +94,7 @@ const LicenseManagement = () => {
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button type="submit" className="flex-1 bg-blue-600 text-white font-bold py-3.5 rounded-xl md:rounded-2xl active:scale-95 transition-all text-sm md:text-base uppercase tracking-wider">CREATE</button>
+                <button type="submit" className="flex-1 bg-brand-600 text-white font-bold py-3.5 rounded-xl md:rounded-2xl active:scale-95 transition-all text-sm md:text-base uppercase tracking-wider">CREATE</button>
                 <button type="button" onClick={() => setShowGenModal(false)} className="flex-1 bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl md:rounded-2xl active:scale-95 transition-all text-sm md:text-base uppercase tracking-wider">CANCEL</button>
               </div>
             </form>

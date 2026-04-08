@@ -158,7 +158,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
 
                 <div className="relative group">
                     <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Select Party *</label>
-                    <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
+                    <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-brand-500 transition-all">
                         <Search size={20} className="text-slate-300 mr-4" />
                         <input 
                             type="text" placeholder="Vendor name..." value={supplierInput} 
@@ -184,7 +184,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Items</h4>
-                        {cart.length > 0 && <span className="text-xs font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{cart.length} STAGED</span>}
+                        {cart.length > 0 && <span className="text-xs font-black text-brand-600 bg-brand-50 px-3 py-1 rounded-full">{cart.length} STAGED</span>}
                     </div>
                     
                     <div className="space-y-3">
@@ -205,7 +205,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                         ))}
                         <button 
                             onClick={() => setStep('ADD_ITEM')}
-                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-bold text-sm uppercase tracking-widest hover:border-blue-300 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-[2rem] text-slate-400 font-bold text-sm uppercase tracking-widest hover:border-brand-300 hover:text-brand-500 transition-all flex items-center justify-center gap-2"
                         >
                             <Plus size={18} /> Add Catalog Item
                         </button>
@@ -244,7 +244,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                         </div>
                         <div className="relative">
                             <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Payment Mode</label>
-                            <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
+                            <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-brand-500 transition-all">
                                 <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-transparent border-none focus:ring-0 p-0 font-black text-slate-800 appearance-none cursor-pointer">
                                     <option value="CASH">CASH</option>
                                     <option value="BANK">BANK / UPI</option>
@@ -280,7 +280,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                  <div className="space-y-8 flex-1">
                     <div className="relative">
                         <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Item Identification</label>
-                        <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-blue-500 transition-all">
+                        <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-brand-500 transition-all">
                             <Search size={20} className="text-slate-300 mr-4" />
                             <input 
                                 type="text" placeholder="Search product or scan..." value={itemSearch} 
@@ -327,7 +327,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                         setItemSearch(''); 
                     }}
                     disabled={!workingItem.id || !workingItem.qty || parseFloat(workingItem.qty) <= 0}
-                    className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
+                    className="w-full py-5 bg-brand-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
                  >
                     <Plus size={18} /> Add to Transaction
                  </button>

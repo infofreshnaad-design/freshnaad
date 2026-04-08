@@ -123,7 +123,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
             {/* Image Upload Section */}
             <div className="md:col-span-1">
                <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-2 font-mono">Product Image</label>
-               <div className="aspect-square bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group hover:border-blue-400 transition-all shadow-inner">
+               <div className="aspect-square bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand-400 transition-all shadow-inner">
                   {formData.image ? (
                     <>
                       <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
@@ -157,7 +157,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                   <input
                     required
                     type="text"
-                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none"
                     placeholder="e.g. Coca Cola 500ml"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -168,7 +168,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                   <div>
                     <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Category</label>
                     <select
-                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none appearance-none cursor-pointer"
+                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none appearance-none cursor-pointer"
                       value={formData.categoryId || ''}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value || null })}
                     >
@@ -181,7 +181,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                   <div>
                     <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Unit</label>
                     <select
-                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none appearance-none cursor-pointer"
+                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none appearance-none cursor-pointer"
                       value={formData.unit}
                       onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     >
@@ -198,7 +198,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    className="flex-1 px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none font-mono tracking-wider"
+                    className="flex-1 px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none font-mono tracking-wider"
                     placeholder="Scan or Generate"
                     value={formData.barcode || ''}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
@@ -230,7 +230,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">₹</span>
                 <input
                   type="number"
-                  className="w-full pl-7 pr-3 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
+                  className="w-full pl-7 pr-3 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none"
                   value={formData.purchasePrice}
                   onChange={(e) => setFormData({ ...formData, purchasePrice: parseFloat(e.target.value) })}
                 />
@@ -240,11 +240,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Selling Price *</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-xs">₹</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-500 font-bold text-xs">₹</span>
                 <input
                   required
                   type="number"
-                  className="w-full pl-7 pr-3 py-3 bg-blue-50/50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
+                  className="w-full pl-7 pr-3 py-3 bg-brand-50/50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none"
                   value={formData.sellingPrice}
                   onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) })}
                 />
@@ -270,7 +270,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
               <input
                 type="number"
                 step="0.01"
-                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
+                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none"
                 value={formData.gstRate}
                 onChange={(e) => setFormData({ ...formData, gstRate: parseFloat(e.target.value) || 0 })}
               />
@@ -281,7 +281,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
               <input
                 type="number"
                 step="0.001"
-                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 outline-none"
+                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none"
                 value={formData.stockQuantity}
                 onChange={(e) => setFormData({ ...formData, stockQuantity: parseFloat(e.target.value) || 0 })}
               />
@@ -339,7 +339,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
             <button
               type="submit"
               disabled={saving}
-              className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+              className="px-10 py-4 bg-brand-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-brand-700 transition-all shadow-xl shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
             >
               {saving ? <RefreshCcw size={18} className="animate-spin" /> : <Save size={18} />}
               <span>{saving ? 'Saving...' : 'Save Product'}</span>

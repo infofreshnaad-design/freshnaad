@@ -39,18 +39,18 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 bg-slate-900 flex flex-col text-slate-400 select-none 
+        fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 bg-brand-dark flex flex-col text-slate-300 select-none 
         transition-transform duration-300 ease-in-out transform md:relative md:translate-x-0 md:w-20 lg:w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="p-6 flex items-center justify-between border-b border-slate-800">
+        <div className="p-6 flex items-center justify-between border-b border-brand-primary/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/20">
-              P
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img src="/logo.png" alt="Fresh Naad" className="w-full h-full object-contain" />
             </div>
             <div className="block md:hidden lg:block overflow-hidden">
-              <p className="font-bold text-lg text-white truncate text-nowrap">POS BILLING</p>
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{user?.role || 'User'}</p>
+              <p className="font-bold text-lg text-white truncate text-nowrap">FRESH NAAD</p>
+              <p className="text-[10px] font-black text-brand-300 uppercase tracking-widest">{user?.role || 'User'}</p>
             </div>
           </div>
           <button onClick={onClose} className="md:hidden text-slate-500 hover:text-white">
@@ -66,7 +66,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
               onClick={() => { if(window.innerWidth < 1024) onClose(); }}
               className={({ isActive }) =>
                 `flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-                  isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'hover:bg-slate-800 hover:text-slate-100'
+                  isActive ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'hover:bg-white/10 hover:text-white'
                 }`
               }
             >
@@ -76,7 +76,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-brand-primary/30">
           <button 
             onClick={() => { logout(); onClose(); }}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all text-sm font-bold uppercase tracking-wider"

@@ -181,7 +181,7 @@ const CustomerManagement = () => {
             </div>
             <button 
                 onClick={() => handleOpenModal()}
-                className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 group"
+                className="bg-brand-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 hover:bg-brand-700 transition-all shadow-xl shadow-brand-500/20 active:scale-95 group"
             >
                 <UserPlus size={24} className="group-hover:rotate-12 transition-transform" />
                 <span>Enroll Client</span>
@@ -216,7 +216,7 @@ const CustomerManagement = () => {
                 <input 
                     type="text" 
                     placeholder="Search by name, phone number, or ID..."
-                    className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-3xl focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-bold text-lg placeholder:text-slate-300"
+                    className="w-full pl-16 pr-6 py-5 bg-white border border-slate-200 rounded-3xl focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-bold text-lg placeholder:text-slate-300"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -231,20 +231,20 @@ const CustomerManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {loading && !isHistoryOpen ? (
             <div className="col-span-full py-32 flex flex-col items-center justify-center text-slate-400">
-                <Loader2 size={48} className="animate-spin mb-4 text-blue-500" />
+                <Loader2 size={48} className="animate-spin mb-4 text-brand-500" />
                 <p className="font-black text-xl tracking-tight">Accessing Neural Database...</p>
             </div>
           ) : filteredCustomers.length > 0 ? (
             filteredCustomers.map((customer) => (
               <div 
                 key={customer.id} 
-                className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-blue-200 transition-all group relative overflow-hidden cursor-default"
+                className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-brand-200 transition-all group relative overflow-hidden cursor-default"
               >
                 {/* Floating Action Menu */}
                 <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                     <button 
                         onClick={() => handleOpenModal(customer)}
-                        className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-500/10"
+                        className="p-3 bg-brand-50 text-brand-600 rounded-2xl hover:bg-brand-600 hover:text-white transition-all shadow-lg shadow-brand-500/10"
                     >
                         <Edit3 size={18}/>
                     </button>
@@ -279,7 +279,7 @@ const CustomerManagement = () => {
                   </div>
                   <div className="bg-slate-50/50 p-5 rounded-[1.5rem] border border-slate-100">
                     <div className="flex items-center justify-between mb-2">
-                        <CreditCard size={14} className="text-blue-500" />
+                        <CreditCard size={14} className="text-brand-500" />
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Credit</span>
                     </div>
                     <p className={`text-2xl font-black ${customer.creditBalance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -290,13 +290,13 @@ const CustomerManagement = () => {
 
                 <div className="space-y-4 mb-10">
                   <div className="flex items-center gap-4 text-slate-500 group/item">
-                    <div className="p-2 bg-slate-50 rounded-xl group-hover/item:bg-blue-50 group-hover/item:text-blue-600 transition-colors">
+                    <div className="p-2 bg-slate-50 rounded-xl group-hover/item:bg-brand-50 group-hover/item:text-brand-600 transition-colors">
                         <Phone size={14} />
                     </div>
                     <span className="text-sm font-bold tracking-tight">{customer.phone || 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-4 text-slate-500 group/item">
-                    <div className="p-2 bg-slate-50 rounded-xl group-hover/item:bg-blue-50 group-hover/item:text-blue-600 transition-colors">
+                    <div className="p-2 bg-slate-50 rounded-xl group-hover/item:bg-brand-50 group-hover/item:text-brand-600 transition-colors">
                         <Mail size={14} />
                     </div>
                     <span className="text-sm font-bold truncate pr-4">{customer.email || 'No email registered'}</span>
@@ -326,7 +326,7 @@ const CustomerManagement = () => {
             <div className="col-span-full py-40 text-center bg-white rounded-[4rem] border-8 border-dotted border-slate-50 flex flex-col items-center justify-center">
                <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-10 relative">
                 <Users size={64} className="text-slate-100" />
-                <div className="absolute inset-0 bg-blue-500/5 rounded-full animate-ping"></div>
+                <div className="absolute inset-0 bg-brand-500/5 rounded-full animate-ping"></div>
                </div>
                <p className="text-slate-900 font-black text-4xl mb-4 tracking-tighter">Database Silent</p>
                <p className="text-slate-400 font-medium text-xl max-w-md mx-auto leading-relaxed">We couldn't find any clients matching that profile. Try refining your search query.</p>
@@ -353,14 +353,14 @@ const CustomerManagement = () => {
                 <form onSubmit={handleSubmit} className="p-10 space-y-8">
                     <div className="space-y-6">
                         <div className="group">
-                            <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-blue-600 transition-colors">Client Full Identity *</label>
+                            <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-brand-600 transition-colors">Client Full Identity *</label>
                             <div className="relative">
                                 <Users className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                 <input 
                                     type="text" 
                                     required
                                     placeholder="e.g. Alexander Pierce"
-                                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300"
+                                    className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -369,26 +369,26 @@ const CustomerManagement = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="group">
-                                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-blue-600 transition-colors">Contact Matrix</label>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-brand-600 transition-colors">Contact Matrix</label>
                                 <div className="relative">
                                     <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                     <input 
                                         type="tel" 
                                         placeholder="+91 000 000 0000"
-                                        className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300 text-sm"
+                                        className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300 text-sm"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
                                 </div>
                             </div>
                             <div className="group">
-                                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-blue-600 transition-colors">Digital Mail</label>
+                                <label className="block text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-3 group-focus-within:text-brand-600 transition-colors">Digital Mail</label>
                                 <div className="relative">
                                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                                     <input 
                                         type="email" 
                                         placeholder="client@corporate.com"
-                                        className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300 text-sm"
+                                        className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-[1.75rem] focus:ring-8 focus:ring-brand-500/5 focus:border-brand-500 outline-none transition-all font-black text-slate-800 placeholder:text-slate-300 text-sm"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     />
@@ -426,7 +426,7 @@ const CustomerManagement = () => {
                         <div>
                             <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">{selectedCustomer.name}</h2>
                             <div className="flex items-center gap-4">
-                                <span className="flex items-center gap-2 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                                <span className="flex items-center gap-2 px-4 py-1.5 bg-brand-50 text-brand-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-brand-100">
                                     Member ID: #{selectedCustomer.id.slice(0, 8)}
                                 </span>
                                 <span className="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
@@ -473,9 +473,9 @@ const CustomerManagement = () => {
                       {selectedCustomer.orders && selectedCustomer.orders.length > 0 ? (
                           <div className="space-y-4">
                               {selectedCustomer.orders.map((order, idx) => (
-                                  <div key={order.id} className="flex items-center justify-between p-8 bg-white border border-slate-100 rounded-[2rem] hover:border-blue-500/20 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+                                  <div key={order.id} className="flex items-center justify-between p-8 bg-white border border-slate-100 rounded-[2rem] hover:border-brand-500/20 hover:shadow-xl hover:shadow-brand-500/5 transition-all group">
                                       <div className="flex items-center gap-8">
-                                          <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                          <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center font-black text-lg group-hover:bg-brand-600 group-hover:text-white transition-all">
                                               {idx + 1}
                                           </div>
                                           <div>
@@ -495,7 +495,7 @@ const CustomerManagement = () => {
                                               <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Settlement</p>
                                               <p className="text-xl font-black text-slate-900">₹{order.grandTotal.toFixed(0)}</p>
                                           </div>
-                                          <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-md active:scale-95">
+                                          <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-brand-600 group-hover:text-white transition-all shadow-md active:scale-95">
                                               <ArrowUpRight size={20}/>
                                           </button>
                                       </div>
@@ -512,7 +512,7 @@ const CustomerManagement = () => {
                   </div>
                   
                   <div className="p-10 bg-slate-50/50 border-t border-slate-100 flex justify-center">
-                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.5em]">FreshNaad • Global CRM Identity Layer • v4.0</p>
+                    <p className="text-[10px] font-black text-brand-400 uppercase tracking-[0.5em]">FreshNaad • Global CRM Identity Layer • v4.0</p>
                   </div>
               </div>
           </div>

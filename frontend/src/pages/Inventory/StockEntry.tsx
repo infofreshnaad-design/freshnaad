@@ -10,7 +10,7 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", disab
     <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">
       {label}
     </label>
-    <div className={`flex items-center gap-3 w-full p-2.5 border-[1.5px] rounded-xl transition-all ${disabled ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200 group-focus-within:border-blue-500 group-focus-within:ring-1 group-focus-within:ring-blue-100'}`}>
+    <div className={`flex items-center gap-3 w-full p-2.5 border-[1.5px] rounded-xl transition-all ${disabled ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200 group-focus-within:border-brand-500 group-focus-within:ring-1 group-focus-within:ring-brand-100'}`}>
       {icon && <div className="text-slate-400 pl-1">{icon}</div>}
       <input 
         type={type} 
@@ -212,8 +212,8 @@ const StockEntry = () => {
           <div className="flex flex-col text-right">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Billing Date</span>
             <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
-                <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="bg-transparent border-none p-0 focus:ring-0 text-xs font-black cursor-pointer text-blue-600" />
-                <ChevronDown size={12} className="text-blue-600" />
+                <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="bg-transparent border-none p-0 focus:ring-0 text-xs font-black cursor-pointer text-brand-600" />
+                <ChevronDown size={12} className="text-brand-600" />
             </div>
           </div>
         </div>
@@ -222,22 +222,22 @@ const StockEntry = () => {
             <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                     <span className="text-[10px] text-slate-400 font-bold uppercase mb-1">Entry Reference</span>
-                    <div className="flex items-center gap-2 text-blue-600 font-black text-sm">{billNo || '---'}</div>
+                    <div className="flex items-center gap-2 text-brand-600 font-black text-sm">{billNo || '---'}</div>
                 </div>
                 {supplierBalance !== null && (
-                    <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-2xl flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                    <div className="bg-brand-50 border border-brand-100 px-4 py-2 rounded-2xl flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></div>
                         <div>
-                            <p className="text-[8px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-0.5">Vendor Balance</p>
-                            <p className="text-xs font-black text-indigo-700">₹{supplierBalance.toLocaleString('en-IN')}</p>
+                            <p className="text-[8px] font-black text-brand-400 uppercase tracking-widest leading-none mb-0.5">Vendor Balance</p>
+                            <p className="text-xs font-black text-brand-700">₹{supplierBalance.toLocaleString('en-IN')}</p>
                         </div>
                     </div>
                 )}
             </div>
 
            <div className="relative group">
-              <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-widest z-10 group-focus-within:text-blue-500 transition-colors">Vendor / Sourcing Partner *</label>
-              <div className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center bg-white group-focus-within:border-blue-500 group-focus-within:shadow-lg shadow-blue-500/5 transition-all">
+              <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-widest z-10 group-focus-within:text-brand-500 transition-colors">Vendor / Sourcing Partner *</label>
+              <div className="w-full p-4 border-2 border-slate-100 rounded-2xl flex items-center bg-white group-focus-within:border-brand-500 group-focus-within:shadow-lg shadow-brand-500/5 transition-all">
                 <input 
                   type="text" placeholder="Start typing supplier name..." value={supplierName} autoComplete="off"
                   onChange={(e) => { setSupplierName(e.target.value); setShowSuggestions(true); }}
@@ -281,7 +281,7 @@ const StockEntry = () => {
              <div className="pt-4 animate-in fade-in slide-in-from-bottom-4">
                <button 
                  onClick={() => setStep('finalize')}
-                 className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-sm shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-b-4 border-blue-700"
+                 className="w-full bg-brand-600 text-white p-5 rounded-2xl font-black text-sm shadow-xl shadow-brand-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 border-b-4 border-brand-700"
                >
                   Generate Procure Note <Check size={18} strokeWidth={4} />
                </button>
@@ -327,7 +327,7 @@ const StockEntry = () => {
                <CustomInput label="Procure Qty" type="number" value={workingItem.quantity} onChange={(e: any) => setWorkingItem({...workingItem, quantity: e.target.value})} placeholder="0" />
                <div className="relative group mb-6">
                   <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Packing Unit</label>
-                  <div className="flex items-center gap-3 w-full p-3 border-2 border-slate-100 rounded-xl bg-white group-focus-within:border-blue-500 transition-all">
+                  <div className="flex items-center gap-3 w-full p-3 border-2 border-slate-100 rounded-xl bg-white group-focus-within:border-brand-500 transition-all">
                     <select 
                       value={workingItem.unit} 
                       onChange={(e) => setWorkingItem({...workingItem, unit: e.target.value})}
@@ -372,7 +372,7 @@ const StockEntry = () => {
               >Save & New</button>
               <button 
                 onClick={() => addToCartInternal(false)} 
-                className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl shadow-blue-500/10 active:scale-95 transition-all border-b-4 border-blue-800"
+                className="flex-[2] bg-brand-600 hover:bg-brand-700 text-white font-black rounded-2xl shadow-xl shadow-brand-500/10 active:scale-95 transition-all border-b-4 border-brand-800"
               >Proceed</button>
            </div>
         </div>
@@ -410,12 +410,12 @@ const StockEntry = () => {
 
            <div className="flex items-center justify-between px-1">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Breakdown</h4>
-              <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full">{cart.length} LINE ITEMS</span>
+              <span className="bg-brand-50 text-brand-600 text-[10px] font-black px-3 py-1 rounded-full">{cart.length} LINE ITEMS</span>
            </div>
 
            <div className="space-y-4">
               {cart.map((item, idx) => (
-                <div key={idx} className="bg-white p-5 rounded-3xl border-2 border-slate-50 shadow-sm relative group hover:border-blue-100 transition-all">
+                <div key={idx} className="bg-white p-5 rounded-3xl border-2 border-slate-50 shadow-sm relative group hover:border-brand-100 transition-all">
                     <div className="flex justify-between items-start mb-4">
                        <div className="flex items-center gap-4">
                           <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs">#{idx + 1}</div>
@@ -444,27 +444,27 @@ const StockEntry = () => {
            </div>
 
            {/* PAYMENT SECTION - PREMIUM REDESIGN */}
-           <div className="bg-indigo-50 p-8 rounded-[3rem] border-2 border-indigo-100 relative overflow-hidden">
+           <div className="bg-brand-50 p-8 rounded-[3rem] border-2 border-brand-100 relative overflow-hidden">
                <div className="relative z-10 space-y-6">
-                    <header className="flex justify-between items-center pb-4 border-b border-indigo-100/50">
-                        <span className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em]">Settlement Detail</span>
+                    <header className="flex justify-between items-center pb-4 border-b border-brand-100/50">
+                        <span className="text-[11px] font-black text-brand-400 uppercase tracking-[0.2em]">Settlement Detail</span>
                         <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-black text-indigo-900 uppercase">Grand Total</span>
-                           <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-black">₹{totalAmount.toLocaleString('en-IN')}</span>
+                           <span className="text-[10px] font-black text-brand-900 uppercase">Grand Total</span>
+                           <span className="bg-brand-600 text-white px-3 py-1 rounded-full text-xs font-black">₹{totalAmount.toLocaleString('en-IN')}</span>
                         </div>
                     </header>
 
                     <div className="flex items-center justify-between">
                          <div className="flex items-center gap-4">
-                            <button onClick={() => setIsPaid(!isPaid)} className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all ${isPaid ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white border-indigo-200'}`}><Check size={20} strokeWidth={4} /></button>
-                            <span className="font-black text-indigo-900 text-lg">Mark as Paid</span>
+                            <button onClick={() => setIsPaid(!isPaid)} className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all ${isPaid ? 'bg-brand-600 border-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white border-brand-200'}`}><Check size={20} strokeWidth={4} /></button>
+                            <span className="font-black text-brand-900 text-lg">Mark as Paid</span>
                          </div>
                          {isPaid && (
                              <div className="text-right">
-                                <label className="text-[10px] font-black text-indigo-400 uppercase block mb-1">Amount Paid</label>
+                                <label className="text-[10px] font-black text-brand-400 uppercase block mb-1">Amount Paid</label>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-indigo-400 font-bold">₹</span>
-                                    <input type="number" placeholder={totalAmount.toString()} value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} className="bg-white border-2 border-indigo-100 rounded-xl px-4 py-2 w-32 text-right focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-black text-lg text-indigo-900 placeholder:text-indigo-200" />
+                                    <span className="text-brand-400 font-bold">₹</span>
+                                    <input type="number" placeholder={totalAmount.toString()} value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} className="bg-white border-2 border-brand-100 rounded-xl px-4 py-2 w-32 text-right focus:ring-4 focus:ring-brand-100 focus:border-brand-500 transition-all font-black text-lg text-brand-900 placeholder:text-brand-200" />
                                 </div>
                              </div>
                          )}

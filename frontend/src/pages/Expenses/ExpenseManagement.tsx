@@ -205,7 +205,7 @@ const ExpenseManagement = () => {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleEditClick(expense)}
-                          className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                          className="p-2 text-slate-400 hover:text-brand-600 transition-colors"
                         >
                           <Edit size={16} />
                         </button>
@@ -255,7 +255,7 @@ const ExpenseManagement = () => {
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">Category</label>
                 <select 
-                  className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800 appearance-none"
+                  className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 appearance-none"
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
                 >
@@ -275,7 +275,7 @@ const ExpenseManagement = () => {
                 <input 
                   type="text" 
                   placeholder="What was this for?" 
-                  className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800"
+                  className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                 />
@@ -287,7 +287,7 @@ const ExpenseManagement = () => {
                   <input 
                     type="number" 
                     placeholder="0.00" 
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800"
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800"
                     value={formData.amount}
                     onChange={(e) => setFormData({...formData, amount: e.target.value})}
                   />
@@ -296,7 +296,7 @@ const ExpenseManagement = () => {
                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">Date</label>
                   <input 
                     type="date" 
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-bold text-slate-800"
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800"
                     value={formData.date}
                     onChange={(e) => setFormData({...formData, date: e.target.value})}
                   />

@@ -35,13 +35,13 @@ const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProc
           <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
             <button 
               onClick={() => setMethod('direct')}
-              className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${method === 'direct' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${method === 'direct' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Phone size={14} /> Direct
             </button>
             <button 
               onClick={() => setMethod('search')}
-              className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${method === 'search' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${method === 'search' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <User size={14} /> Customer
             </button>
@@ -56,7 +56,7 @@ const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProc
                   <input 
                     type="tel" 
                     placeholder="Enter 10 digit number"
-                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 outline-none font-black text-lg tracking-widest placeholder:text-slate-300 placeholder:font-bold transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-brand-500 outline-none font-black text-lg tracking-widest placeholder:text-slate-300 placeholder:font-bold transition-all"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     autoFocus
@@ -68,12 +68,12 @@ const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProc
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
               <button 
                 onClick={() => setIsCustomerSearchOpen(true)}
-                className="w-full p-4 bg-blue-50 border-2 border-blue-100 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group hover:bg-blue-100 transition-all"
+                className="w-full p-4 bg-brand-50 border-2 border-brand-100 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group hover:bg-brand-100 transition-all"
               >
-                <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 bg-brand-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:scale-110 transition-transform">
                   <Search size={20} />
                 </div>
-                <span className="text-sm font-black text-blue-700 uppercase">Search Loyalty Program</span>
+                <span className="text-sm font-black text-brand-700 uppercase">Search Loyalty Program</span>
               </button>
               
               {phoneNumber && (

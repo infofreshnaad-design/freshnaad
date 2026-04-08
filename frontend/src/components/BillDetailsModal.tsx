@@ -118,7 +118,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
 
   if (loading) return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-6">
-      <div className="bg-white p-10 rounded-[3rem] shadow-2xl"><Loader2 className="animate-spin text-indigo-600" size={32} /></div>
+      <div className="bg-white p-10 rounded-[3rem] shadow-2xl"><Loader2 className="animate-spin text-brand-primary" size={32} /></div>
     </div>
   );
 
@@ -136,7 +136,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
             </div>
             <div className="flex gap-2">
                 {!isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all">
+                    <button onClick={() => setIsEditing(true)} className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all">
                         <Edit3 size={18} />
                     </button>
                 )}
@@ -157,7 +157,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                             <div>
                                 {isEditing && !item.productId ? (
                                     <select 
-                                        className="w-full px-2 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 mb-2 truncate max-w-[200px]"
+                                        className="w-full px-2 py-1 bg-white border border-brand-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-brand-primary mb-2 truncate max-w-[200px]"
                                         value={item.productId || ''}
                                         onChange={e => handleProductSelect(idx, e.target.value)}
                                     >
@@ -234,9 +234,9 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                 <span>Tax Total</span>
                 <span>₹{(isEditing ? items.reduce((sum, i) => sum + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 0) / 100) * i.quantity), 0) : bill.taxTotal)?.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-indigo-100">
-                <span className="font-black text-indigo-900 uppercase tracking-widest text-xs">Grand Total</span>
-                <span className="text-2xl font-black text-indigo-600">
+            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-brand-100">
+                <span className="font-black text-brand-900 uppercase tracking-widest text-xs">Grand Total</span>
+                <span className="text-2xl font-black text-brand-primary">
                     ₹{(isEditing ? items.reduce((sum, i) => sum + (((i.price || i.sellingPrice || 0) * i.quantity) + ((i.price || i.sellingPrice || 0) * ((i.product?.gstRate || 0) / 100) * i.quantity)), 0) : bill.grandTotal)?.toFixed(2)}
                 </span>
             </div>
@@ -244,7 +244,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                 <button 
                     onClick={handleSave} 
                     disabled={saving}
-                    className="w-full mt-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20"
+                    className="w-full mt-4 py-4 bg-brand-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-brand-secondary transition-all shadow-xl shadow-brand-primary/20"
                 >
                     {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                     Apply Reconciliation

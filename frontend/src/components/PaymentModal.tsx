@@ -126,19 +126,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
           {/* Customer & Loyalty Section */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3 flex items-center gap-1.5">
-              <User size={12} className="text-blue-500" />
+              <User size={12} className="text-brand-500" />
               Customer & Loyalty
             </h3>
             {customer ? (
-              <div className="flex justify-between items-center bg-blue-50 p-3 rounded-xl border border-blue-100">
+              <div className="flex justify-between items-center bg-brand-50 p-3 rounded-xl border border-brand-100">
                 <div>
                   <div className="font-bold text-slate-800">{customer.name}</div>
-                  <div className="text-xs text-slate-500 font-medium">Available Pts: <span className="text-blue-600 font-bold">{customer.loyaltyPoints}</span></div>
+                  <div className="text-xs text-slate-500 font-medium">Available Pts: <span className="text-brand-600 font-bold">{customer.loyaltyPoints}</span></div>
                 </div>
                 <div className="flex items-center gap-2">
                    <button 
                     onClick={() => setIsRedeemModalOpen(true)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${appliedPoints > 0 ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/20'}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${appliedPoints > 0 ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-500/20'}`}
                    >
                      <Gift size={14} />
                      {appliedPoints > 0 ? `${appliedPoints} Pts Applied` : 'Redeem Points'}
@@ -151,21 +151,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
             ) : (
               <button 
                 onClick={() => setIsCustomerModalOpen(true)}
-                className="w-full py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold hover:border-brand-400 hover:text-brand-500 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={20} /> Select Customer for Loyalty
               </button>
             )}
           </div>
 
-          <div className="bg-blue-600 p-6 rounded-3xl text-white shadow-xl shadow-blue-500/20 flex justify-between items-end">
+          <div className="bg-brand-600 p-6 rounded-3xl text-white shadow-xl shadow-brand-500/20 flex justify-between items-end">
             <div>
-               <p className="text-blue-100 font-bold text-xs uppercase tracking-widest mb-1">Final Amount Due</p>
+               <p className="text-brand-100 font-bold text-xs uppercase tracking-widest mb-1">Final Amount Due</p>
                <p className="text-5xl font-black tracking-tight">₹{roundedTotal.toFixed(2)}</p>
-               {grandTotal !== roundedTotal && <p className="text-blue-200 text-[10px] font-bold italic mt-1">Unrounded: ₹{grandTotal.toFixed(2)}</p>}
+               {grandTotal !== roundedTotal && <p className="text-brand-200 text-[10px] font-bold italic mt-1">Unrounded: ₹{grandTotal.toFixed(2)}</p>}
             </div>
             <div className="text-right">
-               <p className="text-blue-200 text-[10px] font-bold uppercase mb-1">Items: {cart.length}</p>
+               <p className="text-brand-200 text-[10px] font-bold uppercase mb-1">Items: {cart.length}</p>
                {loyaltyDiscount > 0 && (
                  <p className="text-emerald-300 font-bold text-xs">Discount: -₹{loyaltyDiscount.toFixed(2)}</p>
                )}
@@ -177,28 +177,28 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
              <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => setPaymentMethod('CASH')}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CASH' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CASH' ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <Banknote size={24} />
                   <span className="font-bold text-sm">Cash</span>
                 </button>
                 <button 
                   onClick={() => setPaymentMethod('UPI')}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'UPI' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'UPI' ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <QrCode size={24} />
                   <span className="font-bold text-sm">UPI / QR</span>
                 </button>
                 <button 
                   onClick={() => setPaymentMethod('CARD')}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CARD' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CARD' ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <CreditCard size={24} />
                   <span className="font-bold text-sm">Card</span>
                 </button>
                 <button 
                   onClick={() => setPaymentMethod('CREDIT')}
-                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CREDIT' ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CREDIT' ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <User size={24} />
                   <span className="font-bold text-sm">Credit</span>
@@ -223,7 +223,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                </div>
             </div>
             {isAmountInsufficient && <p className="text-[10px] text-red-500 font-bold text-center mt-1 animate-pulse italic">Amount does not match!</p>}
-            {!isAmountInsufficient && !isAmountCustom && <p className="text-[10px] text-blue-500 font-bold text-center mt-1 italic animate-pulse">Synced with Net Total</p>}
+            {!isAmountInsufficient && !isAmountCustom && <p className="text-[10px] text-brand-500 font-bold text-center mt-1 italic animate-pulse">Synced with Net Total</p>}
           </div>
 
           <div className="flex-1">
