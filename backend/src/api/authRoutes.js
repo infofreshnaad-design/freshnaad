@@ -246,4 +246,29 @@ router.put('/users/:id/permissions', async (req, res) => {
     }
 });
 
+// Delete User (Admin only)
+router.delete('/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const { adminId } = req.body;
+    
+    try {
+        const admin = await prisma.user.findUnique({ where: { id: adminId } });
+        if (!admin || admin.role !== 'ADMIN') {
+            return res.status(403).json({ message: 'Unauthorized. Admin access required.' });
+        }
+
+        if (id === adminId) {
+            return res.status(400).json({ message: 'Self-deletion is not allowed. Safety first!' });
+        }
+
+        await prisma.user.delete({
+            where: { id }
+        });
+
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

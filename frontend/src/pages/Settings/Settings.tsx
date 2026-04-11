@@ -170,6 +170,29 @@ const Settings = () => {
         }
     };
 
+    const handleDeleteUser = async (id: string) => {
+        const targetUser = users.find(u => u.id === id);
+        if (!targetUser) return;
+        
+        if (!window.confirm(`Are you sure you want to PERMANENTLY delete user "${targetUser.name}" (@${targetUser.username})? This cannot be undone.`)) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await api.delete(`/auth/users/${id}`, {
+                data: { adminId: user.id }
+            });
+            alert('User deleted successfully');
+            if (selectedUserId === id) setSelectedUserId('');
+            fetchUsers();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Error deleting user');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleAddCategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newCategoryName) return;
@@ -548,24 +571,35 @@ const Settings = () => {
 
                                     <div>
                                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Select User to Manage</label>
-                                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                             {users.filter(u => u.id !== user.id).map((u) => (
-                                                <button 
-                                                    key={u.id}
-                                                    onClick={() => {
-                                                        setSelectedUserId(u.id);
-                                                        setEditPermissions(u.permissions || ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {}));
-                                                    }}
-                                                    className={`w-full p-4 h-[72px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-brand-primary bg-brand-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
-                                                >
-                                                    <div>
-                                                        <p className="font-bold text-slate-800">{u.name}</p>
-                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                                                            {u.role} • {Object.values(u.permissions || {}).filter(v => v === true).length} Modules
-                                                        </p>
-                                                    </div>
-                                                    {selectedUserId === u.id && <UserCheck className="text-brand-primary" size={20} />}
-                                                </button>
+                                                <div key={u.id} className="relative group/item">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedUserId(u.id);
+                                                            setEditPermissions(u.permissions || ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {}));
+                                                        }}
+                                                        className={`w-full p-4 h-[80px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-brand-primary bg-brand-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
+                                                    >
+                                                        <div className="flex-1 min-w-0 pr-12">
+                                                            <p className="font-bold text-slate-800 truncate">{u.name}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-black text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-100">@{u.username}</span>
+                                                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                                                                    {u.role}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        {selectedUserId === u.id && <UserCheck className="text-brand-primary shrink-0" size={20} />}
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.id); }}
+                                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover/item:opacity-100"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             ))}
                                             {users.length <= 1 && <p className="text-center py-4 text-slate-400 text-xs font-bold italic">No other users found</p>}
                                         </div>
@@ -573,6 +607,27 @@ const Settings = () => {
                                 </div>
 
                                 <div className="space-y-8">
+                                    {selectedUserId && (
+                                        <div className="p-4 bg-slate-900 rounded-2xl border border-white/5 flex items-center gap-4 animate-in fade-in zoom-in duration-300">
+                                            <div className="w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center text-brand-400 font-black">
+                                                {users.find(u => u.id === selectedUserId)?.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Managing User</p>
+                                                <p className="text-white font-bold truncate">
+                                                    {users.find(u => u.id === selectedUserId)?.name} 
+                                                    <span className="text-brand-400 ml-2 text-sm">@{users.find(u => u.id === selectedUserId)?.username}</span>
+                                                </p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setSelectedUserId('')}
+                                                className="p-2 text-slate-500 hover:text-white transition-colors"
+                                            >
+                                                <CloseIcon size={18} />
+                                            </button>
+                                        </div>
+                                    )}
+
                                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                         <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Update Access Permissions</h3>
                                         <form onSubmit={handleUpdatePermissions} className="space-y-6">
