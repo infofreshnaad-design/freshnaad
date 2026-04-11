@@ -15,6 +15,7 @@ model User {
   email     String?   @unique
   password  String
   role      String    @default("CASHIER") // ADMIN, MANAGER, CASHIER
+  permissions Json?
   license   License?  @relation(fields: [licenseId], references: [id])
   licenseId String?
   createdAt DateTime  @default(now())

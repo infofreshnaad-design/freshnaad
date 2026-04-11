@@ -8,25 +8,38 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
   const logout = useAuthStore((state: any) => state.logout);
 
   const menuItems = [
-    { icon: <ShoppingBag size={22} />, label: 'POS Billing', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-    { icon: <LayoutDashboard size={22} />, label: 'Cloud Dashboard', path: '/admin/dashboard', roles: ['ADMIN'] },
-    { icon: <Package size={22} />, label: 'Inventory Management', path: '/inventory', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <Package size={22} />, label: 'Stock Procurement', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <BarChart3 size={22} />, label: 'Accounts Payable', path: '/accounts-payable', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <TrendingDown size={22} />, label: 'Sales Return', path: '/sales-return', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-    { icon: <Plus size={22} />, label: 'Purchase Return', path: '/purchase-return', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <Truck size={22} />, label: 'Supplier Registry', path: '/suppliers', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <Users size={22} />, label: 'Customer Network', path: '/customers', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-    { icon: <BarChart3 size={22} />, label: 'Financial Reports', path: '/reports', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <LayoutDashboard size={22} />, label: 'Daily Expenses', path: '/expenses', roles: ['ADMIN', 'MANAGER'] },
-    { icon: <Key size={22} />, label: 'License Desk', path: '/admin/licenses', roles: ['ADMIN'] },
-    { icon: <Smartphone size={22} />, label: 'Device Registry', path: '/admin/devices', roles: ['ADMIN'] },
-    { icon: <Settings size={22} />, label: 'Settings', path: '/settings', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+    { icon: <ShoppingBag size={22} />, label: 'POS Billing', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'POS' },
+    { icon: <LayoutDashboard size={22} />, label: 'Cloud Dashboard', path: '/admin/dashboard', roles: ['ADMIN'], permissionKey: 'DASHBOARD' },
+    { icon: <Package size={22} />, label: 'Inventory Management', path: '/inventory', roles: ['ADMIN', 'MANAGER'], permissionKey: 'INVENTORY' },
+    { icon: <Package size={22} />, label: 'Stock Procurement', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'], permissionKey: 'PROCUREMENT' },
+    { icon: <BarChart3 size={22} />, label: 'Accounts Payable', path: '/accounts-payable', roles: ['ADMIN', 'MANAGER'], permissionKey: 'AP' },
+    { icon: <TrendingDown size={22} />, label: 'Sales Return', path: '/sales-return', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'SALES_RETURN' },
+    { icon: <Plus size={22} />, label: 'Purchase Return', path: '/purchase-return', roles: ['ADMIN', 'MANAGER'], permissionKey: 'PURCHASE_RETURN' },
+    { icon: <Truck size={22} />, label: 'Supplier Registry', path: '/suppliers', roles: ['ADMIN', 'MANAGER'], permissionKey: 'SUPPLIERS' },
+    { icon: <Users size={22} />, label: 'Customer Network', path: '/customers', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'CUSTOMERS' },
+    { icon: <BarChart3 size={22} />, label: 'Financial Reports', path: '/reports', roles: ['ADMIN', 'MANAGER'], permissionKey: 'REPORTS' },
+    { icon: <LayoutDashboard size={22} />, label: 'Daily Expenses', path: '/expenses', roles: ['ADMIN', 'MANAGER'], permissionKey: 'EXPENSES' },
+    { icon: <Key size={22} />, label: 'License Desk', path: '/admin/licenses', roles: ['ADMIN'], permissionKey: 'LICENSES' },
+    { icon: <Smartphone size={22} />, label: 'Device Registry', path: '/admin/devices', roles: ['ADMIN'], permissionKey: 'DEVICES' },
+    { icon: <Settings size={22} />, label: 'Settings', path: '/settings', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'SETTINGS' },
   ];
 
-  const filteredMenu = menuItems.filter(item => 
-    item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase())
-  );
+  const filteredMenu = menuItems.filter(item => {
+    // Admins always see everything
+    if (user?.role?.toUpperCase() === 'ADMIN') return true;
+    
+    // Check role-based access first
+    const hasRole = item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
+    if (!hasRole) return false;
+
+    // Check granular permission if defined
+    if (user?.permissions && typeof user.permissions === 'object') {
+        return user.permissions[item.permissionKey] === true;
+    }
+
+    // Default to role-only if no permissions object exists
+    return true;
+  });
 
   return (
     <>

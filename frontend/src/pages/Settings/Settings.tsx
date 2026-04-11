@@ -18,6 +18,21 @@ const Settings = () => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [editingCategory, setEditingCategory] = useState<any>(null);
     
+    // Permission Modules Definition
+    const ACCESS_MODULES = [
+        { key: 'POS', label: 'POS Billing' },
+        { key: 'INVENTORY', label: 'Inventory' },
+        { key: 'PROCUREMENT', label: 'Stock-In' },
+        { key: 'AP', label: 'Accounts Payable' },
+        { key: 'SALES_RETURN', label: 'Sales Return' },
+        { key: 'PURCHASE_RETURN', label: 'Purchase Return' },
+        { key: 'SUPPLIERS', label: 'Suppliers' },
+        { key: 'CUSTOMERS', label: 'Customers' },
+        { key: 'REPORTS', label: 'Reports' },
+        { key: 'EXPENSES', label: 'Expenses' },
+        { key: 'SETTINGS', label: 'Settings' },
+    ];
+
     // Security states
     const [securityForm, setSecurityForm] = useState({
         currentPassword: '',
@@ -28,13 +43,15 @@ const Settings = () => {
     // Admin Reset state
     const [selectedUserId, setSelectedUserId] = useState('');
     const [resetPassword, setResetPassword] = useState('');
+    const [editPermissions, setEditPermissions] = useState<any>({});
 
     // New User state
     const [newUserForm, setNewUserForm] = useState({
         name: '',
         username: '',
         password: '',
-        role: 'CASHIER'
+        role: 'CASHIER',
+        permissions: ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {})
     });
 
     const fetchUsers = async () => {
@@ -124,6 +141,25 @@ const Settings = () => {
             setSelectedUserId('');
         } catch (error: any) {
             alert(error.response?.data?.message || 'Error resetting password');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdatePermissions = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserId) return alert('Please select a user');
+
+        setLoading(true);
+        try {
+            await api.put(`/auth/users/${selectedUserId}/permissions`, {
+                adminId: user.id,
+                permissions: editPermissions
+            });
+            alert('Permissions updated successfully!');
+            fetchUsers();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Error updating permissions');
         } finally {
             setLoading(false);
         }
@@ -273,7 +309,13 @@ const Settings = () => {
                 adminId: user.id
             });
             alert('User created successfully!');
-            setNewUserForm({ name: '', username: '', password: '', role: 'CASHIER' });
+            setNewUserForm({ 
+                name: '', 
+                username: '', 
+                password: '', 
+                role: 'CASHIER',
+                permissions: ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {})
+            });
             fetchUsers();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Error creating user');
@@ -425,10 +467,34 @@ const Settings = () => {
                                                 value={newUserForm.role}
                                                 onChange={e => setNewUserForm({...newUserForm, role: e.target.value})}
                                             >
-                                                <option value="CASHIER">Cashier (POS Only)</option>
-                                                <option value="MANAGER">Manager (Full Inventory)</option>
-                                                <option value="ADMIN">Administrator (Full System)</option>
+                                                <option value="CASHIER">Cashier</option>
+                                                <option value="MANAGER">Manager</option>
+                                                <option value="ADMIN">Administrator</option>
                                             </select>
+
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest block">Module Permissions</label>
+                                                <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto p-2 bg-white rounded-xl border border-slate-200 custom-scrollbar">
+                                                    {ACCESS_MODULES.map(mod => (
+                                                        <label key={mod.key} className="flex items-center gap-2 cursor-pointer group">
+                                                            <input 
+                                                                type="checkbox"
+                                                                className="w-3 h-3 rounded text-brand-primary focus:ring-0"
+                                                                checked={newUserForm.permissions[mod.key] || false}
+                                                                onChange={e => setNewUserForm({
+                                                                    ...newUserForm,
+                                                                    permissions: {
+                                                                        ...newUserForm.permissions,
+                                                                        [mod.key]: e.target.checked
+                                                                    }
+                                                                })}
+                                                            />
+                                                            <span className="text-[10px] font-bold text-slate-600 group-hover:text-brand-primary transition-colors">{mod.label}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <button 
                                                 type="submit"
                                                 disabled={loading}
@@ -440,17 +506,22 @@ const Settings = () => {
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Select User to Reset</label>
+                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4 block font-mono">Select User to Manage</label>
                                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                             {users.filter(u => u.id !== user.id).map((u) => (
                                                 <button 
                                                     key={u.id}
-                                                    onClick={() => setSelectedUserId(u.id)}
+                                                    onClick={() => {
+                                                        setSelectedUserId(u.id);
+                                                        setEditPermissions(u.permissions || ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {}));
+                                                    }}
                                                     className={`w-full p-4 h-[72px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-brand-primary bg-brand-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
                                                 >
                                                     <div>
                                                         <p className="font-bold text-slate-800">{u.name}</p>
-                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{u.role}</p>
+                                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                                                            {u.role} • {Object.values(u.permissions || {}).filter(v => v === true).length} Modules
+                                                        </p>
                                                     </div>
                                                     {selectedUserId === u.id && <UserCheck className="text-brand-primary" size={20} />}
                                                 </button>
@@ -460,28 +531,62 @@ const Settings = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-50 p-6 md:p-8 rounded-3xl md:rounded-[2rem] border border-slate-100 flex flex-col justify-center">
-                                    <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Force Password Reset</h3>
-                                    <form onSubmit={handleAdminReset} className="space-y-6">
-                                        <div>
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">New Password for User</label>
-                                            <input 
-                                                type="password"
-                                                className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-brand-primary font-bold text-slate-800 outline-none"
-                                                placeholder="Enter new strong password"
-                                                value={resetPassword}
-                                                onChange={(e) => setResetPassword(e.target.value)}
-                                            />
-                                        </div>
-                                        <button 
-                                            type="submit"
-                                            disabled={loading || !selectedUserId}
-                                            className="w-full bg-red-600 hover:bg-red-700 text-white py-5 rounded-2xl font-black shadow-xl shadow-red-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            {loading ? <Loader2 className="animate-spin" /> : <Shield size={20} />}
-                                            <span>FORCE RESET USER</span>
-                                        </button>
-                                    </form>
+                                <div className="space-y-8">
+                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                        <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Update Access Permissions</h3>
+                                        <form onSubmit={handleUpdatePermissions} className="space-y-6">
+                                            <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-2xl border border-slate-100">
+                                                {ACCESS_MODULES.map(mod => (
+                                                    <label key={mod.key} className="flex items-center gap-3 cursor-pointer group p-1">
+                                                        <input 
+                                                            type="checkbox"
+                                                            disabled={!selectedUserId}
+                                                            className="w-4 h-4 rounded text-brand-primary focus:ring-0 disabled:opacity-50"
+                                                            checked={editPermissions[mod.key] || false}
+                                                            onChange={e => setEditPermissions({
+                                                                ...editPermissions,
+                                                                [mod.key]: e.target.checked
+                                                            })}
+                                                        />
+                                                        <span className={`text-xs font-bold transition-colors ${selectedUserId ? 'text-slate-700 group-hover:text-brand-primary' : 'text-slate-300'}`}>
+                                                            {mod.label}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            <button 
+                                                type="submit"
+                                                disabled={loading || !selectedUserId}
+                                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+                                            >
+                                                UPDATE ACCESS
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                        <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Force Password Reset</h3>
+                                        <form onSubmit={handleAdminReset} className="space-y-6">
+                                            <div>
+                                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">New Password for User</label>
+                                                <input 
+                                                    type="password"
+                                                    className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-brand-primary font-bold text-slate-800 outline-none"
+                                                    placeholder="Enter new strong password"
+                                                    value={resetPassword}
+                                                    onChange={(e) => setResetPassword(e.target.value)}
+                                                />
+                                            </div>
+                                            <button 
+                                                type="submit"
+                                                disabled={loading || !selectedUserId}
+                                                className="w-full bg-red-600 hover:bg-red-700 text-white py-5 rounded-2xl font-black shadow-xl shadow-red-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            >
+                                                {loading ? <Loader2 className="animate-spin" /> : <Shield size={20} />}
+                                                <span>FORCE RESET USER</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
