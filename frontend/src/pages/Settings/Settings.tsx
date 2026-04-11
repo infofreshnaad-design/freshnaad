@@ -577,7 +577,10 @@ const Settings = () => {
                                                     <button 
                                                         onClick={() => {
                                                             setSelectedUserId(u.id);
-                                                            setEditPermissions(u.permissions || ACCESS_MODULES.reduce((acc, mod) => ({ ...acc, [mod.key]: true }), {}));
+                                                            // If user has no custom permissions (null), we want to show a blank slate or role defaults
+                                                            // For now, let's keep it consistent: null = roles only. 
+                                                            // We'll default to an empty object if null to let the admin start fresh.
+                                                            setEditPermissions(u.permissions || {});
                                                         }}
                                                         className={`w-full p-4 h-[80px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-brand-primary bg-brand-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
                                                     >
@@ -586,7 +589,7 @@ const Settings = () => {
                                                             <div className="flex items-center gap-2 mt-0.5">
                                                                 <span className="text-[10px] font-black text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-100">@{u.username}</span>
                                                                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                                                                    {u.role}
+                                                                    {u.role} • {Object.values(u.permissions || {}).filter(v => v === true).length} Modules
                                                                 </span>
                                                             </div>
                                                         </div>

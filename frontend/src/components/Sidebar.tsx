@@ -25,20 +25,23 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
   ];
 
   const filteredMenu = menuItems.filter(item => {
-    // Admins always see everything
+    // 1. Admins always see everything
     if (user?.role?.toUpperCase() === 'ADMIN') return true;
     
-    // Check role-based access first
-    const hasRole = item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
-    if (!hasRole) return false;
-
-    // Check granular permission if defined
-    if (user?.permissions && typeof user.permissions === 'object') {
-        return user.permissions[item.permissionKey] === true;
+    // 2. Check granular permissions if they exist (even if it's an empty object)
+    // If user.permissions is NOT null/undefined, it becomes the STRICT source of truth
+    if (user?.permissions !== undefined && user?.permissions !== null && typeof user.permissions === 'object') {
+        const hasPermission = user.permissions[item.permissionKey] === true;
+        
+        // Safety: Even if they have the permission, we still check if their Role is allowed for this technical route
+        const roleAllowed = item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
+        
+        return hasPermission && roleAllowed;
     }
 
-    // Default to role-only if no permissions object exists
-    return true;
+    // 3. Fallback for Legacy Users (where permissions field is null in DB)
+    // In this case, we default to the standard Role-Based access
+    return item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
   });
 
   return (
