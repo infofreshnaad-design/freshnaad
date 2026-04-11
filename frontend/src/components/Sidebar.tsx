@@ -28,19 +28,14 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     // 1. Admins always see everything
     if (user?.role?.toUpperCase() === 'ADMIN') return true;
     
-    // 2. Check granular permissions if they exist (even if it's an empty object)
-    // If user.permissions is NOT null/undefined, it becomes the STRICT source of truth
+    // 2. If granular permissions exist (even if it's an empty object {}), 
+    // it becomes the ABSOLUTE source of truth.
     if (user?.permissions !== undefined && user?.permissions !== null && typeof user.permissions === 'object') {
-        const hasPermission = user.permissions[item.permissionKey] === true;
-        
-        // Safety: Even if they have the permission, we still check if their Role is allowed for this technical route
-        const roleAllowed = item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
-        
-        return hasPermission && roleAllowed;
+        return user.permissions[item.permissionKey] === true;
     }
 
     // 3. Fallback for Legacy Users (where permissions field is null in DB)
-    // In this case, we default to the standard Role-Based access
+    // These users get standard access based on their Role (Cashier/Manager).
     return item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase());
   });
 
