@@ -47,6 +47,12 @@ const POSInterface: React.FC = () => {
   const loyaltyDiscount = usePOSStore(state => state.loyaltyDiscount);
   const appliedPoints = usePOSStore(state => state.appliedPoints);
 
+  // Helper to determine if a unit allows fractional quantities
+  const isFractionalUnit = (unit) => {
+    const u = unit?.toLowerCase() || '';
+    return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm'].includes(u);
+  };
+
   const fetchCategories = async () => {
     try {
       if (isOnline) {
@@ -474,20 +480,32 @@ const POSInterface: React.FC = () => {
                     <div className="flex flex-col items-end gap-1.5">
                       <div className="flex items-center bg-slate-100 rounded-lg p-0.5 md:p-1">
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity - 0.1)}
+                          onClick={() => {
+                            const step = isFractionalUnit(item.unit) ? 0.1 : 1;
+                            updateQuantity(item.id, Math.max(step, item.quantity - step));
+                          }}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-500"
                         >
                           <Minus size={12} strokeWidth={3} />
                         </button>
                         <input 
                           type="number" 
-                          step="0.001"
+                          step={isFractionalUnit(item.unit) ? "0.001" : "1"}
                           value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            let val = parseFloat(e.target.value) || 0;
+                            if (!isFractionalUnit(item.unit)) {
+                              val = Math.round(val);
+                            }
+                            updateQuantity(item.id, val);
+                          }}
                           className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
                         />
                         <button 
-                          onClick={() => updateQuantity(item.id, item.quantity + 0.1)}
+                          onClick={() => {
+                            const step = isFractionalUnit(item.unit) ? 0.1 : 1;
+                            updateQuantity(item.id, item.quantity + step);
+                          }}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600"
                         >
                           <Plus size={12} strokeWidth={3} />
