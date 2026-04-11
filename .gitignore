@@ -15,3 +15,12 @@ tmp
 build
 node_modules
 database/generated/
+backend/backups/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!vercel.json
+!*.json.example
+google-credentials.json
+*.sql
