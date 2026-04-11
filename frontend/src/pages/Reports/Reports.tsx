@@ -10,6 +10,7 @@ const reportCategories = [
     title: 'Main Reports',
     reports: [
       { id: 'sales', name: 'Sale Report', icon: <TrendingUp size={16} /> },
+      { id: 'payment-summary', name: 'Payment Mode Summary', icon: <PieChart size={16} /> },
       { id: 'purchase', name: 'Purchase Report', icon: <ShoppingBag size={16} /> },
       { id: 'daybook', name: 'Day Book', icon: <FileText size={16} /> },
       { id: 'profit-loss', name: 'Profit & Loss', icon: <PieChart size={16} /> },
@@ -302,7 +303,102 @@ const Reports = () => {
           </div>
         );
       }
-      
+
+      case 'payment-summary': {
+        if (!reportData || typeof reportData !== 'object') {
+          return <div className="p-20 text-center animate-pulse text-brand-400">Aggregating Payment Data...</div>;
+        }
+        
+        const cashTotal = reportData['CASH'] || 0;
+        const upiTotal = reportData['UPI'] || 0;
+        
+        return (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-brand-100 flex flex-col justify-between group hover:shadow-xl hover:shadow-brand-primary/5 transition-all">
+                <div>
+                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <IndianRupee size={24} />
+                  </div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Cash Revenue</p>
+                  <h3 className="text-4xl font-black text-slate-900">₹{cashTotal.toFixed(2)}</h3>
+                </div>
+                <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                   <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase">Physical Tender</span>
+                   <ArrowUpRight size={16} className="text-slate-200" />
+                </div>
+              </div>
+
+              <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-between group hover:scale-[1.02] transition-all">
+                <div>
+                   <div className="w-12 h-12 bg-brand-primary/20 text-brand-primary rounded-2xl flex items-center justify-center mb-4">
+                    <PieChart size={24} />
+                  </div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UPI / Digital Revenue</p>
+                  <h3 className="text-4xl font-black text-white">₹{upiTotal.toFixed(2)}</h3>
+                </div>
+                <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between">
+                   <span className="text-[10px] font-black text-brand-primary bg-white/10 px-2 py-1 rounded-lg uppercase">Contactless Payment</span>
+                   <ArrowUpRight size={16} className="text-white/20" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Revenue Breakdown</h4>
+              </div>
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <tr>
+                    <th className="p-6">Payment Mode</th>
+                    <th className="p-6 text-right">Total Amount</th>
+                    <th className="p-6 text-right">Share (%)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans">
+                  {Object.entries(reportData).map(([mode, amount]: any) => {
+                    const total = Object.values(reportData).reduce((s: any, a: any) => s + a, 0);
+                    const share = (amount / total) * 100;
+                    return (
+                      <tr key={mode} className="hover:bg-brand-50/30 transition-colors group">
+                        <td className="p-6">
+                           <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${mode === 'CASH' ? 'bg-emerald-500' : mode === 'UPI' ? 'bg-brand-primary' : 'bg-slate-300'}`} />
+                              <span className="font-bold text-slate-800 uppercase tracking-wider text-xs">{mode}</span>
+                           </div>
+                        </td>
+                        <td className="p-6 text-right font-black text-slate-900">₹{amount.toFixed(2)}</td>
+                        <td className="p-6 text-right">
+                           <div className="flex items-center justify-end gap-3 text-xs font-black">
+                              <span className="text-slate-400">{share.toFixed(1)}%</span>
+                              <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full ${mode === 'CASH' ? 'bg-emerald-500' : mode === 'UPI' ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                                  style={{ width: `${share}%` }}
+                                />
+                              </div>
+                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-900 text-white font-black">
+                   <tr>
+                      <td className="p-6 uppercase tracking-widest text-xs">Total Combined Revenue</td>
+                      <td className="p-6 text-right text-xl">
+                        ₹{Object.values(reportData).reduce((s: any, a: any) => s + a, 0).toFixed(2)}
+                      </td>
+                      <td className="p-6 text-right text-xs text-slate-400">100%</td>
+                   </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+      }
+
       case 'credit-notes':
       case 'debit-notes': {
         const isCreditNote = activeReport === 'credit-notes';

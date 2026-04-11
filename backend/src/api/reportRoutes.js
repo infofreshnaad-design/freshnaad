@@ -103,6 +103,27 @@ router.get('/sales', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// 1.1 Payment Mode Summary
+router.get('/payment-summary', async (req, res) => {
+  try {
+    const { filter, startDate, endDate } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate);
+    
+    const orders = await prisma.order.findMany({
+      where: { createdAt: dateRange },
+      select: { paymentMode: true, grandTotal: true }
+    });
+
+    const summary = orders.reduce((acc, order) => {
+      const mode = order.paymentMode || 'OTHER';
+      acc[mode] = (acc[mode] || 0) + order.grandTotal;
+      return acc;
+    }, {});
+
+    res.json(summary);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 // 2. Purchase Report
 router.get('/purchase', async (req, res) => {
   try {
