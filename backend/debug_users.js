@@ -2,11 +2,11 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const users = await prisma.user.findMany();
-  console.log('Current Users in DB:');
-  users.forEach(u => {
-    console.log(`- Name: ${u.name}, Email: ${u.email}, Password: ${u.password}, Role: ${u.role}`);
+  const users = await prisma.user.findMany({
+    select: { name: true, username: true, role: true, permissions: true }
   });
+  console.log('Current Users in DB:');
+  console.log(JSON.stringify(users, null, 2));
 }
 
 main()
