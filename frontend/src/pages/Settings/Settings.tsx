@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
 import useAuthStore from '../../store/authStore';
-import { Shield, Users, Key, AlertCircle, CheckCircle2, Loader2, Save, UserX, UserCheck, Tag, Plus, Edit2, Trash2, Image as ImageIcon, Search, Camera, X as CloseIcon, Printer, Bluetooth, BluetoothOff, Info } from 'lucide-react';
+import { Shield, Users, Key, AlertCircle, CheckCircle2, Loader2, Save, UserX, UserCheck, Tag, Plus, Edit2, Trash2, Image as ImageIcon, Search, Camera, X as CloseIcon, Printer, Bluetooth, BluetoothOff, Info, Eye, EyeOff } from 'lucide-react';
 import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
 
 const Settings = () => {
@@ -44,6 +44,11 @@ const Settings = () => {
     const [selectedUserId, setSelectedUserId] = useState('');
     const [resetPassword, setResetPassword] = useState('');
     const [editPermissions, setEditPermissions] = useState<any>({});
+    
+    // Visibility states
+    const [showSecurityPasswords, setShowSecurityPasswords] = useState(false);
+    const [showNewUserPassword, setShowNewUserPassword] = useState(false);
+    const [showResetPassword, setShowResetPassword] = useState(false);
 
     // New User state
     const [newUserForm, setNewUserForm] = useState({
@@ -388,33 +393,60 @@ const Settings = () => {
                             <form onSubmit={handlePasswordChange} className="space-y-6 max-w-md">
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">Current Password</label>
-                                    <input 
-                                        type="password"
-                                        required
-                                        className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none"
-                                        value={securityForm.currentPassword}
-                                        onChange={(e) => setSecurityForm({...securityForm, currentPassword: e.target.value})}
-                                    />
+                                    <div className="relative">
+                                        <input 
+                                            type={showSecurityPasswords ? "text" : "password"}
+                                            required
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none pr-12"
+                                            value={securityForm.currentPassword}
+                                            onChange={(e) => setSecurityForm({...securityForm, currentPassword: e.target.value})}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowSecurityPasswords(!showSecurityPasswords)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-primary transition-colors"
+                                        >
+                                            {showSecurityPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">New Password</label>
-                                    <input 
-                                        type="password"
-                                        required
-                                        className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none"
-                                        value={securityForm.newPassword}
-                                        onChange={(e) => setSecurityForm({...securityForm, newPassword: e.target.value})}
-                                    />
+                                    <div className="relative">
+                                        <input 
+                                            type={showSecurityPasswords ? "text" : "password"}
+                                            required
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none pr-12"
+                                            value={securityForm.newPassword}
+                                            onChange={(e) => setSecurityForm({...securityForm, newPassword: e.target.value})}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowSecurityPasswords(!showSecurityPasswords)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-primary transition-colors"
+                                        >
+                                            {showSecurityPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">Confirm New Password</label>
-                                    <input 
-                                        type="password"
-                                        required
-                                        className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none"
-                                        value={securityForm.confirmPassword}
-                                        onChange={(e) => setSecurityForm({...securityForm, confirmPassword: e.target.value})}
-                                    />
+                                    <div className="relative">
+                                        <input 
+                                            type={showSecurityPasswords ? "text" : "password"}
+                                            required
+                                            className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-brand-primary font-bold text-slate-800 outline-none pr-12"
+                                            value={securityForm.confirmPassword}
+                                            onChange={(e) => setSecurityForm({...securityForm, confirmPassword: e.target.value})}
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowSecurityPasswords(!showSecurityPasswords)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-primary transition-colors"
+                                        >
+                                            {showSecurityPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <button 
                                     type="submit"
@@ -455,13 +487,22 @@ const Settings = () => {
                                                     onChange={e => setNewUserForm({...newUserForm, username: e.target.value})}
                                                 />
                                             </div>
-                                            <input 
-                                                type="password"
-                                                placeholder="Password"
-                                                className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
-                                                value={newUserForm.password}
-                                                onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-                                            />
+                                            <div className="relative">
+                                                <input 
+                                                    type={showNewUserPassword ? "text" : "password"}
+                                                    placeholder="Password"
+                                                    className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs pr-10"
+                                                    value={newUserForm.password}
+                                                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowNewUserPassword(!showNewUserPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-primary"
+                                                >
+                                                    {showNewUserPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                </button>
+                                            </div>
                                             <select 
                                                 className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs"
                                                 value={newUserForm.role}
@@ -569,13 +610,22 @@ const Settings = () => {
                                         <form onSubmit={handleAdminReset} className="space-y-6">
                                             <div>
                                                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block font-mono">New Password for User</label>
-                                                <input 
-                                                    type="password"
-                                                    className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-brand-primary font-bold text-slate-800 outline-none"
-                                                    placeholder="Enter new strong password"
-                                                    value={resetPassword}
-                                                    onChange={(e) => setResetPassword(e.target.value)}
-                                                />
+                                                <div className="relative">
+                                                    <input 
+                                                        type={showResetPassword ? "text" : "password"}
+                                                        className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-brand-primary font-bold text-slate-800 outline-none pr-12"
+                                                        placeholder="Enter new strong password"
+                                                        value={resetPassword}
+                                                        onChange={(e) => setResetPassword(e.target.value)}
+                                                    />
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setShowResetPassword(!showResetPassword)}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-primary"
+                                                    >
+                                                        {showResetPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                    </button>
+                                                </div>
                                             </div>
                                             <button 
                                                 type="submit"
