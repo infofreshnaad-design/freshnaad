@@ -291,7 +291,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between">
                  <div className="flex flex-col gap-1">
                    <span>Total Items : {order.itemsCount || 1}</span>
-                   <span>Total Qty : ${(Number(order.totalQty) || 0).toFixed(2)}</span>
+                   <span>Total Qty : {(Number(order.totalQty) || 0).toFixed(2)}</span>
                  </div>
                  <div className="flex gap-4 text-right">
                     <div className="flex flex-col gap-1">
