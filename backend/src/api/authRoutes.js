@@ -224,10 +224,10 @@ router.get('/users', async (req, res) => {
     }
 });
 
-// Update User Permissions (Admin only)
-router.put('/users/:id/permissions', async (req, res) => {
+// Update User Profile & Permissions (Admin only)
+router.put('/users/:id', async (req, res) => {
     const { id } = req.params;
-    const { permissions, adminId } = req.body;
+    const { name, role, permissions, adminId } = req.body;
     
     try {
         const admin = await prisma.user.findUnique({ where: { id: adminId } });
@@ -235,12 +235,25 @@ router.put('/users/:id/permissions', async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized. Admin access required.' });
         }
 
+        const dataToUpdate = {};
+        if (name) dataToUpdate.name = name;
+        if (role) dataToUpdate.role = role;
+        if (permissions !== undefined) dataToUpdate.permissions = permissions;
+
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: { permissions }
+            data: dataToUpdate
         });
 
-        res.json({ message: 'Permissions updated successfully', permissions: updatedUser.permissions });
+        res.json({ 
+            message: 'User updated successfully', 
+            user: { 
+                id: updatedUser.id, 
+                name: updatedUser.name, 
+                role: updatedUser.role,
+                permissions: updatedUser.permissions 
+            } 
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

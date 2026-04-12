@@ -42,13 +42,15 @@ const Settings = () => {
 
     // Admin Reset state
     const [selectedUserId, setSelectedUserId] = useState('');
-    const [resetPassword, setResetPassword] = useState('');
+    const [editUserName, setEditUserName] = useState('');
+    const [editUserRole, setEditUserRole] = useState('');
     const [editPermissions, setEditPermissions] = useState<any>({});
     
     // Visibility states
     const [showSecurityPasswords, setShowSecurityPasswords] = useState(false);
     const [showNewUserPassword, setShowNewUserPassword] = useState(false);
     const [showResetPassword, setShowResetPassword] = useState(false);
+    const [resetPassword, setResetPassword] = useState('');
 
     // New User state
     const [newUserForm, setNewUserForm] = useState({
@@ -151,20 +153,22 @@ const Settings = () => {
         }
     };
 
-    const handleUpdatePermissions = async (e: React.FormEvent) => {
+    const handleUpdateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedUserId) return alert('Please select a user');
 
         setLoading(true);
         try {
-            await api.put(`/auth/users/${selectedUserId}/permissions`, {
+            await api.put(`/auth/users/${selectedUserId}`, {
                 adminId: user.id,
+                name: editUserName,
+                role: editUserRole,
                 permissions: editPermissions
             });
-            alert('Permissions updated successfully!');
+            alert('User profile updated successfully!');
             fetchUsers();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error updating permissions');
+            alert(error.response?.data?.message || 'Error updating user');
         } finally {
             setLoading(false);
         }
@@ -577,9 +581,8 @@ const Settings = () => {
                                                     <button 
                                                         onClick={() => {
                                                             setSelectedUserId(u.id);
-                                                            // If user has no custom permissions (null), we want to show a blank slate or role defaults
-                                                            // For now, let's keep it consistent: null = roles only. 
-                                                            // We'll default to an empty object if null to let the admin start fresh.
+                                                            setEditUserName(u.name);
+                                                            setEditUserRole(u.role);
                                                             setEditPermissions(u.permissions || {});
                                                         }}
                                                         className={`w-full p-4 h-[80px] rounded-2xl border-2 transition-all text-left flex items-center justify-between shrink-0 ${selectedUserId === u.id ? 'border-brand-primary bg-brand-50' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
@@ -611,29 +614,59 @@ const Settings = () => {
 
                                 <div className="space-y-8">
                                     {selectedUserId && (
-                                        <div className="p-4 bg-slate-900 rounded-2xl border border-white/5 flex items-center gap-4 animate-in fade-in zoom-in duration-300">
-                                            <div className="w-10 h-10 bg-brand-500/20 rounded-xl flex items-center justify-center text-brand-400 font-black">
-                                                {users.find(u => u.id === selectedUserId)?.name.charAt(0)}
+                                        <div className="bg-slate-900 rounded-[2rem] border border-white/5 p-6 animate-in fade-in zoom-in duration-300">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-brand-500/20 rounded-2xl flex items-center justify-center text-brand-400 font-black text-xl">
+                                                        {editUserName.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Managing User</p>
+                                                        <p className="text-white font-bold text-lg truncate flex items-center gap-2">
+                                                            {editUserName}
+                                                            <span className="text-slate-500 text-sm font-medium">@{users.find(u => u.id === selectedUserId)?.username}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setSelectedUserId('')}
+                                                    className="p-2 text-slate-500 hover:text-white transition-colors"
+                                                >
+                                                    <CloseIcon size={20} />
+                                                </button>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Managing User</p>
-                                                <p className="text-white font-bold truncate">
-                                                    {users.find(u => u.id === selectedUserId)?.name} 
-                                                    <span className="text-brand-400 ml-2 text-sm">@{users.find(u => u.id === selectedUserId)?.username}</span>
-                                                </p>
+
+                                            <div className="space-y-4 pt-4 border-t border-white/5">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest block mb-2">Display Name</label>
+                                                        <input 
+                                                            type="text"
+                                                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-white text-sm focus:border-brand-primary outline-none"
+                                                            value={editUserName}
+                                                            onChange={(e) => setEditUserName(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest block mb-2">System Role</label>
+                                                        <select 
+                                                            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-bold text-white text-sm focus:border-brand-primary outline-none"
+                                                            value={editUserRole}
+                                                            onChange={(e) => setEditUserRole(e.target.value)}
+                                                        >
+                                                            <option value="CASHIER" className="bg-slate-900">Cashier</option>
+                                                            <option value="MANAGER" className="bg-slate-900">Manager</option>
+                                                            <option value="ADMIN" className="bg-slate-900">Administrator</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <button 
-                                                onClick={() => setSelectedUserId('')}
-                                                className="p-2 text-slate-500 hover:text-white transition-colors"
-                                            >
-                                                <CloseIcon size={18} />
-                                            </button>
                                         </div>
                                     )}
 
                                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                        <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Update Access Permissions</h3>
-                                        <form onSubmit={handleUpdatePermissions} className="space-y-6">
+                                        <h3 className="font-black text-slate-800 mb-6 uppercase tracking-widest text-xs">Update Profile & Permissions</h3>
+                                        <form onSubmit={handleUpdateUser} className="space-y-6">
                                             <div className="grid grid-cols-2 gap-3 p-4 bg-white rounded-2xl border border-slate-100">
                                                 {ACCESS_MODULES.map(mod => (
                                                     <label key={mod.key} className="flex items-center gap-3 cursor-pointer group p-1">
@@ -658,7 +691,7 @@ const Settings = () => {
                                                 disabled={loading || !selectedUserId}
                                                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-black text-xs tracking-widest uppercase transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
                                             >
-                                                UPDATE ACCESS
+                                                UPDATE USER PROFILE
                                             </button>
                                         </form>
                                     </div>
