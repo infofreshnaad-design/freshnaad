@@ -34,25 +34,28 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
             subtotal: orderData.subtotal,
             taxTotal: orderData.taxTotal,
             grandTotal: orderData.grandTotal,
+            roundedTotal: orderData.roundedTotal || Math.floor(orderData.grandTotal),
+            amountPaid: Number(orderData.amountPaid) || 0,
+            balance: Number(orderData.balance) || 0,
             paymentMode: orderData.paymentMode,
             loyaltyPointsEarned,
             loyaltyPointsRedeemed,
             status: 'COMPLETED',
             isSynced: true,
-            createdAt: new Date(orderData.timestamp),
+            createdAt: new Date(orderData.createdAt || Date.now()),
             orderItems: {
               create: orderData.orderItems.map(item => ({
                 productId: item.id,
                 quantity: item.quantity,
-                price: item.sellingPrice,
-                taxAmount: (item.sellingPrice * (item.gstRate / 100)) * item.quantity,
-                total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * (item.gstRate / 100)) * item.quantity)
+                price: item.sellingPrice || item.price,
+                taxAmount: ( (item.sellingPrice || item.price) * ((item.gstRate || 0) / 100)) * item.quantity,
+                total: ((item.sellingPrice || item.price) * item.quantity) + (((item.sellingPrice || item.price) * ((item.gstRate || 0) / 100)) * item.quantity)
               }))
             },
             payments: {
               create: {
                 method: orderData.paymentMode,
-                amount: orderData.grandTotal,
+                amount: Number(orderData.amountPaid) || 0,
                 status: 'SUCCESS'
               }
             }
@@ -79,7 +82,10 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
               totalSpent: {
                 increment: orderData.grandTotal
               },
-              lastPurchaseDate: new Date(orderData.timestamp)
+              creditBalance: {
+                increment: Number(orderData.balance) || 0
+              },
+              lastPurchaseDate: new Date(orderData.createdAt || Date.now())
             }
           });
         }

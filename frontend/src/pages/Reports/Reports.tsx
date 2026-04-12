@@ -6,6 +6,8 @@ import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
 import CreditSettlementModal from '../../components/CreditSettlementModal';
 import { Coins } from 'lucide-react';
+import { offlineDB } from '../../utils/offlineDB';
+import useNetworkStatus from '../../hooks/useNetworkStatus';
 
 const reportCategories = [
   {
@@ -55,6 +57,7 @@ const reportCategories = [
 ];
 
 const Reports = () => {
+  const isOnline = useNetworkStatus();
   const [activeReport, setActiveReport] = useState('sales');
   const [dateFilter, setDateFilter] = useState('Today');
   const [customStart, setCustomStart] = useState('');
@@ -106,8 +109,42 @@ const Reports = () => {
     if (activeReport === 'stock-detail') url = `/reports/stock-detail/${selectedEntityId}`;
 
     try {
-      const response = await api.get(url);
-      setReportData(response.data);
+      let data: any = { summary: { totalBilled: 0, totalPaid: 0, totalOutstanding: 0, billCount: 0 }, details: [] };
+      
+      // 1. Fetch backend data if possible
+      try {
+        const response = await api.get(url);
+        data = response.data;
+      } catch (err) {
+        console.warn('Backend reporting unavailable, falling back to local data');
+      }
+
+      // 2. Merge with Offline Orders if relevant
+      if (activeReport === 'sales' || activeReport === 'credit-sales') {
+        const offlineOrders = await offlineDB.getAll('orders');
+        
+        // Filter by current date range if needed (simulating server logic)
+        // For simplicity here, we'll just show all unsynced or relevant items
+        const unsynced = offlineOrders.filter(o => !o.isSynced || data.details.every((do: any) => do.id !== o.id));
+
+        if (unsynced.length > 0) {
+          // Merge details
+          data.details = [...unsynced, ...data.details];
+          
+          // Re-calculate summary totals
+          if (activeReport === 'credit-sales') {
+            data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (o.balance || 0), 0);
+            data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (o.grandTotal || 0), 0);
+            data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
+            data.summary.billCount = data.details.length;
+          } else if (activeReport === 'sales') {
+            data.summary.totalSales = data.details.reduce((sum: number, o: any) => sum + (o.grandTotal || 0), 0);
+            data.summary.totalReceived = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
+          }
+        }
+      }
+
+      setReportData(data);
     } catch (error) {
       console.error('Error fetching report:', error);
       setReportData(null);

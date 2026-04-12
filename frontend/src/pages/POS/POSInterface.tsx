@@ -238,6 +238,30 @@ const POSInterface: React.FC = () => {
     setIsPaymentModalOpen(false);
     setIsPreviewOpen(true);
 
+    // --- LOCAL PERSISTENCE & STOCK GUARD ---
+    const updateLocalData = async () => {
+      try {
+        // 1. Save to local orders for reporting
+        await offlineDB.put('orders', { ...orderData, isSynced: isOnline });
+        
+        // 2. Deduct local stock immediately
+        const offlineProducts = await offlineDB.getAll('products');
+        for (const cartItem of cart) {
+          const product = offlineProducts.find(p => p.id === cartItem.id);
+          if (product) {
+            await offlineDB.put('products', {
+              ...product,
+              stockQuantity: Math.max(0, product.stockQuantity - cartItem.quantity)
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Local persistence failed:', err);
+      }
+    };
+
+    updateLocalData();
+
     // --- BACKGROUND SILENT SYNC ---
     const runBackgroundSync = async () => {
       try {
@@ -246,17 +270,15 @@ const POSInterface: React.FC = () => {
             headers: { 'x-terminal-id': 'T1' }
           });
           
-          // Once server responds, update the receipt with the REAL invoice No
-          // MERGE server response with local data. 
-          // This keeps local fields (totalQty, itemsCount) 
-          // while getting real server IDs (invoiceNo, id)
           setRecentOrder((prev: any) => ({
             ...prev,
             ...response.data,
             isSyncing: false
           }));
+
+          // Mark as synced locally
+          await offlineDB.put('orders', { ...orderData, ...response.data, isSynced: true });
           
-          // Refresh products silently in far background
           setTimeout(() => fetchProducts().catch(() => {}), 500);
         } else {
           await addToSyncQueue('CREATE_ORDER', orderData);
@@ -264,12 +286,12 @@ const POSInterface: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Background Sync Failed:', error);
-        // Silently queue for later retry
         await addToSyncQueue('CREATE_ORDER', orderData);
+        setRecentOrder(prev => ({ ...prev, isSyncing: false }));
       }
     };
 
-    runBackgroundSync(); // Fire and forget
+    runBackgroundSync(); 
   };
 
   const { subtotal, taxTotal, grandTotal } = getTotals();

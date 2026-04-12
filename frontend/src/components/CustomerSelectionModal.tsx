@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, UserPlus, X, UserCheck } from 'lucide-react';
 import api from '../api/api';
+import { offlineDB } from '../utils/offlineDB';
 
 interface Customer {
   id: string;
@@ -23,10 +24,34 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
 
   const fetchCustomers = async () => {
     try {
-      const res = await api.get(`/customers?search=${search}&activeOnly=true`);
-      setCustomers(res.data);
+      // 1. Try Online first
+      if (navigator.onLine) {
+        const res = await api.get(`/customers?search=${search}&activeOnly=true`);
+        setCustomers(res.data);
+        
+        // Cache full list for offline (only if not searching, to avoid partial caches)
+        if (!search) {
+          for (const c of res.data) {
+            await offlineDB.put('customers', c);
+          }
+        }
+      } else {
+        // 2. Fallback to Offline
+        const allLocal = await offlineDB.getAll('customers');
+        let filtered = allLocal;
+        if (search) {
+          const s = search.toLowerCase();
+          filtered = allLocal.filter(c => 
+            c.name.toLowerCase().includes(s) || (c.phone && c.phone.includes(s))
+          );
+        }
+        setCustomers(filtered);
+      }
     } catch (error) {
       console.error('Failed to fetch customers', error);
+      // Last resort fallback
+      const allLocal = await offlineDB.getAll('customers');
+      setCustomers(allLocal);
     }
   };
 
