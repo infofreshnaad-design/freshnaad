@@ -396,4 +396,65 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   }
 });
 
+// Settle Credit Payment for an order
+router.patch('/:id/settle-credit', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+  const { id } = req.params;
+  const { settleAmount, method } = req.body;
+
+  if (!settleAmount || settleAmount <= 0) {
+    return res.status(400).json({ error: 'Valid settlement amount is required.' });
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Get the order and lock it
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: { customer: true }
+      });
+
+      if (!order) throw new Error('Order not found.');
+      if (order.balance <= 0) throw new Error('Order is already fully paid.');
+      
+      const paymentAmount = Math.min(Number(settleAmount), order.balance);
+
+      // 2. Update Order
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: {
+          amountPaid: { increment: paymentAmount },
+          balance: { decrement: paymentAmount }
+        }
+      });
+
+      // 3. Create Payment Record
+      await tx.payment.create({
+        data: {
+          orderId: id,
+          method: method || 'CASH',
+          amount: paymentAmount,
+          status: 'SUCCESS'
+        }
+      });
+
+      // 4. Update Customer Credit Balance
+      if (order.customerId) {
+        await tx.customer.update({
+          where: { id: order.customerId },
+          data: {
+            creditBalance: { decrement: paymentAmount }
+          }
+        });
+      }
+
+      return updatedOrder;
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Settlement Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

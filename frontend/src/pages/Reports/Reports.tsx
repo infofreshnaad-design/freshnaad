@@ -4,6 +4,8 @@ import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, I
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
+import CreditSettlementModal from '../../components/CreditSettlementModal';
+import { Coins } from 'lucide-react';
 
 const reportCategories = [
   {
@@ -70,6 +72,10 @@ const Reports = () => {
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [isPaying, setIsPaying] = useState(false);
+  
+  // Credit settlement state
+  const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+  const [selectedSettleOrder, setSelectedSettleOrder] = useState<any>(null);
 
   // Initial load for specific entities
   useEffect(() => {
@@ -365,6 +371,7 @@ const Reports = () => {
                     <th className="p-6 text-right">Bill Amt</th>
                     <th className="p-6 text-right">Paid</th>
                     <th className="p-6 text-right">Balance</th>
+                    <th className="p-6 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-600">
@@ -390,12 +397,37 @@ const Reports = () => {
                       <td className="p-6 text-right font-bold text-slate-400">₹{(item.grandTotal || 0).toFixed(2)}</td>
                       <td className="p-6 text-right font-bold text-emerald-600">₹{(item.amountPaid || 0).toFixed(2)}</td>
                       <td className="p-6 text-right font-black text-orange-600">₹{(item.balance || 0).toFixed(2)}</td>
+                      <td className="p-6 text-center">
+                        <button 
+                          onClick={() => {
+                            setSelectedSettleOrder(item);
+                            setIsSettleModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-xs font-black hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1 mx-auto"
+                        >
+                          <Coins size={14} />
+                          Settle
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {reportData.details.length === 0 && <div className="p-10 text-center text-slate-400">No outstanding credits for this period.</div>}
             </div>
+            {isSettleModalOpen && selectedSettleOrder && (
+              <CreditSettlementModal 
+                order={selectedSettleOrder} 
+                onClose={() => {
+                  setIsSettleModalOpen(false);
+                  setSelectedSettleOrder(null);
+                }} 
+                onSuccess={() => {
+                  fetchReport();
+                  // Also refresh summary if possible, or just re-fetch the whole thing
+                }}
+              />
+            )}
           </div>
         );
       }
