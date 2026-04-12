@@ -77,24 +77,20 @@ export class EscPosBuilder {
     builder.alignCenter()
            .doubleSize(true)
            .bold(true)
-           .line('FRESH NAAD FOODS INDIA')
+           .line(businessInfo.name || 'FRESH NAAD FOODS INDIA')
            .doubleSize(false)
            .bold(false)
-           .line('Kodassery, Pandikkad (po)')
-           .line('Malappuram, Kerala')
-           .alignLeft()
+           .line(businessInfo.address || 'Kodassery, Malappuram')
            .line('FSSAI: 21326222000253')
-           .alignRight()
-           .line('Mob: 8606391315, 75608 57580')
-           .alignCenter()
-           .line('--------------------------------');
+           .line(`Mob: ${businessInfo.phone || '8606391315'}`)
+           .line('------------------------------------------------');
 
     // Order Info
     builder.alignLeft()
-           .line(`Bill No: ${order.invoiceNo || 'N/A'}`)
-           .line(`Date: ${new Date(order.createdAt || Date.now()).toLocaleString()}`)
-           .line(`Cust: ${order.customer?.name || order.customerName || 'Walk-in'}`)
-           .line('--------------------------------');
+           .line(`Invoice : ${order.invoiceNo || 'N/A'}`)
+           .line(`Date    : ${new Date(order.createdAt || Date.now()).toLocaleString()}`)
+           .line(`Cust    : ${order.customer?.name || order.customerName || 'Walk-in'}`)
+           .line('------------------------------------------------'); // 48 chars (80mm)
 
     // Items Header (6 cols: #, Desc, Qty, FRP, MRP, Total)
     builder.bold(true)
@@ -112,7 +108,7 @@ export class EscPosBuilder {
       builder.line(`${slNo} ${name} ${qty} ${frp} ${mrp} ${total}`);
     });
 
-    builder.line('------------------------------------------------'); // 48 chars
+    builder.line('------------------------------------------------');
 
     // Totals
     builder.alignRight()
@@ -130,11 +126,11 @@ export class EscPosBuilder {
            .line(`Tender : ${(Number(order.amountPaid) || 0).toFixed(2)}`)
            .line(`Balance : ${(Number(order.balance) || 0).toFixed(2)}`);
 
-    if (order.savings > 0) {
+    if (Number(order.savings) > 0) {
       builder.feed(1)
              .alignCenter()
              .bold(true)
-             .line(`*** YOU SAVED RS.${Number(order.savings).toFixed(2)} ***`)
+             .line(`YOU SAVED RS.${Number(order.savings).toFixed(2)}`)
              .bold(false);
     }
 

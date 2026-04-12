@@ -110,12 +110,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <table>
               <thead>
                 <tr>
-                  <th style="width: 5%">#</th>
-                  <th style="width: 35%">Description</th>
-                  <th style="width: 10%; text-align: right;">Qty</th>
-                  <th style="width: 15%; text-align: right; padding-right: 8px;">FRP</th>
-                  <th style="width: 15%; text-align: right; padding-right: 8px;">MRP</th>
-                  <th style="width: 20%; text-align: right;">Amount</th>
+                  <th style="width: 5%; text-align: left;">#</th>
+                  <th style="width: 30%; text-align: left;">Description</th>
+                  <th style="width: 12%; text-align: right; padding-right: 5px;">Qty</th>
+                  <th style="width: 15%; text-align: right; padding-right: 5px;">FRP</th>
+                  <th style="width: 15%; text-align: right; padding-right: 5px;">MRP</th>
+                  <th style="width: 23%; text-align: right;">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,11 +269,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <thead>
                 <tr className="border-y border-dashed border-slate-300 text-[9px] font-bold">
                   <th className="py-1 text-left w-[5%]">#</th>
-                  <th className="py-1 text-left w-[35%]">Description</th>
-                  <th className="py-1 text-right w-[10%]">Qty</th>
+                  <th className="py-1 text-left w-[30%]">Description</th>
+                  <th className="py-1 text-right w-[12%] pr-2">Qty</th>
                   <th className="py-1 text-right w-[15%] pr-2">FRP</th>
                   <th className="py-1 text-right w-[15%] pr-2">MRP</th>
-                  <th className="py-1 text-right w-[20%]">Amount</th>
+                  <th className="py-1 text-right w-[23%]">Amount</th>
                 </tr>
               </thead>
               <tbody>
