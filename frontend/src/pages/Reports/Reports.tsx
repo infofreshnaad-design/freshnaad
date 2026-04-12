@@ -156,6 +156,10 @@ const Reports = () => {
         data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
         data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
       }
+      // 4. SORT BY DATE (Newest First)
+      if (data.details) {
+        data.details.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
 
       setReportData(data);
     } catch (error) {

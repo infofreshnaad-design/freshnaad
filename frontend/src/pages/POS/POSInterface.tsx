@@ -201,11 +201,19 @@ const POSInterface: React.FC = () => {
 
   const handlePaymentComplete = async (method: string, amount: string) => {
     const { subtotal, taxTotal, grandTotal, roundedTotal, savings } = getTotals();
-    const tempInvoiceNo = `POS-P${Math.floor(Math.random() * 9000) + 1000}`; // Short, clean temporary ID
+    
+    // DETECT NEXT SEQUENTIAL INVOICE NO
+    const localOrders = await offlineDB.getAll('orders');
+    const numericInvoices = localOrders
+      .map(o => parseInt(o.invoiceNo))
+      .filter(n => !isNaN(n));
+    
+    const maxLocal = numericInvoices.length > 0 ? Math.max(...numericInvoices) : 1000;
+    const nextInvoiceNo = (maxLocal + 1).toString();
     
     const orderData = {
       id: crypto.randomUUID(), 
-      invoiceNo: tempInvoiceNo,
+      invoiceNo: nextInvoiceNo,
       orderItems: cart.map((item: any, index: number) => ({
         ...item,
         slNo: index + 1,
