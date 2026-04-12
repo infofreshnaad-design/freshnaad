@@ -125,7 +125,7 @@ const Reports = () => {
         
         // Filter by current date range if needed (simulating server logic)
         // For simplicity here, we'll just show all unsynced or relevant items
-        const unsynced = offlineOrders.filter(o => !o.isSynced || data.details.every((do: any) => do.id !== o.id));
+        const unsynced = offlineOrders.filter(o => !o.isSynced || data.details.every((existingOrder: any) => existingOrder.id !== o.id));
 
         if (unsynced.length > 0) {
           // Merge details
