@@ -94,17 +94,18 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
           </head>
           <body>
             <div class="text-center">
-              <h1 style="margin: 0; font-size: 18px; font-weight: 900;">FRESH NAAD FOODS INDIA</h1>
-              <p style="margin: 2px 0; font-size: 10px;">Kodassery, Pandikkad (po), Malappuram, Kerala</p>
-              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 5px; font-weight: bold;">
+              <h1 style="margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase;">FRESH NAAD FOODS INDIA</h1>
+              <p style="margin: 2px 0; font-size: 10px; line-height: 1.2;">Kodassery, Pandikkad (po),<br>Malappuram, Kerala</p>
+              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 5px; font-weight: bold; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0;">
                 <span>FSSAI NO: 21326222000253</span>
-                <span>Mob: +91 8606391315, 75608 57580</span>
+                <span>Mob: 8606391315, 75608 57580</span>
               </div>
-              <p style="margin: 4px 0; font-size: 10px;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
+              <p style="margin: 4px 0; font-size: 10px; opacity: 0.8;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
             </div>
             <div class="dashed-border"></div>
-            <div style="margin-bottom: 5px;">
+            <div style="margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
               <div class="total-row"><span>Cust : ${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
+              <div class="total-row"><span>Invoice : ${order.invoiceNo}</span></div>
             </div>
             <table>
               <thead>
@@ -176,8 +177,10 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
             <script>
               window.onload = () => {
-                window.print();
-                setTimeout(() => window.close(), 500);
+                setTimeout(() => {
+                  window.print();
+                  window.close();
+                }, 500);
               };
             </script>
           </body>
@@ -189,9 +192,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
     const handleBluetoothPrint = async () => {
       try {
         const businessInfo = {
-          name: 'FRESH NAAD',
-          address: '123, Business Hub, MG Road, Bangalore',
-          phone: '9876543210'
+          name: 'FRESH NAAD FOODS INDIA',
+          address: 'Kodassery, Pandikkad (po), Malappuram, Kerala',
+          phone: '8606391315, 75608 57580'
         };
         const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
         await print(bytes);

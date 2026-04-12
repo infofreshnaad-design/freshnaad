@@ -98,33 +98,50 @@ export class EscPosBuilder {
 
     // Items Header (6 cols: #, Desc, Qty, FRP, MRP, Total)
     builder.bold(true)
-           .line('#  Description       Qty   MRP   Total')
+           .line('#  Description    Qty    FRP    MRP    Total')
            .bold(false);
 
     // Items
     (order.orderItems || []).forEach((item: any, idx: number) => {
-      const slNo = (idx + 1).toString().padEnd(3);
-      const name = (item.product?.name || item.name || 'Item').substring(0, 15).padEnd(16);
+      const slNo = (idx + 1).toString().padEnd(2);
+      const name = (item.product?.name || item.name || 'Item').substring(0, 14).padEnd(14);
       const qty = (Number(item.quantity) || 0).toFixed(1).padStart(5);
-      const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0).padStart(5);
-      const total = (Number(item.total) || 0).toFixed(0).padStart(6);
-      builder.line(`${slNo}${name}${qty}${mrp}${total}`);
+      const frp = (Number(item.price) || 0).toFixed(2).padStart(7);
+      const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2).padStart(7);
+      const total = (Number(item.total) || 0).toFixed(2).padStart(8);
+      builder.line(`${slNo} ${name} ${qty} ${frp} ${mrp} ${total}`);
     });
 
-    builder.line('--------------------------------');
+    builder.line('------------------------------------------------'); // 48 chars
 
     // Totals
     builder.alignRight()
+           .line(`Total Items : ${order.itemsCount || 1}`)
+           .line(`Total Qty : ${(Number(order.totalQty) || 0).toFixed(2)}`)
+           .line(`Total : ${(Number(order.subtotal) || 0).toFixed(2)}`)
+           .line(`Discount : ${(Number(order.discount) || 0).toFixed(2)}`)
            .bold(true)
+           .line('----------------')
            .doubleSize(true)
-           .line(`TOTAL: ${order.grandTotal.toFixed(2)}`)
+           .line(`NET TOTAL: ${order.grandTotal.toFixed(2)}`)
            .doubleSize(false)
-           .bold(false);
+           .line('----------------')
+           .bold(false)
+           .line(`Tender : ${(Number(order.amountPaid) || 0).toFixed(2)}`)
+           .line(`Balance : ${(Number(order.balance) || 0).toFixed(2)}`);
+
+    if (order.savings > 0) {
+      builder.feed(1)
+             .alignCenter()
+             .bold(true)
+             .line(`*** YOU SAVED RS.${Number(order.savings).toFixed(2)} ***`)
+             .bold(false);
+    }
 
     builder.alignCenter()
            .feed(1)
-           .line('Thank you for shopping!')
-           .line('Digital Bill by POS Pro')
+           .line('THANK YOU VISIT AGAIN')
+           .line('Digital Bill by Fresh Naad')
            .bold(true)
            .line('Software by NIVAN SOLUTIONS')
            .bold(false)

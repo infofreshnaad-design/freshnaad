@@ -106,16 +106,16 @@ const pdfUtil = {
       summaryY += 15;
     };
 
-    drawRow('Total Items:', (order.itemsCount || items.length).toString(), false);
-    drawRow('Subtotal:', (Number(order.subtotal) || 0).toFixed(2), false);
-    drawRow('Discount:', (Number(order.discount) || 0).toFixed(2), false);
+    drawRow('Total Items :', (order.itemsCount || items.length).toString(), false);
+    drawRow('Total :', (Number(order.subtotal) || 0).toFixed(2), false);
+    drawRow('Discount :', (Number(order.discount) || 0).toFixed(2), false);
     
     doc.moveTo(summaryX, summaryY).lineTo(555, summaryY).stroke('#EEEEEE');
     summaryY += 8;
     
-    drawRow('Net Total:', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
-    drawRow('Tender:', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`, false);
-    drawRow('Balance:', `Rs. ${(Number(order.balance) || 0).toFixed(2)}`, true);
+    drawRow('Net Total :', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
+    drawRow('Tender :', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`, false);
+    drawRow('Balance :', `Rs. ${(Number(order.balance) || 0).toFixed(2)}`, true);
 
     // --- Savings Badge ---
     const savings = Number(order.savings) || 0;
