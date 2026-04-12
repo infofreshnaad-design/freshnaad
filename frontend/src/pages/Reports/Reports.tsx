@@ -415,7 +415,7 @@ const Reports = () => {
                 <h3 className="text-2xl font-black text-emerald-600">₹{(reportData.summary.totalPaid || 0).toFixed(2)}</h3>
               </div>
             </div>
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
                   <tr>
@@ -526,7 +526,7 @@ const Reports = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-x-auto">
               <div className="p-6 border-b border-slate-50 bg-slate-50/50">
                 <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Revenue Breakdown</h4>
               </div>
@@ -554,7 +554,7 @@ const Reports = () => {
                         <td className="p-6 text-right">
                            <div className="flex items-center justify-end gap-3 text-xs font-black">
                               <span className="text-slate-400">{share.toFixed(1)}%</span>
-                              <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-x-auto">
                                 <div 
                                   className={`h-full rounded-full ${mode === 'CASH' ? 'bg-emerald-500' : mode === 'UPI' ? 'bg-brand-primary' : 'bg-slate-300'}`}
                                   style={{ width: `${share}%` }}
@@ -772,7 +772,7 @@ const Reports = () => {
                 <h3 className="text-3xl font-black text-brand-700">₹{reportData.summary?.totalRetailValue?.toFixed(2)}</h3>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-xs text-slate-500 font-bold uppercase">
                   <tr>

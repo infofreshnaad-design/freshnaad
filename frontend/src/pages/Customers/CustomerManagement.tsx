@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { Users, UserPlus, Phone, Mail, Award, CreditCard, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, ShoppingBag, Calendar, ArrowUpRight, MoreVertical, FileSpreadsheet, FileText } from 'lucide-react';
+import { Users, UserPlus, Phone, Mail, Award, CreditCard, Search, X, Loader2, Edit3, Trash2, Filter, ChevronRight, ShoppingBag, Calendar, ArrowUpRight, MoreVertical, FileSpreadsheet, FileText, Coins } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
+import CreditSettlementModal from '../../components/CreditSettlementModal';
 
 interface Order {
   id: string;
@@ -9,6 +10,8 @@ interface Order {
   grandTotal: number;
   paymentMode: string;
   createdAt: string;
+  amountPaid: number;
+  balance: number;
 }
 
 interface Customer {
@@ -32,6 +35,8 @@ const CustomerManagement = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
+  const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+  const [selectedSettleOrder, setSelectedSettleOrder] = useState<any>(null);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -320,6 +325,16 @@ const CustomerManagement = () => {
                         <MoreVertical size={18} />
                     </button>
                 </div>
+                
+                {/* Mobile Quick Settle Button */}
+                {customer.creditBalance > 0 && (
+                    <button 
+                        onClick={() => handleOpenHistory(customer)}
+                        className="mt-4 w-full py-4 bg-orange-50 text-orange-600 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-orange-100 transition-all border border-orange-100"
+                    >
+                        <Coins size={14} /> Settle ₹{customer.creditBalance.toFixed(0)} Credit
+                    </button>
+                )}
               </div>
             ))
           ) : (
@@ -495,9 +510,22 @@ const CustomerManagement = () => {
                                               <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Settlement</p>
                                               <p className="text-xl font-black text-slate-900">₹{order.grandTotal.toFixed(0)}</p>
                                           </div>
-                                          <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-brand-600 group-hover:text-white transition-all shadow-md active:scale-95">
-                                              <ArrowUpRight size={20}/>
-                                          </button>
+                                          <div className="flex items-center gap-3">
+                                            {order.balance > 0 && (
+                                              <button 
+                                                  onClick={() => {
+                                                      setSelectedSettleOrder({ ...order, customer: selectedCustomer });
+                                                      setIsSettleModalOpen(true);
+                                                  }}
+                                                  className="p-4 bg-brand-50 text-brand-600 rounded-2xl hover:bg-brand-600 hover:text-white transition-all shadow-md active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase"
+                                              >
+                                                  <Coins size={16}/> Settle
+                                              </button>
+                                            )}
+                                            <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-brand-600 group-hover:text-white transition-all shadow-md active:scale-95">
+                                                <ArrowUpRight size={20}/>
+                                            </button>
+                                          </div>
                                       </div>
                                   </div>
                               ))}
@@ -516,6 +544,22 @@ const CustomerManagement = () => {
                   </div>
               </div>
           </div>
+      )}
+
+      {isSettleModalOpen && selectedSettleOrder && (
+          <CreditSettlementModal 
+              order={selectedSettleOrder}
+              onClose={() => {
+                  setIsSettleModalOpen(false);
+                  setSelectedSettleOrder(null);
+              }}
+              onSuccess={() => {
+                  fetchCustomers();
+                  if (selectedCustomer) {
+                      handleOpenHistory(selectedCustomer);
+                  }
+              }}
+          />
       )}
     </div>
   );

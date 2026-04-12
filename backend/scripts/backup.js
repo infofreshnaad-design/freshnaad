@@ -57,11 +57,14 @@ function getDatabaseUrl() {
 }
 
 async function uploadToGoogleDrive(filePath, fileName) {
-  const credentialsPath = path.join(__dirname, '../google-credentials.json');
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const folderId = process.env.DRIVE_FOLDER_ID;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://developers.google.com/oauthplayground';
 
-  if (!fs.existsSync(credentialsPath)) {
-    log('Google Drive credentials not found, skipping cloud upload.');
+  if (!refreshToken || refreshToken === 'your_refresh_token_here') {
+    log('GOOGLE_REFRESH_TOKEN not set or is still placeholder, skipping cloud upload.');
     return;
   }
   if (!folderId) {
@@ -70,12 +73,15 @@ async function uploadToGoogleDrive(filePath, fileName) {
   }
 
   try {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: credentialsPath,
-      scopes: ['https://www.googleapis.com/auth/drive.file']
-    });
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      redirectUri
+    );
 
-    const drive = google.drive({ version: 'v3', auth });
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
     
     // Check if a backup with the same name already exists to prevent duplicates
     const res = await drive.files.list({
@@ -84,8 +90,7 @@ async function uploadToGoogleDrive(filePath, fileName) {
     });
 
     if (res.data.files.length > 0) {
-      log(`File ${fileName} already exists in Google Drive. Overwriting/Skipping...`);
-      // Update existing file
+      log(`File ${fileName} already exists in Google Drive. Overwriting...`);
       const fileId = res.data.files[0].id;
       await drive.files.update({
         fileId: fileId,
