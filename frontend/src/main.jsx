@@ -7,11 +7,11 @@ import './index.css'
 import usePOSStore from './store/posStore';
 
 // ONE-TIME SAFETY WIPE (Self-Cleaning for Data Reset)
-if (localStorage.getItem('pos_reset_state') !== '2026-04-05') {
+if (localStorage.getItem('pos_reset_state') !== '2026-04-12') {
   console.log('New Deployment: Clearing local cache to sync with empty database...');
   localStorage.clear();
   sessionStorage.clear();
-  localStorage.setItem('pos_reset_state', '2026-04-05');
+  localStorage.setItem('pos_reset_state', '2026-04-12');
   window.location.reload();
 }
 

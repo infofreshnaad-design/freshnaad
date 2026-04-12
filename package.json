@@ -5,8 +5,12 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
-    "build": "npx prisma generate --schema prisma/schema.prisma && npm install --prefix backend && npm run prisma:generate --prefix backend && npm install --prefix frontend && npm run build --prefix frontend && mkdir -p dist && cp -R frontend/dist/* dist/",
+    "build": "npx prisma generate --schema prisma/schema.prisma && npm run build -w client && mkdir -p dist && cp -R frontend/dist/* dist/",
     "start": "node api/index.js",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "postinstall": "npx prisma generate --schema prisma/schema.prisma"
