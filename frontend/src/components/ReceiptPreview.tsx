@@ -55,9 +55,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         <tr>
           <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${item.slNo || index + 1}</td>
           <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-weight: bold; text-transform: uppercase;">${itemName}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.quantity) || 0).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.price) || 0).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right;">${(Number(item.quantity) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px;">${(Number(item.price) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
           <td style="font-size: 11px; padding: 4px 0; text-align: right; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${(Number(item.total) || 0).toFixed(2)}</td>
         </tr>
         `;
@@ -110,11 +110,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <thead>
                 <tr>
                   <th style="width: 5%">#</th>
-                  <th style="width: 40%">Description</th>
-                  <th style="width: 15%">Qty</th>
-                  <th style="width: 12%">FRP</th>
-                  <th style="width: 10%">MRP</th>
-                  <th style="width: 18%; text-align: right;">Amount</th>
+                  <th style="width: 35%">Description</th>
+                  <th style="width: 10%; text-align: right;">Qty</th>
+                  <th style="width: 15%; text-align: right; padding-right: 8px;">FRP</th>
+                  <th style="width: 15%; text-align: right; padding-right: 8px;">MRP</th>
+                  <th style="width: 20%; text-align: right;">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,10 +266,10 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <thead>
                 <tr className="border-y border-dashed border-slate-300 text-[9px] font-bold">
                   <th className="py-1 text-left w-[5%]">#</th>
-                  <th className="py-1 text-left w-[40%]">Description</th>
-                  <th className="py-1 text-left w-[15%]">Qty</th>
-                  <th className="py-1 text-left w-[10%]">FRP</th>
-                  <th className="py-1 text-left w-[10%]">MRP</th>
+                  <th className="py-1 text-left w-[35%]">Description</th>
+                  <th className="py-1 text-right w-[10%]">Qty</th>
+                  <th className="py-1 text-right w-[15%] pr-2">FRP</th>
+                  <th className="py-1 text-right w-[15%] pr-2">MRP</th>
                   <th className="py-1 text-right w-[20%]">Amount</th>
                 </tr>
               </thead>
@@ -278,9 +278,9 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
                     <td className="py-2 align-top">{item.slNo || idx + 1}</td>
                     <td className="py-2 font-bold uppercase">{item.product?.name || item.name}</td>
-                    <td className="py-2">{(Number(item.quantity) || 0).toFixed(2)}</td>
-                    <td className="py-2">{(Number(item.price) || 0).toFixed(2)}</td>
-                    <td className="py-2">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
+                    <td className="py-2 text-right">{(Number(item.quantity) || 0).toFixed(2)}</td>
+                    <td className="py-2 text-right pr-2">{(Number(item.price) || 0).toFixed(2)}</td>
+                    <td className="py-2 text-right pr-2">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
                     <td className="py-2 text-right font-black">{(Number(item.total) || 0).toFixed(2)}</td>
                   </tr>
                 ))}
