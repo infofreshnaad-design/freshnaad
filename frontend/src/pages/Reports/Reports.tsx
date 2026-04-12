@@ -145,7 +145,6 @@ const Reports = () => {
             data.summary.totalReceived = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
           }
         }
-      }
 
       // 3. FINAL FILTER: If Outstanding Credits, only show those with balance > 0
       if (activeReport === 'credit-sales' && data.details) {
