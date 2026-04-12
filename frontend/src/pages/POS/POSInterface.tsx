@@ -221,7 +221,7 @@ const POSInterface: React.FC = () => {
       totalQty: cart.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0),
       itemsCount: cart.length,
       amountPaid: parseFloat(amount) || 0,
-      balance: Math.max(0, (parseFloat(amount) || 0) - roundedTotal),
+      balance: Math.max(0, roundedTotal - (parseFloat(amount) || 0)),
       paymentMode: method,
       discount: loyaltyDiscount,
       loyaltyPointsRedeemed: appliedPoints,

@@ -134,7 +134,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           grandTotal,
           roundedTotal: roundedTotal || Math.floor(grandTotal),
           savings: savings || 0,
-          amountPaid: Number(amountPaid) || Number(roundedTotal || grandTotal),
+          amountPaid: Number(amountPaid) || 0,
           balance: Number(balance) || 0,
           paymentMode,
           loyaltyPointsEarned,
@@ -162,7 +162,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           payments: {
             create: {
               method: paymentMode,
-              amount: grandTotal,
+              amount: Number(amountPaid) || 0,
               status: 'SUCCESS'
             }
           }
@@ -200,6 +200,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
             data: {
               loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
               totalSpent: { increment: Number(grandTotal) },
+              creditBalance: { increment: Number(balance) || 0 },
               lastPurchaseDate: new Date()
             }
           })
@@ -274,7 +275,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           where: { id: oldOrder.customerId },
           data: {
             loyaltyPoints: { decrement: oldOrder.loyaltyPointsEarned - (oldOrder.loyaltyPointsRedeemed || 0) },
-            totalSpent: { decrement: oldOrder.grandTotal }
+            totalSpent: { decrement: oldOrder.grandTotal },
+            creditBalance: { decrement: oldOrder.balance || 0 }
           }
         });
       }
@@ -333,7 +335,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           discount,
           taxTotal,
           grandTotal,
-          amountPaid: Number(amountPaid) || Number(grandTotal),
+          amountPaid: Number(amountPaid) || 0,
           balance: Number(balance) || 0,
           paymentMode,
           loyaltyPointsEarned: newLoyaltyPointsEarned,
@@ -356,7 +358,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           payments: {
             create: {
               method: paymentMode,
-              amount: grandTotal,
+              amount: Number(amountPaid) || 0,
               status: 'SUCCESS'
             }
           }
@@ -370,7 +372,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           where: { id: customerId },
           data: {
             loyaltyPoints: { increment: newLoyaltyPointsEarned },
-            totalSpent: { increment: Number(grandTotal) }
+            totalSpent: { increment: Number(grandTotal) },
+            creditBalance: { increment: Number(balance) || 0 }
           }
         });
       }

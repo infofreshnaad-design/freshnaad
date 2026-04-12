@@ -50,15 +50,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     return () => window.removeEventListener('keydown', handleKeys);
   }, [amountPaid, loading]);
 
+  const isCreditMode = paymentMethod === 'CREDIT';
   const numAmount = parseFloat(amountPaid) || 0;
   const change = numAmount - roundedTotal;
-  const isAmountInsufficient = numAmount < roundedTotal;
+  const isAmountInsufficient = !isCreditMode && numAmount < roundedTotal;
 
   const submitPayment = async () => {
     if (loading) return;
     
     if (isAmountInsufficient) {
-      alert("Amount does not match!");
+      alert("Amount does not match! For partial payments, please use 'Credit' mode.");
+      return;
+    }
+
+    if (isCreditMode && numAmount < roundedTotal && !customer) {
+      alert('Credit sales are only allowed for registered customers. Please select or add a customer first.');
+      setIsCustomerModalOpen(true);
       return;
     }
 
@@ -68,15 +75,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
       return;
     }
     
-    if (numAmount === 0 && !window.confirm('You are processing this bill with ₹0 payment. Is this a credit sale?')) {
+    if (isCreditMode && numAmount < roundedTotal && !window.confirm(`You are processing a Credit Sale of ₹${Math.abs(change).toFixed(2)}. Proceed?`)) {
       setIsConfirming(false);
       return;
-    }
-
-    if (numAmount < roundedTotal && !customer) {
-        alert('Balance payments are only allowed for registered customers. Please select a customer first.');
-        setIsCustomerModalOpen(true);
-        return;
     }
     
     setLoading(true);
@@ -214,8 +215,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
             <div className={`p-4 rounded-3xl border-2 flex items-center justify-between transition-all ${isAmountCustom ? 'border-orange-500 bg-orange-50/30' : 'border-slate-100 bg-slate-50'}`}>
                <span className="text-4xl md:text-5xl font-black text-slate-800">₹{amountPaid}</span>
                <div className="text-right">
-                  <p className={`text-[10px] font-bold uppercase leading-none mb-1 ${isAmountInsufficient ? 'text-red-500' : 'text-slate-400'}`}>
-                    {isAmountInsufficient ? 'Incomplete' : (change >= 0 ? 'Change' : 'Balance')}
+                  <p className={`text-[10px] font-bold uppercase leading-none mb-1 ${change < 0 ? 'text-orange-500' : 'text-slate-400'}`}>
+                    {isAmountInsufficient ? 'Incomplete' : (change >= 0 ? 'Change' : 'Owed (Credit)')}
                   </p>
                   <p className={`text-xl md:text-2xl font-black ${isAmountInsufficient ? 'text-red-500' : (change >= 0 ? 'text-emerald-600' : 'text-orange-500')}`}>
                     {isAmountInsufficient ? 'Invalid' : `₹${Math.abs(change).toFixed(2)}`}

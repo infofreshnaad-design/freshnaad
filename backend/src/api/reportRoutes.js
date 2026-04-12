@@ -103,6 +103,31 @@ router.get('/sales', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
+// 1.05 Credit Sales Report (Outstanding Payments)
+router.get('/credit-sales', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+  try {
+    const { filter, startDate, endDate } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate);
+    
+    const credits = await prisma.order.findMany({
+      where: { 
+        createdAt: dateRange,
+        balance: { gt: 0 }
+      },
+      include: { customer: true, payments: true }
+    });
+    
+    const summary = {
+      totalOutstanding: credits.reduce((sum, order) => sum + order.balance, 0),
+      totalBilled: credits.reduce((sum, order) => sum + order.grandTotal, 0),
+      totalPaid: credits.reduce((sum, order) => sum + order.amountPaid, 0),
+      billCount: credits.length
+    };
+    
+    res.json({ summary, details: credits });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
 // 1.1 Payment Mode Summary
 router.get('/payment-summary', async (req, res) => {
   try {

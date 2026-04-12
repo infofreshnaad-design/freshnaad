@@ -10,6 +10,7 @@ const reportCategories = [
     title: 'Main Reports',
     reports: [
       { id: 'sales', name: 'Sale Report', icon: <TrendingUp size={16} /> },
+      { id: 'credit-sales', name: 'Outstanding Credits', icon: <IndianRupee className="text-orange-500" size={16} /> },
       { id: 'payment-summary', name: 'Payment Mode Summary', icon: <PieChart size={16} /> },
       { id: 'purchase', name: 'Purchase Report', icon: <ShoppingBag size={16} /> },
       { id: 'daybook', name: 'Day Book', icon: <FileText size={16} /> },
@@ -158,6 +159,18 @@ const Reports = () => {
                 ]);
                 break;
 
+              case 'credit-sales':
+                headers = ['Date', 'Invoice', 'Customer', 'Billed', 'Paid', 'Balance'];
+                data = reportData.details.map((item: any) => [
+                  new Date(item.createdAt).toLocaleDateString(),
+                  item.invoiceNo,
+                  item.customer?.name || 'Walk-in',
+                  `Rs.${item.grandTotal.toFixed(2)}`,
+                  `Rs.${item.amountPaid.toFixed(2)}`,
+                  `Rs.${item.balance.toFixed(2)}`
+                ]);
+                break;
+
               case 'stock-summary':
                 headers = ['ID', 'Name', 'Category', 'Stock', 'Price'];
                 data = reportData.map((item: any) => [
@@ -299,6 +312,75 @@ const Reports = () => {
                 </tbody>
               </table>
               {reportData.details.length === 0 && <div className="p-8 text-center text-slate-400">No records found.</div>}
+            </div>
+          </div>
+        );
+      }
+
+      case 'credit-sales': {
+        if (!reportData || !reportData.summary || !reportData.details) {
+          return <div className="p-20 text-center animate-pulse text-brand-400">Loading Credits...</div>;
+        }
+        return (
+          <div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Outstanding</p>
+                <h3 className="text-2xl font-black text-orange-600">₹{reportData.summary.totalOutstanding?.toFixed(2)}</h3>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Credit Bills</p>
+                <h3 className="text-2xl font-black text-slate-800">{reportData.summary.billCount}</h3>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Billed Amt</p>
+                <h3 className="text-2xl font-black text-slate-800">₹{reportData.summary.totalBilled?.toFixed(2)}</h3>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Received Amt</p>
+                <h3 className="text-2xl font-black text-emerald-600">₹{reportData.summary.totalPaid?.toFixed(2)}</h3>
+              </div>
+            </div>
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
+                  <tr>
+                    <th className="p-6">Date</th>
+                    <th className="p-6">Invoice</th>
+                    <th className="p-6">Customer</th>
+                    <th className="p-6 text-right">Bill Amt</th>
+                    <th className="p-6 text-right">Paid</th>
+                    <th className="p-6 text-right">Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-600">
+                  {reportData.details.map((item: any) => (
+                    <tr key={item.id} className="hover:bg-orange-50/20 transition-colors">
+                      <td className="p-6">{new Date(item.createdAt).toLocaleDateString()}</td>
+                      <td className="p-6">
+                        <button 
+                          onClick={() => setSelectedBill({ id: item.id, type: 'SALE' })}
+                          className="text-brand-600 font-bold hover:underline"
+                        >
+                          {item.invoiceNo}
+                        </button>
+                      </td>
+                      <td className="p-6">
+                        <button 
+                          onClick={() => setSelectedPartyId(item.customerId)}
+                          className="text-brand-600 font-black hover:underline"
+                        >
+                          {item.customer?.name || 'Walk-in'}
+                        </button>
+                      </td>
+                      <td className="p-6 text-right font-bold text-slate-400">₹{item.grandTotal.toFixed(2)}</td>
+                      <td className="p-6 text-right font-bold text-emerald-600">₹{item.amountPaid.toFixed(2)}</td>
+                      <td className="p-6 text-right font-black text-orange-600">₹{item.balance.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {reportData.details.length === 0 && <div className="p-10 text-center text-slate-400">No outstanding credits for this period.</div>}
             </div>
           </div>
         );
