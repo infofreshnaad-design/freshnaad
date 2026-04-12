@@ -226,7 +226,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
     };
 
     return (
-      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 print:p-0 print:bg-white print:relative">
+      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 print:p-0 print:bg-white print:relative">
         <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full max-h-[90vh] md:h-[700px] animate-in slide-in-from-bottom-8 print:shadow-none print:w-full print:h-auto print:rounded-none">
           <div className="p-4 border-b flex justify-between items-center bg-slate-50 print:hidden">
             <h2 className="font-bold text-slate-700">Tax Invoice Preview</h2>

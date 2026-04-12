@@ -22,7 +22,7 @@ const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({ onClose, onProc
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b flex justify-between items-center bg-slate-50">
           <h3 className="font-black text-slate-800 uppercase tracking-tight">Share via WhatsApp</h3>

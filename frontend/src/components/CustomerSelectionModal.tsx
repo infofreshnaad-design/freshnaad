@@ -66,7 +66,7 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-4 border-b flex justify-between items-center bg-slate-50">
           <h2 className="text-lg font-bold text-slate-800">

@@ -117,7 +117,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   };
 
   if (loading) return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-6">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
       <div className="bg-white p-10 rounded-[3rem] shadow-2xl"><Loader2 className="animate-spin text-brand-primary" size={32} /></div>
     </div>
   );
@@ -125,7 +125,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   if (!bill) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-8 border-b border-slate-100 flex justify-between items-center">
             <div>
