@@ -119,13 +119,16 @@ const Reports = () => {
         console.warn('Backend reporting unavailable, falling back to local data');
       }
 
-      // 2. Merge with Offline Orders if relevant
-      if (activeReport === 'sales' || activeReport === 'credit-sales') {
+        // 2. Merge with Offline Orders if relevant
         const offlineOrders = await offlineDB.getAll('orders');
         
-        // Filter by current date range if needed (simulating server logic)
-        // For simplicity here, we'll just show all unsynced or relevant items
-        const unsynced = offlineOrders.filter(o => !o.isSynced || data.details.every((existingOrder: any) => existingOrder.id !== o.id));
+        // Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
+        const unsynced = offlineOrders.filter(o => {
+          const isNotOnServer = data.details.every((existingOrder: any) => 
+            existingOrder.id !== o.id && existingOrder.serverId !== o.id
+          );
+          return !o.isSynced || isNotOnServer;
+        });
 
         if (unsynced.length > 0) {
           // Merge details
@@ -142,6 +145,17 @@ const Reports = () => {
             data.summary.totalReceived = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
           }
         }
+      }
+
+      // 3. FINAL FILTER: If Outstanding Credits, only show those with balance > 0
+      if (activeReport === 'credit-sales' && data.details) {
+        data.details = data.details.filter((o: any) => (Number(o.balance) || 0) > 0);
+        
+        // Final re-calculation of aggregate numbers for the header cards
+        data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (Number(o.balance) || 0), 0);
+        data.summary.billCount = data.details.length;
+        data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
+        data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
       }
 
       setReportData(data);
