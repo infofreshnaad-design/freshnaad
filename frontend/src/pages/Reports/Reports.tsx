@@ -340,19 +340,19 @@ const Reports = () => {
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Outstanding</p>
-                <h3 className="text-2xl font-black text-orange-600">₹{reportData.summary.totalOutstanding?.toFixed(2)}</h3>
+                <h3 className="text-2xl font-black text-orange-600">₹{(reportData.summary.totalOutstanding || 0).toFixed(2)}</h3>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Credit Bills</p>
-                <h3 className="text-2xl font-black text-slate-800">{reportData.summary.billCount}</h3>
+                <h3 className="text-2xl font-black text-slate-800">{reportData.summary.billCount || 0}</h3>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Billed Amt</p>
-                <h3 className="text-2xl font-black text-slate-800">₹{reportData.summary.totalBilled?.toFixed(2)}</h3>
+                <h3 className="text-2xl font-black text-slate-800">₹{(reportData.summary.totalBilled || 0).toFixed(2)}</h3>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Received Amt</p>
-                <h3 className="text-2xl font-black text-emerald-600">₹{reportData.summary.totalPaid?.toFixed(2)}</h3>
+                <h3 className="text-2xl font-black text-emerald-600">₹{(reportData.summary.totalPaid || 0).toFixed(2)}</h3>
               </div>
             </div>
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
@@ -387,9 +387,9 @@ const Reports = () => {
                           {item.customer?.name || 'Walk-in'}
                         </button>
                       </td>
-                      <td className="p-6 text-right font-bold text-slate-400">₹{item.grandTotal.toFixed(2)}</td>
-                      <td className="p-6 text-right font-bold text-emerald-600">₹{item.amountPaid.toFixed(2)}</td>
-                      <td className="p-6 text-right font-black text-orange-600">₹{item.balance.toFixed(2)}</td>
+                      <td className="p-6 text-right font-bold text-slate-400">₹{(item.grandTotal || 0).toFixed(2)}</td>
+                      <td className="p-6 text-right font-bold text-emerald-600">₹{(item.amountPaid || 0).toFixed(2)}</td>
+                      <td className="p-6 text-right font-black text-orange-600">₹{(item.balance || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
