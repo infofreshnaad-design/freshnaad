@@ -278,34 +278,52 @@ const POSInterface: React.FC = () => {
     <div className="flex flex-col h-full bg-slate-100 font-sans text-slate-800 overflow-hidden relative">
       {/* Zero-Processing Main Interface */}
       {/* Top Header */}
-      <header className="bg-brand-primary text-white p-3 flex justify-between items-center shadow-md select-none shrink-0 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="bg-white text-brand-primary p-1 rounded font-bold text-xl">POS</div>
-          <span className="font-semibold tracking-tight hidden sm:block">Fresh Naad POS v1.0</span>
+      <header className="bg-gradient-to-r from-brand-primary to-brand-dark text-white px-4 py-3 flex justify-between items-center shadow-lg select-none shrink-0 relative z-10 overflow-hidden">
+        {/* Decorative background glass effect */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.08),transparent)] pointer-events-none"></div>
+        
+        <div className="flex items-center gap-4 relative z-20">
+          <div className="relative group cursor-pointer lg:flex items-center gap-3">
+             <div className="absolute -inset-1 bg-gradient-to-r from-brand-300 to-brand-primary rounded-xl blur opacity-20 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+             <div className="relative flex items-center gap-3 bg-white/5 backdrop-blur-xl border border-white/10 px-3 py-2 rounded-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                <div className="bg-white shadow-lg p-1.5 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <span className="text-brand-primary font-black text-xs leading-none">POS</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-black tracking-tighter uppercase italic leading-none">Fresh Naad</span>
+                  <span className="text-[8px] font-bold text-brand-200 tracking-[0.2em] uppercase opacity-60">Terminal v1.0.8</span>
+                </div>
+             </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border ${isOnline ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-400'}`}>
-            {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span className="hidden xs:block">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+
+        <div className="flex items-center gap-2 md:gap-3 relative z-20">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isOnline ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`}></div>
+            <span className="hidden xs:block tracking-[0.15em]">{isOnline ? 'CLOUD CONNECTED' : 'OFFLINE MODE'}</span>
           </div>
 
           <button 
             onClick={() => isConnected ? disconnect() : ensureConnected().catch(() => {})}
-            className={`flex items-center gap-2 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border transition-all ${isConnected ? 'bg-brand-500/20 border-brand-500 text-brand-400' : 'bg-slate-500/10 border-slate-500/50 text-slate-400'}`}
-            title={isConnected ? "Click to release printer for other phones" : "Click to connect to printer"}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-400'} hover:bg-white/5`}
+            title={isConnected ? "Click to release printer" : "Click to connect to printer"}
           >
-            {isConnected ? <Bluetooth size={12} /> : <BluetoothOff size={12} />}
-            <span className="hidden xs:block">{isConnected ? 'PRINTER: ON' : 'PRINTER: OFF'}</span>
+            {isConnected ? <Bluetooth size={14} className="animate-pulse" /> : <BluetoothOff size={14} />}
+            <span className="hidden xs:block tracking-[0.15em]">{isConnected ? 'BT PRINTER: READY' : 'BT PRINTER: OFF'}</span>
           </button>
+
+          <div className="h-6 w-px bg-white/10 hidden sm:block mx-1"></div>
+
           <button 
             onClick={toggleFullscreen}
-            className="p-1.5 md:p-2 hover:bg-brand-secondary rounded-lg transition-all hidden xs:block"
+            className="p-2 hover:bg-white/10 rounded-xl transition-all hidden xs:flex items-center justify-center text-white/70 hover:text-white"
             title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
           </button>
-          <div className="text-[10px] md:text-sm font-light hidden lg:block">
-            {new Date().toLocaleDateString()} | {new Date().toLocaleTimeString()}
+          <div className="text-[10px] font-bold text-white/50 tracking-wider hidden lg:flex flex-col items-end leading-none">
+            <span>{new Date().toLocaleDateString()}</span>
+            <span className="mt-1">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
         </div>
       </header>
