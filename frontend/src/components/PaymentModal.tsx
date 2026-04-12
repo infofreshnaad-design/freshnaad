@@ -63,7 +63,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
       return;
     }
 
-    if (isCreditMode && numAmount < roundedTotal && !customer) {
+    if (isCreditMode && !customer) {
       alert('Credit sales are only allowed for registered customers. Please select or add a customer first.');
       setIsCustomerModalOpen(true);
       return;
@@ -198,7 +198,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                   <span className="font-bold text-sm">Card</span>
                 </button>
                 <button 
-                  onClick={() => setPaymentMethod('CREDIT')}
+                  onClick={() => {
+                    setPaymentMethod('CREDIT');
+                    setAmountPaid('0');
+                    setIsAmountCustom(true);
+                  }}
                   className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CREDIT' ? 'border-brand-600 bg-brand-50 text-brand-600' : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'}`}
                 >
                   <User size={24} />
