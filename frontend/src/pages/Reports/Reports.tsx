@@ -322,7 +322,21 @@ const Reports = () => {
           return <div className="p-20 text-center animate-pulse text-brand-400">Loading Credits...</div>;
         }
         return (
-          <div>
+          <div className="animate-in fade-in duration-500">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-xl font-black text-slate-800 tracking-tight">Outstanding Credits</h2>
+                <p className="text-xs text-slate-400 font-medium">Tracking all unpaid and partially paid invoices</p>
+              </div>
+              <button 
+                onClick={fetchReport}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+              >
+                <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
+                Refresh & Sync Data
+              </button>
+            </div>
+
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Outstanding</p>
