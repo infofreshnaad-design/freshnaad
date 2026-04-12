@@ -119,46 +119,79 @@ const Reports = () => {
         console.warn('Backend reporting unavailable, falling back to local data');
       }
 
-        // 2. Merge with Offline Orders if relevant
-        const offlineOrders = await offlineDB.getAll('orders');
-        
-        // Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
-        const unsynced = offlineOrders.filter(o => {
-          const isNotOnServer = data.details.every((existingOrder: any) => 
-            existingOrder.id !== o.id && existingOrder.serverId !== o.id
-          );
-          return !o.isSynced || isNotOnServer;
-        });
-
-        if (unsynced.length > 0) {
-          // Merge details
-          data.details = [...unsynced, ...data.details];
+        // 2. Merge with Offline Orders if relevant (Only for reports that contain order lists)
+        const relevantReports = ['sales', 'credit-sales', 'daybook', 'transactions', 'cashflow'];
+        if (relevantReports.includes(activeReport)) {
+          const offlineOrders = await offlineDB.getAll('orders');
+          const detailsList = data.details || data.transactions || [];
           
-          // Re-calculate summary totals
-          if (activeReport === 'credit-sales') {
-            data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (o.balance || 0), 0);
-            data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (o.grandTotal || 0), 0);
-            data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
-            data.summary.billCount = data.details.length;
-          } else if (activeReport === 'sales') {
-            data.summary.totalSales = data.details.reduce((sum: number, o: any) => sum + (o.grandTotal || 0), 0);
-            data.summary.totalReceived = data.details.reduce((sum: number, o: any) => sum + (o.amountPaid || 0), 0);
+          if (Array.isArray(detailsList)) {
+            // Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
+            const unsynced = offlineOrders.filter(o => {
+              const isNotOnServer = detailsList.every((existingOrder: any) => 
+                existingOrder.id !== o.id && existingOrder.serverId !== o.id
+              );
+              // Only include if NOT synced OR if it is truly missing from the server list
+              return !o.isSynced || isNotOnServer;
+            });
+
+            if (unsynced.length > 0) {
+              // Merge into the correct array
+              if (activeReport === 'daybook' || activeReport === 'transactions' || activeReport === 'cashflow') {
+                const formattedOffline = unsynced.map(s => ({ 
+                   id: s.id, 
+                   type: 'SALE', 
+                   amount: s.grandTotal, 
+                   date: s.createdAt, 
+                   details: `Bill: ${s.invoiceNo} (Offline)`, 
+                   customerId: s.customerId 
+                }));
+                data.transactions = [...formattedOffline, ...(data.transactions || [])];
+                
+                // Update totals if summary exists
+                if (data.cashIn !== undefined) {
+                  data.cashIn += formattedOffline.reduce((sum, s) => sum + s.amount, 0);
+                  data.netBalance = data.cashIn - (data.cashOut || 0);
+                }
+              } else if (Array.isArray(data.details)) {
+                data.details = [...unsynced, ...data.details];
+                
+                // Re-calculate summary totals safely
+                if (data.summary) {
+                  if (activeReport === 'credit-sales') {
+                    data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (Number(o.balance) || 0), 0);
+                    data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
+                    data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
+                    data.summary.billCount = data.details.length;
+                  } else if (activeReport === 'sales') {
+                    data.summary.totalSales = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
+                    data.summary.totalReceived = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
+                    data.summary.billCount = data.details.length;
+                  }
+                }
+              }
+            }
           }
         }
 
       // 3. FINAL FILTER: If Outstanding Credits, only show those with balance > 0
-      if (activeReport === 'credit-sales' && data.details) {
+      if (activeReport === 'credit-sales' && Array.isArray(data.details)) {
         data.details = data.details.filter((o: any) => (Number(o.balance) || 0) > 0);
         
-        // Final re-calculation of aggregate numbers for the header cards
-        data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (Number(o.balance) || 0), 0);
-        data.summary.billCount = data.details.length;
-        data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
-        data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
+        // Final re-calculation of aggregate numbers
+        if (data.summary) {
+          data.summary.totalOutstanding = data.details.reduce((sum: number, o: any) => sum + (Number(o.balance) || 0), 0);
+          data.summary.billCount = data.details.length;
+          data.summary.totalBilled = data.details.reduce((sum: number, o: any) => sum + (Number(o.grandTotal) || 0), 0);
+          data.summary.totalPaid = data.details.reduce((sum: number, o: any) => sum + (Number(o.amountPaid) || 0), 0);
+        }
       }
+
       // 4. SORT BY DATE (Newest First)
-      if (data.details) {
-        data.details.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      if (Array.isArray(data.details)) {
+        data.details.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+      } else if (Array.isArray(data.transactions)) {
+        data.transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       }
 
       setReportData(data);
