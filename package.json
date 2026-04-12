@@ -36,15 +36,15 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^3.4.17",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "prisma": "^6.19.3",
+    "vite": "^6.0.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.2.1",
     "idb": "^8.0.3",
     "nodemon": "^3.1.14",
-    "prisma": "^6.19.3",
-    "vite": "^6.0.7",
     "vite-plugin-pwa": "^0.19.8"
   }
 }
