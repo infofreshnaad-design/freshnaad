@@ -105,7 +105,7 @@ router.get('/sales', async (req, res) => {
       // Fallback to basic columns that existed prior to creatorId update
       sales = await prisma.$queryRaw`
         SELECT 
-          CAST(o.id AS TEXT) as id, o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."grandTotal", o."taxTotal", o."paymentMode", o."createdAt",
+          CAST(o.id AS TEXT) as id, CAST(o."serverId" AS TEXT) as "serverId", o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."grandTotal", o."taxTotal", o."paymentMode", o."createdAt",
           c.name as "customerName"
         FROM "Order" o
         LEFT JOIN "Customer" c ON o."customerId" = c.id
@@ -299,7 +299,7 @@ router.get('/daybook', async (req, res) => {
       console.warn('Daybook sales fallback:', err.message);
       sales = await prisma.$queryRaw`
         SELECT 
-          CAST(o.id AS TEXT) as id, o."serverId", o."grandTotal", o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."createdAt",
+          CAST(o.id AS TEXT) as id, CAST(o."serverId" AS TEXT) as "serverId", o."grandTotal", o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."createdAt",
           c.name as "customerName"
         FROM "Order" o
         LEFT JOIN "Customer" c ON o."customerId" = c.id

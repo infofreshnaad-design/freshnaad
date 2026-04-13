@@ -392,7 +392,10 @@ const Reports = () => {
                       <td className="p-4">{new Date(item.createdAt).toLocaleDateString()}</td>
                       <td className="p-4">
                         <button 
-                          onClick={() => setSelectedBill({ id: item.id, type: activeReport === 'sales' ? 'SALE' : 'PURCHASE' })}
+                          onClick={() => {
+                            const type = activeReport === 'sales' || item.type === 'SALE' ? 'SALE' : 'PURCHASE';
+                            setSelectedBill({ id: item.id, type });
+                          }}
                           className="text-brand-600 hover:text-brand-800 font-bold hover:underline"
                         >
                           {item.invoiceNo}
@@ -400,9 +403,9 @@ const Reports = () => {
                       </td>
                       <td className="p-4">
                         {activeReport === 'sales' ? (
-                          item.customerId ? (
+                          (item.customerId || item.customer?.id) ? (
                             <button 
-                              onClick={() => setSelectedPartyId(item.customerId)}
+                              onClick={() => setSelectedPartyId(item.customerId || item.customer?.id)}
                               className="text-brand-600 hover:text-brand-800 font-black hover:underline text-left"
                             >
                               {item.customer?.name || 'Walk-in'}
@@ -411,7 +414,7 @@ const Reports = () => {
                             'Walk-in'
                           )
                         ) : (
-                          item.supplierName
+                          item.supplierName || 'Internal'
                         )}
                       </td>
                       <td className="p-4 text-right font-bold text-slate-900">₹{item.grandTotal.toFixed(2)}</td>
