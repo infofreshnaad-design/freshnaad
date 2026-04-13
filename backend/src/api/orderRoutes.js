@@ -63,13 +63,24 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
 });
 // --- END CUSTOMER WHATSAPP ROUTES ---
 
-// Get order by ID
+// Get order by ID or InvoiceNo (Dual-Lookup Safety)
 router.get('/:id', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
-      include: { orderItems: { include: { product: true } }, customer: true, payments: true }
+    const { id } = req.params;
+    let order = await prisma.order.findFirst({
+      where: { 
+        OR: [
+          { id: id },
+          { invoiceNo: id }
+        ]
+      },
+      include: { 
+        orderItems: { include: { product: true } }, 
+        customer: true, 
+        payments: true 
+      }
     });
+
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json(order);
   } catch (error) {
@@ -179,41 +190,36 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         }
       });
 
-      // 5. Consolidated Updates (Stock & Logs)
-      // Parallelize update promises to resolve faster
-      const updatePromises = orderItems.map(item => {
+      // 5. Sequential Stock Updates (Guaranteed execution)
+      for (const item of orderItems) {
         const pid = item.productId || item.id;
-        return [
-          tx.product.update({
-            where: { id: pid },
-            data: { stockQuantity: { decrement: item.quantity } }
-          }),
-          tx.inventoryLog.create({
-            data: {
-              productId: pid,
-              type: 'OUT',
-              quantity: item.quantity,
-              reason: `Order ${invoiceNo}`
-            }
-          })
-        ];
-      }).flat();
-
-      if (customerId) {
-        updatePromises.push(
-          tx.customer.update({
-            where: { id: customerId },
-            data: {
-              loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
-              totalSpent: { increment: Number(grandTotal) },
-              creditBalance: { increment: Number(balance) || 0 },
-              lastPurchaseDate: new Date()
-            }
-          })
-        );
+        // Decrement Product Stock
+        await tx.product.update({
+          where: { id: pid },
+          data: { stockQuantity: { decrement: Number(item.quantity) } }
+        });
+        // Create Inventory Log
+        await tx.inventoryLog.create({
+          data: {
+            productId: pid,
+            type: 'OUT',
+            quantity: item.quantity,
+            reason: `Order ${invoiceNo}`
+          }
+        });
       }
 
-      await Promise.all(updatePromises);
+      if (customerId) {
+        await tx.customer.update({
+          where: { id: customerId },
+          data: {
+            loyaltyPoints: { increment: loyaltyPointsEarned - (loyaltyPointsRedeemed || 0) },
+            totalSpent: { increment: Number(grandTotal) },
+            creditBalance: { increment: Number(balance) || 0 },
+            lastPurchaseDate: new Date()
+          }
+        });
+      }
 
       // 6. Socket Events (Optional Emit)
       const io = req.app.get('io');

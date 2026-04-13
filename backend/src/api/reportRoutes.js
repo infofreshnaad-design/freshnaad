@@ -76,7 +76,7 @@ router.get('/summary', async (req, res) => {
       .slice(0, 5);
 
     res.json({
-      totalRevenue: totalRevenue._sum?.grandTotal || 0,
+      totalRevenue: Number(totalRevenue._sum?.grandTotal || 0),
       totalOrders,
       lowStockAlerts,
       activeTerminals,
@@ -84,7 +84,34 @@ router.get('/summary', async (req, res) => {
       distribution,
       lastSync: recentOrders[0]?.createdAt || new Date()
     });
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    console.warn('Dashboard summary fallback triggered:', error.message);
+    try {
+      const rawRev = await prisma.$queryRaw`SELECT SUM("grandTotal") as total FROM "Order"`;
+      const rawCount = await prisma.$queryRaw`SELECT COUNT(*) as count FROM "Order"`;
+      const rawLow = await prisma.$queryRaw`SELECT COUNT(*) as count FROM "Product" WHERE "stockQuantity" < 10`;
+      const rawRecent = await prisma.$queryRaw`
+        SELECT CAST(o.id AS TEXT) as id, o."invoiceNo", o."grandTotal", o."createdAt", c.name as "customerName"
+        FROM "Order" o
+        LEFT JOIN "Customer" c ON o."customerId" = c.id
+        ORDER BY o."createdAt" DESC LIMIT 10
+      `;
+      
+      res.json({
+        totalRevenue: Number(rawRev[0]?.total || 0),
+        totalOrders: Number(rawCount[0]?.count || 0),
+        lowStockAlerts: Number(rawLow[0]?.count || 0),
+        recentOrders: rawRecent.map(r => ({
+           id: r.id, invoiceNo: r.invoiceNo, grandTotal: r.grandTotal, createdAt: r.createdAt,
+           customer: { name: r.customerName || 'Walk-in' }
+        })),
+        distribution: [],
+        lastSync: new Date()
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'Critical dashboard failure' });
+    }
+  }
 });
 
 // 1. Sale Report
@@ -403,14 +430,37 @@ router.get('/parties', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// 9. Party Statement (Customer)
 router.get('/party-statement/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const customer = await prisma.customer.findUnique({ where: { id }, include: { orders: true } });
-    if (!customer) return res.status(404).json({ message: 'Not found' });
+    // Try Prisma first
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+      include: { orders: { orderBy: { createdAt: 'desc' }, take: 20 } }
+    });
+    if (!customer) return res.status(404).json({ message: 'Customer not found' });
     res.json(customer);
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    console.warn('Party statement fallback:', error.message);
+    try {
+      const { id } = req.params;
+      const rawCust = await prisma.$queryRaw`SELECT * FROM "Customer" WHERE id = ${id}`;
+      if (rawCust.length === 0) return res.status(404).json({ message: 'Not found' });
+      
+      const rawOrders = await prisma.$queryRaw`
+        SELECT CAST(id AS TEXT) as id, "invoiceNo", "grandTotal", "balance", "createdAt" 
+        FROM "Order" WHERE "customerId" = ${id} 
+        ORDER BY "createdAt" DESC LIMIT 20
+      `;
+      
+      res.json({
+        ...rawCust[0],
+        orders: rawOrders
+      });
+    } catch (fallbackErr) {
+      res.status(500).json({ error: 'Failed to retrieve profile' });
+    }
+  }
 });
 
 // 9.1 All Suppliers
