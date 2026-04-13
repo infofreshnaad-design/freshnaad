@@ -234,29 +234,46 @@ router.get('/profit-loss', async (req, res) => {
     const { filter, startDate, endDate, timezoneOffset } = req.query;
     const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
-    const totalSales = await prisma.order.aggregate({
-      where: { createdAt: dateRange },
-      _sum: { subtotal: true }
-    }).catch(() => ({ _sum: { subtotal: 0 } }));
+    let totalSales, orderItems, expenses, totalExpense = 0;
     
-    // We assume COGS (Cost of goods sold) via items
-    const orderItems = await prisma.orderItem.findMany({
-      where: { order: { createdAt: dateRange } },
-      include: { product: true }
-    }).catch(() => []);
-    const cogs = orderItems.reduce((sum, item) => sum + (item.product?.purchasePrice || 0) * item.quantity, 0);
-    const grossProfit = (totalSales._sum.subtotal || 0) - cogs;
-    
-    const expenses = await prisma.expense.aggregate({
-      where: { createdAt: dateRange },
-      _sum: { amount: true }
-    }).catch(() => ({ _sum: { amount: 0 } }));
-    
-    const totalExpense = expenses._sum.amount || 0;
+    try {
+      totalSales = await prisma.order.aggregate({
+        where: { createdAt: dateRange },
+        _sum: { subtotal: true }
+      });
+      orderItems = await prisma.orderItem.findMany({
+        where: { order: { createdAt: dateRange } },
+        include: { product: true }
+      });
+      expenses = await prisma.expense.aggregate({
+        where: { createdAt: dateRange },
+        _sum: { amount: true }
+      });
+      totalExpense = expenses._sum.amount || 0;
+    } catch (err) {
+      console.warn('Profit/Loss fallback:', err.message);
+      // Raw fallback for aggregates
+      const rawSales = await prisma.$queryRaw`SELECT SUM(subtotal) as total FROM "Order" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      totalSales = { _sum: { subtotal: Number(rawSales[0]?.total) || 0 } };
+      
+      orderItems = await prisma.$queryRaw`
+        SELECT oi.quantity, p."purchasePrice"
+        FROM "OrderItem" oi
+        JOIN "Product" p ON oi."productId" = p.id
+        JOIN "Order" o ON oi."orderId" = o.id
+        WHERE o."createdAt" >= ${dateRange.gte} AND o."createdAt" <= ${dateRange.lte}
+      `;
+      
+      const rawExp = await prisma.$queryRaw`SELECT SUM(amount) as total FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      totalExpense = Number(rawExp[0]?.total) || 0;
+    }
+
+    const cogs = orderItems.reduce((sum, item) => sum + (Number(item.product?.purchasePrice || item.purchasePrice || 0) * item.quantity), 0);
+    const grossProfit = (Number(totalSales._sum.subtotal) || 0) - cogs;
     const netProfit = grossProfit - totalExpense;
     
     res.json({
-      salesAmount: totalSales._sum.subtotal || 0,
+      salesAmount: Number(totalSales._sum.subtotal) || 0,
       cogs,
       grossProfit,
       expenses: totalExpense,
@@ -274,10 +291,24 @@ router.get('/daybook', async (req, res) => {
 
     let sales = [];
     try {
-      sales = await prisma.order.findMany({ where: { createdAt: dateRange } });
+      sales = await prisma.order.findMany({ 
+        where: { createdAt: dateRange },
+        include: { customer: true }
+      });
     } catch (err) {
       console.warn('Daybook sales fallback:', err.message);
-      sales = await prisma.$queryRaw`SELECT CAST(id AS TEXT) as id, "serverId", "grandTotal", "invoiceNo", CAST("customerId" AS TEXT) as "customerId", "createdAt" FROM "Order" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      sales = await prisma.$queryRaw`
+        SELECT 
+          CAST(o.id AS TEXT) as id, o."serverId", o."grandTotal", o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."createdAt",
+          c.name as "customerName"
+        FROM "Order" o
+        LEFT JOIN "Customer" c ON o."customerId" = c.id
+        WHERE o."createdAt" >= ${dateRange.gte} AND o."createdAt" <= ${dateRange.lte}
+      `;
+      sales = sales.map(s => ({
+        ...s,
+        customer: s.customerName ? { id: s.customerId, name: s.customerName } : null
+      }));
     }
 
     let expenses = [];
@@ -321,8 +352,8 @@ router.get('/daybook', async (req, res) => {
       ...expenses.map(e => ({ id: e.id, type: 'EXPENSE', amount: -e.amount, date: e.createdAt, details: e.type }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    const cashIn = sales.reduce((sum, s) => sum + s.grandTotal, 0);
-    const cashOut = purchasePayments.reduce((sum, pp) => sum + pp.amount, 0) + expenses.reduce((sum, e) => sum + e.amount, 0);
+    const cashIn = sales.reduce((sum, s) => sum + (Number(s.grandTotal) || 0), 0);
+    const cashOut = purchasePayments.reduce((sum, pp) => sum + (Number(pp.amount) || 0), 0) + expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     
     res.json({
       transactions,
