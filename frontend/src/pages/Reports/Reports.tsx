@@ -99,7 +99,8 @@ const Reports = () => {
     }
 
     setLoading(true);
-    let url = `/reports/${activeReport}?filter=${dateFilter}`;
+    const offset = new Date().getTimezoneOffset();
+    let url = `/reports/${activeReport}?filter=${dateFilter}&timezoneOffset=${offset}`;
     if (dateFilter === 'Custom') url += `&startDate=${customStart}&endDate=${customEnd}`;
     
     // Adjust URL for parameterized routes

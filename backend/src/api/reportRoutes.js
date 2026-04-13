@@ -4,30 +4,37 @@ const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 
-// Helper to handle date filters
-const getDateRange = (filter, startDate, endDate) => {
+// Helper to handle date filters with Timezone awareness
+const getDateRange = (filter, startDate, endDate, timezoneOffset = 0) => {
+  // timezoneOffset is in minutes (e.g. -330 for IST)
   const now = new Date();
-  let start = new Date();
-  start.setHours(0, 0, 0, 0);
-  let end = new Date();
-  end.setHours(23, 59, 59, 999);
+  
+  // Calculate start and end in client's local time
+  let start = new Date(now.getTime() - (timezoneOffset * 60000));
+  start.setUTCHours(0, 0, 0, 0);
+  let end = new Date(now.getTime() - (timezoneOffset * 60000));
+  end.setUTCHours(23, 59, 59, 999);
 
   if (filter === 'Today') {
-    // Keep start and end as today
+    // Already set to local today
   } else if (filter === 'Week') {
-    start.setDate(now.getDate() - 7);
+    start.setUTCDate(start.getUTCDate() - 7);
   } else if (filter === 'Month') {
-    start.setDate(now.getDate() - 30);
+    start.setUTCDate(start.getUTCDate() - 30);
   } else if (filter === 'Custom' && startDate && endDate) {
     start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
+    start.setUTCHours(0, 0, 0, 0);
     end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
   } else {
-    // Default All Time roughly
     start = new Date('2020-01-01');
   }
-  return { gte: start, lte: end };
+
+  // Convert back to UTC for Prisma/Database query
+  const queryStart = new Date(start.getTime() + (timezoneOffset * 60000));
+  const queryEnd = new Date(end.getTime() + (timezoneOffset * 60000));
+
+  return { gte: queryStart, lte: queryEnd };
 };
 
 // 0. Dashboard Summary for Admin
@@ -83,27 +90,48 @@ router.get('/summary', async (req, res) => {
 // 1. Sale Report
 router.get('/sales', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
-    const sales = await prisma.order.findMany({
-      where: { createdAt: dateRange },
-      include: { customer: true, payments: true }
-    }).catch(err => {
-      console.error('Sales Report Query Failed:', err.message);
-      return [];
-    });
+    let sales = [];
+    try {
+      sales = await prisma.order.findMany({
+        where: { createdAt: dateRange },
+        include: { customer: true, payments: true },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (err) {
+      console.warn('Prisma sales query failed, falling back to raw SQL:', err.message);
+      // Fallback to basic columns that existed prior to creatorId update
+      sales = await prisma.$queryRaw`
+        SELECT 
+          o.id, o."invoiceNo", o."customerId", o."grandTotal", o."taxTotal", o."paymentMode", o."createdAt",
+          c.name as "customerName"
+        FROM "Order" o
+        LEFT JOIN "Customer" c ON o."customerId" = c.id
+        WHERE o."createdAt" >= ${dateRange.gte} AND o."createdAt" <= ${dateRange.lte}
+        ORDER BY o."createdAt" DESC
+      `;
+      // Normalize raw results to match Prisma object structure for frontend
+      sales = sales.map(s => ({
+        ...s,
+        customer: s.customerName ? { name: s.customerName } : null
+      }));
+    }
     
     const summary = {
-      totalSales: sales.reduce((sum, order) => sum + order.grandTotal, 0),
-      totalTax: sales.reduce((sum, order) => sum + order.taxTotal, 0),
+      totalSales: sales.reduce((sum, order) => sum + (Number(order.grandTotal) || 0), 0),
+      totalTax: sales.reduce((sum, order) => sum + (Number(order.taxTotal) || 0), 0),
       billCount: sales.length,
-      cashReceived: sales.filter(o => o.paymentMode === 'CASH').reduce((sum, o) => sum + o.grandTotal, 0),
-      upiReceived: sales.filter(o => o.paymentMode === 'UPI').reduce((sum, o) => sum + o.grandTotal, 0),
-      cardReceived: sales.filter(o => o.paymentMode === 'CARD').reduce((sum, o) => sum + o.grandTotal, 0)
+      cashReceived: sales.filter(o => o.paymentMode === 'CASH').reduce((sum, o) => sum + (Number(o.grandTotal) || 0), 0),
+      upiReceived: sales.filter(o => o.paymentMode === 'UPI').reduce((sum, o) => sum + (Number(o.grandTotal) || 0), 0),
+      cardReceived: sales.filter(o => o.paymentMode === 'CARD').reduce((sum, o) => sum + (Number(o.grandTotal) || 0), 0)
     };
     res.json({ summary, details: sales });
-  } catch (error) { res.status(500).json({ error: error.message }); }
+  } catch (error) { 
+    console.error('Final Sales Report Error:', error);
+    res.status(500).json({ error: error.message }); 
+  }
 });
 
 // 1.05 Credit Sales Report (Outstanding Payments)
@@ -182,8 +210,8 @@ router.get('/purchase', async (req, res) => {
 // 3. Profit & Loss
 router.get('/profit-loss', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
     const totalSales = await prisma.order.aggregate({
       where: { createdAt: dateRange },
@@ -219,17 +247,30 @@ router.get('/profit-loss', async (req, res) => {
 // 4. Day Book & 5. All Transactions (Combined Logically)
 router.get('/daybook', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
     const dateFilter = filter === 'Custom' ? filter : 'Today'; // Default DayBook to Today
-    const dateRange = getDateRange(dateFilter, startDate, endDate);
+    const dateRange = getDateRange(dateFilter, startDate, endDate, parseInt(timezoneOffset || 0));
 
-    const sales = await prisma.order.findMany({ where: { createdAt: dateRange } });
-    const expenses = await prisma.expense.findMany({ where: { createdAt: dateRange } });
+    let sales = [];
+    try {
+      sales = await prisma.order.findMany({ where: { createdAt: dateRange } });
+    } catch (err) {
+      console.warn('Daybook sales fallback:', err.message);
+      sales = await prisma.$queryRaw`SELECT id, "serverId", "grandTotal", "invoiceNo", "customerId", "createdAt" FROM "Order" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+    }
+
+    let expenses = [];
+    try {
+      expenses = await prisma.expense.findMany({ where: { createdAt: dateRange } });
+    } catch (err) {
+      console.warn('Daybook expenses fallback:', err.message);
+      expenses = await prisma.$queryRaw`SELECT id, amount, description, "createdAt" FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+    }
     
-    // 1. Fetch Purchase Events (Invoices created during this period)
+    // 1. Fetch Purchase Events
     const purchases = await prisma.purchase.findMany({ where: { date: dateRange } }).catch(() => []);
 
-    // 2. Fetch Individual Payments made towards purchases during this period
+    // 2. Fetch Individual Payments
     const purchasePayments = await prisma.purchasePayment.findMany({ 
       where: { date: dateRange },
       include: { purchase: true }
