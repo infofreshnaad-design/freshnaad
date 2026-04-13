@@ -654,10 +654,21 @@ router.get('/staff-activity', auth(['ADMIN']), async (req, res) => {
     });
 
     const staffStats = await Promise.all(users.map(async (user) => {
+      // Attribute orders to this user, plus legacy orders (null creator) to the Admin
+      const whereClause = {
+        OR: [
+          { creatorId: user.id },
+          ...(user.role === 'ADMIN' ? [{ creatorId: { equals: null } }] : [])
+        ]
+      };
+
       const stats = await prisma.order.aggregate({
-        where: { creatorId: user.id },
+        where: whereClause,
         _sum: { grandTotal: true },
         _count: true
+      }).catch(err => {
+        console.warn('Staff activity aggregation failed (possibly missing schema):', err.message);
+        return { _count: 0, _sum: { grandTotal: 0 } };
       });
 
       return {
@@ -667,7 +678,7 @@ router.get('/staff-activity', auth(['ADMIN']), async (req, res) => {
         role: user.role,
         salesCount: stats._count || 0,
         revenue: stats._sum.grandTotal || 0,
-        recentActivities: user.activities
+        recentActivities: user.activities || []
       };
     }));
 
