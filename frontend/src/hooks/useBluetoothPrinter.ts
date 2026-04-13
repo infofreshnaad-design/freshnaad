@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { usePrinterStore } from '../store/printerStore';
 
 // Common Thermal Printer UUIDs (Expanded for broader compatibility)
@@ -23,6 +23,8 @@ export const useBluetoothPrinter = () => {
     setError,
     disconnect: globalDisconnect
   } = usePrinterStore();
+
+  const isPrintingRef = useRef(false);
 
   const connect = useCallback(async () => {
     try {
@@ -146,18 +148,20 @@ export const useBluetoothPrinter = () => {
 
   const print = useCallback(async (data: Uint8Array) => {
     try {
+      isPrintingRef.current = true;
       const ok = await ensureConnected();
       if (!ok) throw new Error('Printer is offline. Please reconnect in Settings.');
       
       if (!characteristic) throw new Error('Invalid characteristic handle.');
 
-      // TRANSMIT DATA (Strict 100-byte max MTU chunking for older tablets)
-      const CHUNK_SIZE = 100;
+      // TRANSMIT DATA (Strict 20-byte max MTU chunking for older tablets)
+      // Generic thermal printers have tiny RX buffers. If we send data faster than the physical print head moves, the buffer overrides itself.
+      const CHUNK_SIZE = 20;
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
         await characteristic.writeValue(chunk);
-        // Small 20ms delay allows old tablet Bluetooth controllers to flush buffer
-        await new Promise(resolve => setTimeout(resolve, 20));
+        // 40ms delay allows the print head to mechanically catch up and clears the internal BLE queue
+        await new Promise(resolve => setTimeout(resolve, 40));
       }
 
       // NO AUTOMATIC DISCONNECT (User Request)
@@ -166,6 +170,8 @@ export const useBluetoothPrinter = () => {
     } catch (err: any) {
       console.error('Print Error:', err);
       throw err;
+    } finally {
+      isPrintingRef.current = false;
     }
   }, [characteristic, ensureConnected]);
 
@@ -176,6 +182,7 @@ export const useBluetoothPrinter = () => {
     if (isConnected && characteristic && device?.gatt.connected) {
       console.log('Starting Bluetooth Heartbeat...');
       interval = setInterval(async () => {
+        if (isPrintingRef.current) return; // Suppress heartbeat if actively printing
         try {
           if (device?.gatt.connected && characteristic) {
             // Send a NUL byte to keep the connection alive
