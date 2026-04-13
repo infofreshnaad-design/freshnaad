@@ -5,6 +5,11 @@ const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 const pdfUtil = require('../utils/pdfUtil');
 
+// Local Error Capture for Black Box
+const logError = (context, err) => {
+  console.error(`[Order API Debug] ${context}:`, err);
+};
+
 // GET order as PDF (Public for WhatsApp API - ABSOLUTE TOP PRIORITY)
 router.get('/:id/pdf', async (req, res) => {
   try {
@@ -128,58 +133,64 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       }
 
       // 4. Create Order + Items + Payment in ONE nested call
-      const earnRate = 100;
-      const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
-
-      const newOrder = await tx.order.create({
-        data: {
-          invoiceNo,
-          customerId,
-          subtotal,
-          discount,
-          taxTotal,
-          grandTotal,
-          roundedTotal: roundedTotal || Math.floor(grandTotal),
-          savings: savings || 0,
-          amountPaid: Number(amountPaid) || 0,
-          balance: Number(balance) || 0,
-          paymentMode,
-          loyaltyPointsEarned,
-          loyaltyPointsRedeemed,
-          status: 'COMPLETED',
-          creatorId: req.user?.id || null,
-          orderItems: {
-            create: orderItems.map((item) => {
-              const pid = item.productId || item.id;
-              const p = productMap.get(pid);
-              const price = item.price || item.sellingPrice || p.sellingPrice;
-              const mrp = item.mrp || p.mrp || price;
-              const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
-              
-              return {
-                productId: pid,
-                quantity: item.quantity,
-                price: price,
-                mrp: mrp,
-                discount: item.discount || 0,
-                taxAmount: (price * (gst / 100)) * item.quantity,
-                total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)
-              };
-            })
-          },
-          payments: {
-            create: {
-              method: paymentMode,
-              amount: Number(amountPaid) || 0,
-              status: 'SUCCESS'
-            }
-          }
+      // ATTEMPT 1: With creatorId (Modern Schema)
+      let newOrder;
+      const orderBaseData = {
+        invoiceNo,
+        customerId,
+        subtotal,
+        discount,
+        taxTotal,
+        grandTotal,
+        roundedTotal: roundedTotal || Math.floor(grandTotal),
+        savings: savings || 0,
+        amountPaid: Number(amountPaid) || 0,
+        balance: Number(balance) || 0,
+        paymentMode,
+        loyaltyPointsEarned,
+        loyaltyPointsRedeemed,
+        status: 'COMPLETED',
+        orderItems: {
+          create: orderItems.map((item) => {
+            const pid = item.productId || item.id;
+            const p = productMap.get(pid);
+            const price = item.price || item.sellingPrice || p.sellingPrice;
+            const mrp = item.mrp || p.mrp || price;
+            const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
+            
+            return {
+              productId: pid,
+              quantity: item.quantity,
+              price: price,
+              mrp: mrp,
+              discount: item.discount || 0,
+              taxAmount: (price * (gst / 100)) * item.quantity,
+              total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)
+            };
+          })
         },
-        include: {
-          orderItems: { include: { product: true } },
-          payments: true
+        payments: {
+          create: {
+            method: paymentMode,
+            amount: Number(amountPaid) || 0,
+            status: 'SUCCESS'
+          }
         }
-      });
+      };
+
+      try {
+        newOrder = await tx.order.create({
+          data: { ...orderBaseData, creatorId: req.user?.id || null },
+          include: { orderItems: { include: { product: true } }, payments: true }
+        });
+      } catch (err) {
+        console.warn('[Order API] Modern create failed, retrying without creatorId:', err.message);
+        // ATTEMPT 2: Without creatorId (Old Schema Fallback)
+        newOrder = await tx.order.create({
+          data: orderBaseData,
+          include: { orderItems: { include: { product: true } }, payments: true }
+        });
+      }
 
       // 5. Sequential Sledgehammer Stock Updates (Guaranteed execution via Direct SQL)
       // This bypasses Prisma caching/relation bottlenecks

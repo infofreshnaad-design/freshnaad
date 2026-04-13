@@ -6,10 +6,12 @@ const whatsappUtil = require('../utils/whatsappUtil');
 
 // Global error registry for remote debugging (BLACK BOX)
 let errorLog = [];
-const logError = (context, err) => {
-  errorLog.unshift({ time: new Date().toISOString(), context, message: err.message, stack: err.stack });
+function logError(context, err) {
+  errorLog.unshift({ time: new Date().toISOString(), context, message: err?.message || 'Unknown', stack: err?.stack });
   if (errorLog.length > 50) errorLog.pop();
-};
+  console.error(`[BLACK BOX] ${context}:`, err);
+}
+module.exports.logError = logError; // Export for orderRoutes.js
 
 // Helper to handle date filters with Timezone awareness
 const getDateRange = (filter, startDate, endDate, timezoneOffset = 0) => {
