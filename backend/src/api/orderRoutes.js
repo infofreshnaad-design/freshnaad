@@ -108,23 +108,21 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       });
       const productMap = new Map(productsFromDb.map(p => [p.id, p]));
 
-      // 2. Generate Sequential Invoice Number
-      const latestOrder = await tx.order.findFirst({
-        where: {
-            NOT: {
-              invoiceNo: { startsWith: '9' }
-            }
+      // 2. Generate Collision-Proof Sequential Invoice Number
+      // Search for the absolute max invoice number ignoring the 9000-series
+      const allOrders = await tx.order.findMany({
+        where: { 
+          NOT: { invoiceNo: { startsWith: '9' } }
         },
-        orderBy: { createdAt: 'desc' },
         select: { invoiceNo: true }
       });
       
-      let nextNum = 100;
-      if (latestOrder) {
-        const match = latestOrder.invoiceNo.match(/\d+/);
-        if (match) nextNum = parseInt(match[0]) + 1;
-      }
-      const invoiceNo = `${nextNum}`;
+      const invoiceNums = allOrders
+        .map(o => parseInt(o.invoiceNo))
+        .filter(n => !isNaN(n));
+      
+      const maxNum = invoiceNums.length > 0 ? Math.max(...invoiceNums) : 99;
+      const invoiceNo = (maxNum + 1).toString();
 
       // 3. Validation & Stock Check
       for (const item of orderItems) {
@@ -156,7 +154,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           loyaltyPointsEarned,
           loyaltyPointsRedeemed,
           status: 'COMPLETED',
-          creatorId: req.user.id,
+          creatorId: req.user?.id || null,
           orderItems: {
             create: orderItems.map((item) => {
               const pid = item.productId || item.id;
