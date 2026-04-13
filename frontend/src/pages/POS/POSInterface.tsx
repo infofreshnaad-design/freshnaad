@@ -235,6 +235,7 @@ const POSInterface: React.FC = () => {
       loyaltyPointsRedeemed: appliedPoints,
       customerId: customer?.id || null,
       userName: user?.name || 'Staff',
+      creatorId: user?.id || null,
       createdAt: new Date().toISOString(),
       isSyncing: true // Visual flag for the receipt
     };

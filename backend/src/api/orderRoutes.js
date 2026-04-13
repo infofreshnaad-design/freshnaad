@@ -140,6 +140,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           loyaltyPointsEarned,
           loyaltyPointsRedeemed,
           status: 'COMPLETED',
+          creatorId: req.user.id,
           orderItems: {
             create: orderItems.map((item) => {
               const pid = item.productId || item.id;

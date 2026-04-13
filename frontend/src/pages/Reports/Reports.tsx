@@ -709,12 +709,12 @@ const Reports = () => {
               <span className="font-black text-xl">- ₹{reportData.expenses?.toFixed(2)}</span>
             </div>
             <div className="h-0.5 bg-slate-300"></div>
-            <div className={`${reportData.netProfit < 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'} p-6 rounded-2xl border flex justify-between items-center transition-all duration-500 shadow-sm`}>
-              <span className={`font-black text-lg ${reportData.netProfit < 0 ? 'text-red-700' : 'text-emerald-700'} uppercase tracking-widest`}>
-                {reportData.netProfit < 0 ? 'Net Loss' : 'Net Profit'}
+            <div className={`${(Number(reportData.netProfit) || 0) < 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'} p-6 rounded-2xl border flex justify-between items-center transition-all duration-500 shadow-sm`}>
+              <span className={`font-black text-lg ${(Number(reportData.netProfit) || 0) < 0 ? 'text-red-700' : 'text-emerald-700'} uppercase tracking-widest`}>
+                {(Number(reportData.netProfit) || 0) < 0 ? 'Net Loss' : 'Net Profit'}
               </span>
-              <span className={`font-black text-4xl ${reportData.netProfit < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                ₹{Math.abs(reportData.netProfit)?.toFixed(2)}
+              <span className={`font-black text-4xl ${(Number(reportData.netProfit) || 0) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                ₹{Math.abs(Number(reportData.netProfit) || 0).toFixed(2)}
               </span>
             </div>
           </div>

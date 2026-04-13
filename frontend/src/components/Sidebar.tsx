@@ -20,7 +20,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     { icon: <BarChart3 size={22} />, label: 'Financial Reports', path: '/reports', roles: ['ADMIN', 'MANAGER'], permissionKey: 'REPORTS' },
     { icon: <LayoutDashboard size={22} />, label: 'Daily Expenses', path: '/expenses', roles: ['ADMIN', 'MANAGER'], permissionKey: 'EXPENSES' },
     { icon: <Key size={22} />, label: 'License Desk', path: '/admin/licenses', roles: ['ADMIN'], permissionKey: 'LICENSES' },
-    { icon: <Smartphone size={22} />, label: 'Device Registry', path: '/admin/devices', roles: ['ADMIN'], permissionKey: 'DEVICES' },
+    { icon: <Clock size={22} />, label: 'Staff Activity', path: '/admin/staff-activity', roles: ['ADMIN'], permissionKey: 'DEVICES' },
     { icon: <Settings size={22} />, label: 'Settings', path: '/settings', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'SETTINGS' },
   ];
 

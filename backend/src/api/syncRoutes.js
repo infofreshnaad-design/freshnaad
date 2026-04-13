@@ -42,6 +42,7 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
             loyaltyPointsRedeemed,
             status: 'COMPLETED',
             isSynced: true,
+            creatorId: orderData.creatorId || req.user.id,
             createdAt: new Date(orderData.createdAt || Date.now()),
             orderItems: {
               create: orderData.orderItems.map(item => ({

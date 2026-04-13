@@ -68,6 +68,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    // Record Login Activity
+    if (!user.isEmergency) {
+        await prisma.userActivity.create({
+            data: { userId: user.id, type: 'LOGIN' }
+        }).catch(err => console.error('Activity Log Error:', err));
+    }
+
     res.json({ 
       token, 
       user: { id: user.id, name: user.name, username: user.username, role: user.role, permissions: user.permissions } 
@@ -279,6 +286,21 @@ router.delete('/users/:id', async (req, res) => {
         });
 
         res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Logout (Record activity)
+router.post('/logout', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        if (userId && userId !== 'emergency-admin') {
+            await prisma.userActivity.create({
+                data: { userId, type: 'LOGOUT' }
+            });
+        }
+        res.json({ message: 'Logged out successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

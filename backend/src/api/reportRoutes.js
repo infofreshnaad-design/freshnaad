@@ -637,4 +637,45 @@ router.post('/test-whatsapp', auth(['ADMIN']), async (req, res) => {
   }
 });
 
+// Staff Activity & Performance Report
+router.get('/staff-activity', auth(['ADMIN']), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        username: true,
+        activities: {
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        }
+      }
+    });
+
+    const staffStats = await Promise.all(users.map(async (user) => {
+      const stats = await prisma.order.aggregate({
+        where: { creatorId: user.id },
+        _sum: { grandTotal: true },
+        _count: true
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        salesCount: stats._count || 0,
+        revenue: stats._sum.grandTotal || 0,
+        recentActivities: user.activities
+      };
+    }));
+
+    res.json(staffStats);
+  } catch (error) {
+    console.error('Staff Activity Report Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

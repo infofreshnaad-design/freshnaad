@@ -10,7 +10,7 @@ import ExpenseManagement from './pages/Expenses/ExpenseManagement';
 import LoginPage from './pages/Login';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import LicenseManagement from './pages/Admin/LicenseManagement';
-import DeviceManagement from './pages/Admin/DeviceManagement';
+import StaffActivity from './pages/Admin/StaffActivity';
 import Settings from './pages/Settings/Settings';
 import PrivateRoute from './components/PrivateRoute';
 import useAuthStore from './store/authStore';
@@ -62,7 +62,7 @@ function App() {
             <Route path="/expenses" element={<ExpenseManagement />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/licenses" element={<LicenseManagement />} />
-            <Route path="/admin/devices" element={<DeviceManagement />} />
+            <Route path="/admin/staff-activity" element={<StaffActivity />} />
             <Route path="/accounts-payable" element={<AccountsPayable />} />
             <Route path="/accounts-payable/ledger/:id" element={<APLedgerView />} />
             <Route path="/settings" element={<Settings />} />
