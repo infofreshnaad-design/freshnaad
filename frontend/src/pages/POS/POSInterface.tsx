@@ -240,20 +240,23 @@ const POSInterface: React.FC = () => {
       isSyncing: true // Visual flag for the receipt
     };
 
-    // --- INSTANT UI TRANSITION ---
-    // We clear the cart and show the receipt BEFORE sending to the server
-    setRecentOrder(orderData);
-    clearCart();
-    setIsPaymentModalOpen(false);
-    setIsPreviewOpen(true);
+    try {
+      let finalOrderData = { ...orderData, isSyncing: false };
+      
+      // 1. SYNC TO SERVER FIRST
+      if (isOnline) {
+        const response = await api.post('/orders', orderData, {
+          headers: { 'x-terminal-id': 'T1' }
+        });
+        finalOrderData = { ...orderData, ...response.data, isSyncing: false, isSynced: true };
+      } else {
+        await addToSyncQueue('CREATE_ORDER', orderData);
+        finalOrderData.isSynced = false;
+      }
 
-    // --- LOCAL PERSISTENCE & STOCK GUARD ---
-    const updateLocalData = async () => {
+      // 2. LOCAL PERSISTENCE & STOCK GUARD
       try {
-        // 1. Save to local orders for reporting
-        await offlineDB.put('orders', { ...orderData, isSynced: isOnline });
-        
-        // 2. Deduct local stock immediately
+        await offlineDB.put('orders', finalOrderData);
         const offlineProducts = await offlineDB.getAll('products');
         for (const cartItem of cart) {
           const product = offlineProducts.find(p => p.id === cartItem.id);
@@ -267,40 +270,25 @@ const POSInterface: React.FC = () => {
       } catch (err) {
         console.error('Local persistence failed:', err);
       }
-    };
-
-    updateLocalData();
-
-    // --- BACKGROUND SILENT SYNC ---
-    const runBackgroundSync = async () => {
-      try {
-        if (isOnline) {
-          const response = await api.post('/orders', orderData, {
-            headers: { 'x-terminal-id': 'T1' }
-          });
-          
-          setRecentOrder((prev: any) => ({
-            ...prev,
-            ...response.data,
-            isSyncing: false
-          }));
-
-          // Mark as synced locally
-          await offlineDB.put('orders', { ...orderData, ...response.data, isSynced: true });
-          
-          setTimeout(() => fetchProducts().catch(() => {}), 500);
-        } else {
-          await addToSyncQueue('CREATE_ORDER', orderData);
-          setRecentOrder({ ...orderData, isSyncing: false });
-        }
-      } catch (error: any) {
-        console.error('Background Sync Failed:', error);
-        await addToSyncQueue('CREATE_ORDER', orderData);
-        setRecentOrder(prev => ({ ...prev, isSyncing: false }));
+      
+      if (isOnline) {
+        setTimeout(() => fetchProducts().catch(() => {}), 100);
       }
-    };
 
-    runBackgroundSync(); 
+      // 3. UI TRANSITION (ONLY ON SUCCESS)
+      setRecentOrder(finalOrderData);
+      clearCart();
+      setIsPaymentModalOpen(false);
+      setIsPreviewOpen(true);
+      
+    } catch (error: any) {
+      console.error('Checkout Sync Failed:', error);
+      const errorMsg = error.response?.data?.error || error.message || "Unknown Server Error";
+      alert(`Checkout Failed! The server rejected the sale.\nReason: ${errorMsg}`);
+      
+      // We explicitly log this to the console for the black box
+      throw new Error(`Checkout sync failure: ${errorMsg}`);
+    }
   };
 
   const { subtotal, taxTotal, grandTotal } = getTotals();
