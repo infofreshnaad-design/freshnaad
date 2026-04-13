@@ -131,8 +131,8 @@ const Reports = () => {
               const isNotOnServer = detailsList.every((existingOrder: any) => 
                 existingOrder.id !== o.id && existingOrder.serverId !== o.id
               );
-              // Only include if NOT synced OR if it is truly missing from the server list
-              return !o.isSynced || isNotOnServer;
+              // Only include if NOT synced AND truly missing from the server list
+              return !o.isSynced && isNotOnServer;
             });
 
             if (unsynced.length > 0) {

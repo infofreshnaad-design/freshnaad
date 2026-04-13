@@ -233,7 +233,7 @@ router.get('/daybook', async (req, res) => {
     }).catch(() => []);
     
     const transactions = [
-      ...sales.map(s => ({ id: s.id, type: 'SALE', amount: s.grandTotal, date: s.createdAt, details: `Bill: ${s.invoiceNo}`, customerId: s.customerId })),
+      ...sales.map(s => ({ id: s.id, serverId: s.serverId, type: 'SALE', amount: s.grandTotal, date: s.createdAt, details: `Bill: ${s.invoiceNo}`, customerId: s.customerId })),
       
       // Show the bill creation event as ₹0 (Record keeping)
       ...purchases.map(p => ({
