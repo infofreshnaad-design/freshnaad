@@ -105,7 +105,7 @@ router.get('/sales', async (req, res) => {
       // Fallback to basic columns that existed prior to creatorId update
       sales = await prisma.$queryRaw`
         SELECT 
-          o.id, o."invoiceNo", o."customerId", o."grandTotal", o."taxTotal", o."paymentMode", o."createdAt",
+          CAST(o.id AS TEXT) as id, o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", o."grandTotal", o."taxTotal", o."paymentMode", o."createdAt",
           c.name as "customerName"
         FROM "Order" o
         LEFT JOIN "Customer" c ON o."customerId" = c.id
@@ -115,7 +115,7 @@ router.get('/sales', async (req, res) => {
       // Normalize raw results to match Prisma object structure for frontend
       sales = sales.map(s => ({
         ...s,
-        customer: s.customerName ? { name: s.customerName } : null
+        customer: s.customerName ? { id: s.customerId, name: s.customerName } : null
       }));
     }
     
@@ -140,18 +140,36 @@ router.get('/credit-sales', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     const { filter, startDate, endDate } = req.query;
     const dateRange = getDateRange(filter, startDate, endDate);
     
-    const credits = await prisma.order.findMany({
-      where: { 
-        createdAt: dateRange,
-        balance: { gt: 0 }
-      },
-      include: { customer: true, payments: true }
-    });
+    let credits = [];
+    try {
+      credits = await prisma.order.findMany({
+        where: { 
+          createdAt: dateRange,
+          balance: { gt: 0 }
+        },
+        include: { customer: true, payments: true }
+      });
+    } catch (err) {
+      console.warn('Credit sales fallback:', err.message);
+      credits = await prisma.$queryRaw`
+        SELECT 
+          CAST(o.id AS TEXT) as id, o."invoiceNo", CAST(o."customerId" AS TEXT) as "customerId", 
+          o."grandTotal", o."amountPaid", o.balance, o."createdAt",
+          c.name as "customerName"
+        FROM "Order" o
+        LEFT JOIN "Customer" c ON o."customerId" = c.id
+        WHERE o.balance > 0 AND o."createdAt" >= ${dateRange.gte} AND o."createdAt" <= ${dateRange.lte}
+      `;
+      credits = credits.map(c => ({
+        ...c,
+        customer: c.customerName ? { id: c.customerId, name: c.customerName } : null
+      }));
+    }
     
     const summary = {
-      totalOutstanding: credits.reduce((sum, order) => sum + order.balance, 0),
-      totalBilled: credits.reduce((sum, order) => sum + order.grandTotal, 0),
-      totalPaid: credits.reduce((sum, order) => sum + order.amountPaid, 0),
+      totalOutstanding: credits.reduce((sum, order) => sum + (Number(order.balance) || 0), 0),
+      totalBilled: credits.reduce((sum, order) => sum + (Number(order.grandTotal) || 0), 0),
+      totalPaid: credits.reduce((sum, order) => sum + (Number(order.amountPaid) || 0), 0),
       billCount: credits.length
     };
     
@@ -183,27 +201,30 @@ router.get('/payment-summary', async (req, res) => {
 // 2. Purchase Report
 router.get('/purchase', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
-    // Using try/catch locally since Purchase might not exist remotely yet
-    const purchases = await prisma.purchase.findMany({
-      where: { createdAt: dateRange }
-    }).catch(() => []); // Fallback if table missing during sync
+    let purchases = [];
+    try {
+      purchases = await prisma.purchase.findMany({
+        where: { createdAt: dateRange }
+      });
+    } catch (err) {
+      console.warn('Purchase report fallback:', err.message);
+      purchases = await prisma.$queryRaw`
+        SELECT CAST(id AS TEXT) as id, "invoiceNo", "supplierName", "grandTotal", "taxTotal", "createdAt"
+        FROM "Purchase"
+        WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}
+      `;
+    }
     
     const summary = {
-      totalPurchases: purchases.reduce((sum, p) => sum + p.grandTotal, 0),
-      totalTax: purchases.reduce((sum, p) => sum + p.taxTotal, 0),
+      totalPurchases: purchases.reduce((sum, p) => sum + (Number(p.grandTotal) || 0), 0),
+      totalTax: purchases.reduce((sum, p) => sum + (Number(p.taxTotal) || 0), 0),
       billCount: purchases.length,
     };
     
-    // grouped by supplier
-    const supplierWise = purchases.reduce((acc, p) => {
-      acc[p.supplierName] = (acc[p.supplierName] || 0) + p.grandTotal;
-      return acc;
-    }, {});
-
-    res.json({ summary, supplierWise, details: purchases });
+    res.json({ summary, details: purchases });
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
@@ -256,7 +277,7 @@ router.get('/daybook', async (req, res) => {
       sales = await prisma.order.findMany({ where: { createdAt: dateRange } });
     } catch (err) {
       console.warn('Daybook sales fallback:', err.message);
-      sales = await prisma.$queryRaw`SELECT id, "serverId", "grandTotal", "invoiceNo", "customerId", "createdAt" FROM "Order" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      sales = await prisma.$queryRaw`SELECT CAST(id AS TEXT) as id, "serverId", "grandTotal", "invoiceNo", CAST("customerId" AS TEXT) as "customerId", "createdAt" FROM "Order" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
     }
 
     let expenses = [];
@@ -264,7 +285,7 @@ router.get('/daybook', async (req, res) => {
       expenses = await prisma.expense.findMany({ where: { createdAt: dateRange } });
     } catch (err) {
       console.warn('Daybook expenses fallback:', err.message);
-      expenses = await prisma.$queryRaw`SELECT id, amount, description, "createdAt" FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      expenses = await prisma.$queryRaw`SELECT CAST(id AS TEXT) as id, amount, description, "createdAt" FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
     }
     
     // 1. Fetch Purchase Events
