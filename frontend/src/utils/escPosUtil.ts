@@ -11,7 +11,11 @@ export class EscPosBuilder {
   }
 
   private init() {
-    this.buffer.push(0x1B, 0x40); // Initialize printer
+    this.buffer.push(
+      0x1B, 0x40,       // ESC @: Initialize printer
+      0x1C, 0x2E,       // FS .: Disable Chinese Character Mode
+      0x1B, 0x74, 0x00  // ESC t 0: Set Code Page to PC437 (Standard English)
+    ); 
     return this;
   }
 

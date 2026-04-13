@@ -151,11 +151,13 @@ export const useBluetoothPrinter = () => {
       
       if (!characteristic) throw new Error('Invalid characteristic handle.');
 
-      // TRANSMIT DATA
-      const CHUNK_SIZE = 512;
+      // TRANSMIT DATA (Strict 100-byte max MTU chunking for older tablets)
+      const CHUNK_SIZE = 100;
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
         await characteristic.writeValue(chunk);
+        // Small 20ms delay allows old tablet Bluetooth controllers to flush buffer
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
 
       // NO AUTOMATIC DISCONNECT (User Request)
