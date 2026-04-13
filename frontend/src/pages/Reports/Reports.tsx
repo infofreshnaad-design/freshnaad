@@ -109,7 +109,21 @@ const Reports = () => {
     if (activeReport === 'stock-detail') url = `/reports/stock-detail/${selectedEntityId}`;
 
     try {
-      let data: any = { summary: { totalBilled: 0, totalPaid: 0, totalOutstanding: 0, billCount: 0 }, details: [] };
+      let data: any = { 
+        summary: { 
+          totalSales: 0, 
+          totalPurchases: 0, 
+          totalBilled: 0, 
+          totalPaid: 0, 
+          totalOutstanding: 0, 
+          totalTax: 0,
+          billCount: 0,
+          grossProfit: 0,
+          netProfit: 0
+        }, 
+        details: [],
+        transactions: [] 
+      };
       
       // 1. Fetch backend data if possible
       try {

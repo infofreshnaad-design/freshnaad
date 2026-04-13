@@ -89,6 +89,9 @@ router.get('/sales', async (req, res) => {
     const sales = await prisma.order.findMany({
       where: { createdAt: dateRange },
       include: { customer: true, payments: true }
+    }).catch(err => {
+      console.error('Sales Report Query Failed:', err.message);
+      return [];
     });
     
     const summary = {
@@ -185,20 +188,20 @@ router.get('/profit-loss', async (req, res) => {
     const totalSales = await prisma.order.aggregate({
       where: { createdAt: dateRange },
       _sum: { subtotal: true }
-    });
+    }).catch(() => ({ _sum: { subtotal: 0 } }));
     
     // We assume COGS (Cost of goods sold) via items
     const orderItems = await prisma.orderItem.findMany({
       where: { order: { createdAt: dateRange } },
       include: { product: true }
-    });
+    }).catch(() => []);
     const cogs = orderItems.reduce((sum, item) => sum + (item.product?.purchasePrice || 0) * item.quantity, 0);
     const grossProfit = (totalSales._sum.subtotal || 0) - cogs;
     
     const expenses = await prisma.expense.aggregate({
       where: { createdAt: dateRange },
       _sum: { amount: true }
-    });
+    }).catch(() => ({ _sum: { amount: 0 } }));
     
     const totalExpense = expenses._sum.amount || 0;
     const netProfit = grossProfit - totalExpense;
