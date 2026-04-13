@@ -4,6 +4,13 @@ const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 const whatsappUtil = require('../utils/whatsappUtil');
 
+// Global error registry for remote debugging (BLACK BOX)
+let errorLog = [];
+const logError = (context, err) => {
+  errorLog.unshift({ time: new Date().toISOString(), context, message: err.message, stack: err.stack });
+  if (errorLog.length > 50) errorLog.pop();
+};
+
 // Helper to handle date filters with Timezone awareness
 const getDateRange = (filter, startDate, endDate, timezoneOffset = 0) => {
   // timezoneOffset is in minutes (e.g. -330 for IST)
@@ -833,6 +840,11 @@ router.get('/staff-activity', auth(['ADMIN']), async (req, res) => {
     console.error('Staff Activity Report Error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// 11. Debug Logs (Black Box)
+router.get('/debug-logs', auth(['ADMIN']), (req, res) => {
+  res.json(errorLog);
 });
 
 module.exports = router;
