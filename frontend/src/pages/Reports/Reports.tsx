@@ -700,18 +700,22 @@ const Reports = () => {
               <span className="font-black text-xl">- ₹{reportData.cogs?.toFixed(2)}</span>
             </div>
             <div className="h-px bg-slate-200"></div>
-            <div className="bg-brand-50 p-6 rounded-2xl border border-brand-100 flex justify-between items-center">
-              <span className="font-bold text-brand-600">Gross Profit</span>
-              <span className="font-black text-2xl text-brand-700">₹{reportData.grossProfit?.toFixed(2)}</span>
+            <div className={`${reportData.grossProfit < 0 ? 'bg-red-50 border-red-100' : 'bg-brand-50 border-brand-100'} p-6 rounded-2xl border flex justify-between items-center transition-colors`}>
+              <span className={`font-bold ${reportData.grossProfit < 0 ? 'text-red-600' : 'text-brand-600'}`}>{reportData.grossProfit < 0 ? 'Gross Loss' : 'Gross Profit'}</span>
+              <span className={`font-black text-2xl ${reportData.grossProfit < 0 ? 'text-red-700' : 'text-brand-700'}`}>₹{Math.abs(reportData.grossProfit)?.toFixed(2)}</span>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center text-red-500">
               <span className="font-bold">Total Expenses</span>
               <span className="font-black text-xl">- ₹{reportData.expenses?.toFixed(2)}</span>
             </div>
             <div className="h-0.5 bg-slate-300"></div>
-            <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 flex justify-between items-center">
-              <span className="font-black text-lg text-emerald-700 uppercase tracking-widest">Net Profit</span>
-              <span className="font-black text-4xl text-emerald-600">₹{reportData.netProfit?.toFixed(2)}</span>
+            <div className={`${reportData.netProfit < 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100'} p-6 rounded-2xl border flex justify-between items-center transition-all duration-500 shadow-sm`}>
+              <span className={`font-black text-lg ${reportData.netProfit < 0 ? 'text-red-700' : 'text-emerald-700'} uppercase tracking-widest`}>
+                {reportData.netProfit < 0 ? 'Net Loss' : 'Net Profit'}
+              </span>
+              <span className={`font-black text-4xl ${reportData.netProfit < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                ₹{Math.abs(reportData.netProfit)?.toFixed(2)}
+              </span>
             </div>
           </div>
         );
