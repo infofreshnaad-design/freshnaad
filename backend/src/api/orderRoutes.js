@@ -133,8 +133,6 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       }
 
       // 4. Create Order + Items + Payment in ONE nested call
-      // ATTEMPT 1: With creatorId (Modern Schema)
-      let newOrder;
       const earnRate = 100;
       const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
@@ -153,6 +151,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         loyaltyPointsEarned,
         loyaltyPointsRedeemed,
         status: 'COMPLETED',
+        creatorId: req.user?.id || null,
         orderItems: {
           create: orderItems.map((item) => {
             const pid = item.productId || item.id;
@@ -181,19 +180,10 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         }
       };
 
-      try {
-        newOrder = await tx.order.create({
-          data: { ...orderBaseData, creatorId: req.user?.id || null },
-          include: { orderItems: { include: { product: true } }, payments: true }
-        });
-      } catch (err) {
-        console.warn('[Order API] Modern create failed, retrying without creatorId:', err.message);
-        // ATTEMPT 2: Without creatorId (Old Schema Fallback)
-        newOrder = await tx.order.create({
-          data: orderBaseData,
-          include: { orderItems: { include: { product: true } }, payments: true }
-        });
-      }
+      const newOrder = await tx.order.create({
+        data: orderBaseData,
+        include: { orderItems: { include: { product: true } }, payments: true }
+      });
 
       // 5. Sequential Sledgehammer Stock Updates (Guaranteed execution via Direct SQL)
       // This bypasses Prisma caching/relation bottlenecks
