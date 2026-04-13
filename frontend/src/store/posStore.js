@@ -4,6 +4,7 @@ const usePOSStore = create((set, get) => ({
   cart: [],
   customer: null,
   loyaltyDiscount: 0,
+  manualDiscount: 0,
   appliedPoints: 0,
   
   initSocket: () => {
@@ -69,15 +70,17 @@ const usePOSStore = create((set, get) => ({
     }),
   })),
 
-  clearCart: () => set({ cart: [], loyaltyDiscount: 0, appliedPoints: 0 }),
+  clearCart: () => set({ cart: [], loyaltyDiscount: 0, manualDiscount: 0, appliedPoints: 0 }),
   
   setCustomer: (customer) => set({ customer, loyaltyDiscount: 0, appliedPoints: 0 }),
 
   setLoyaltyDiscount: (discount, points) => set({ loyaltyDiscount: discount, appliedPoints: points }),
   
+  setManualDiscount: (discount) => set({ manualDiscount: discount }),
+  
   getTotals: () => {
-    const { cart, loyaltyDiscount } = get();
-    if (!cart) return { subtotal: 0, taxTotal: 0, grandTotal: 0, loyaltyDiscount: 0 };
+    const { cart, loyaltyDiscount, manualDiscount } = get();
+    if (!cart) return { subtotal: 0, taxTotal: 0, grandTotal: 0, loyaltyDiscount: 0, manualDiscount: 0 };
     
     const subtotal = cart.reduce(
       (acc, item) => acc + (item.sellingPrice || 0) * (item.quantity || 0),
@@ -91,10 +94,10 @@ const usePOSStore = create((set, get) => ({
       (acc, item) => acc + ((item.mrp || item.sellingPrice || 0) - (item.sellingPrice || 0)) * (item.quantity || 0),
       0
     );
-    const grandTotal = Math.max(0, subtotal + taxTotal - (loyaltyDiscount || 0));
+    const grandTotal = Math.max(0, subtotal + taxTotal - (loyaltyDiscount || 0) - (manualDiscount || 0));
     const roundedTotal = Math.floor(grandTotal);
     
-    return { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount, savings };
+    return { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount, manualDiscount, savings };
   },
 }));
 

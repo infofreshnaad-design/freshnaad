@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, QrCode, CreditCard, Banknote, User, Gift, Plus } from 'lucide-react';
+import { X, CheckCircle2, QrCode, CreditCard, Banknote, User, Gift, Plus, BadgePercent } from 'lucide-react';
 import NumericKeypad from '../components/NumericKeypad';
 import usePOSStore from '../store/posStore';
 import CustomerSelectionModal from './CustomerSelectionModal';
@@ -11,8 +11,8 @@ interface PaymentModalProps {
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose }) => {
-  const { cart, customer, setCustomer, getTotals, loyaltyPointsRedeemed, appliedPoints, setLoyaltyDiscount } = usePOSStore();
-  const { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount } = getTotals();
+  const { cart, customer, setCustomer, getTotals, loyaltyPointsRedeemed, appliedPoints, setLoyaltyDiscount, setManualDiscount } = usePOSStore();
+  const { subtotal, taxTotal, grandTotal, roundedTotal, loyaltyDiscount, manualDiscount } = getTotals();
   
   const [amountPaid, setAmountPaid] = useState(roundedTotal.toString());
   const [isAmountCustom, setIsAmountCustom] = useState(false);
@@ -168,8 +168,44 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
             <div className="text-right">
                <p className="text-brand-200 text-[10px] font-bold uppercase mb-1">Items: {cart.length}</p>
                {loyaltyDiscount > 0 && (
-                 <p className="text-emerald-300 font-bold text-xs">Discount: -₹{loyaltyDiscount.toFixed(2)}</p>
+                 <p className="text-emerald-300 font-bold text-xs mb-0.5">Pts Discount: -₹{loyaltyDiscount.toFixed(2)}</p>
                )}
+               {manualDiscount > 0 && (
+                 <p className="text-orange-300 font-bold text-xs">Extra Disc: -₹{manualDiscount.toFixed(2)}</p>
+               )}
+            </div>
+          </div>
+
+          {/* Manual Discount Section */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-2">
+               <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                 <BadgePercent size={18} />
+               </div>
+               <div>
+                  <span className="text-sm font-bold text-slate-800 block leading-tight">Apply Extra Disc.</span>
+                  <span className="text-[10px] text-slate-400 font-bold block">Limit 25% (₹{Math.floor((subtotal + taxTotal) * 0.25)})</span>
+               </div>
+            </div>
+            <div className="relative">
+               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-black">₹</div>
+               <input 
+                 type="number"
+                 className="w-28 text-right bg-slate-50 border border-slate-200 rounded-xl py-2 pr-3 pl-8 font-black text-slate-800 outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-inner"
+                 value={manualDiscount || ''}
+                 placeholder="0.00"
+                 onChange={(e) => {
+                   let val = parseFloat(e.target.value) || 0;
+                   const absoluteMax = Math.floor((subtotal + taxTotal) * 0.25);
+                   if (val > absoluteMax) {
+                     alert(`Max custom discount allowed is 25% of subtotal (₹${absoluteMax}). Need more? Use loyalty points.`);
+                     val = absoluteMax;
+                   } else if (val < 0) {
+                     val = 0;
+                   }
+                   setManualDiscount(val);
+                 }}
+               />
             </div>
           </div>
 

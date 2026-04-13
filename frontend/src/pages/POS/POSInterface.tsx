@@ -45,6 +45,7 @@ const POSInterface: React.FC = () => {
   const customer = usePOSStore(state => state.customer);
   const setCustomer = usePOSStore(state => state.setCustomer);
   const loyaltyDiscount = usePOSStore(state => state.loyaltyDiscount);
+  const manualDiscount = usePOSStore(state => state.manualDiscount);
   const appliedPoints = usePOSStore(state => state.appliedPoints);
 
   // Helper to determine if a unit allows fractional quantities
@@ -231,7 +232,8 @@ const POSInterface: React.FC = () => {
       amountPaid: parseFloat(amount) || 0,
       balance: Math.max(0, roundedTotal - (parseFloat(amount) || 0)),
       paymentMode: method,
-      discount: loyaltyDiscount,
+      discount: loyaltyDiscount + manualDiscount,
+      manualDiscount: manualDiscount,
       loyaltyPointsRedeemed: appliedPoints,
       customerId: customer?.id || null,
       userName: user?.name || 'Staff',

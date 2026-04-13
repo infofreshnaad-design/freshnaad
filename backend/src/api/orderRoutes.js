@@ -99,7 +99,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   const startTime = Date.now();
 
   try {
-    const { customerId, orderItems, subtotal, discount, taxTotal, grandTotal, roundedTotal, savings, amountPaid, balance, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
+    const { customerId, orderItems, subtotal, discount, manualDiscount, taxTotal, grandTotal, roundedTotal, savings, amountPaid, balance, paymentMode, loyaltyPointsRedeemed = 0 } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
@@ -231,7 +231,29 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         });
       }
 
-      // 6. Socket Events (Optional Emit)
+      // 7. Auto-log Manual Discount as Expense
+      if (manualDiscount && manualDiscount > 0) {
+        // Find or create 'Discount' Category
+        let discountCat = await tx.expenseCategory.findUnique({
+          where: { name: 'Discount' }
+        });
+        
+        if (!discountCat) {
+          discountCat = await tx.expenseCategory.create({
+            data: { name: 'Discount' }
+          });
+        }
+        
+        await tx.expense.create({
+          data: {
+            type: 'Discount',
+            amount: Number(manualDiscount),
+            description: `Checkout discount for Invoice ${invoiceNo}`
+          }
+        });
+      }
+
+      // 8. Socket Events (Optional Emit)
       const io = req.app.get('io');
       if (io) {
         io.emit('INVENTORY_UPDATE', { items: orderItems });
