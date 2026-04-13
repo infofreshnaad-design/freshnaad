@@ -209,6 +209,16 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         });
       }
 
+      // 6. Record Staff Activity for the Sale
+      if (req.user?.id) {
+        await tx.userActivity.create({
+          data: {
+            userId: req.user.id,
+            type: 'SALE'
+          }
+        });
+      }
+
       if (customerId) {
         await tx.customer.update({
           where: { id: customerId },

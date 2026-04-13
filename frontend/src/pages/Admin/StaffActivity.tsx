@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Users, TrendingUp, Clock, Calendar, LogIn, LogOut, IndianRupee, PieChart, ArrowRight } from 'lucide-react';
+import { Users, TrendingUp, Clock, Calendar, LogIn, LogOut, ShoppingCart, IndianRupee, PieChart, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 
 interface Activity {
     id: string;
-    type: 'LOGIN' | 'LOGOUT';
+    type: 'LOGIN' | 'LOGOUT' | 'SALE';
     createdAt: string;
 }
 
@@ -125,8 +125,8 @@ const StaffActivity = () => {
                                 <div className="absolute left-[17px] top-6 bottom-6 w-0.5 bg-slate-100"></div>
                                 {stats.flatMap(u => u.recentActivities.map(a => ({ ...a, user: u.name }))).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10).map((activity, idx) => (
                                     <div key={idx} className="flex gap-4 relative z-10">
-                                        <div className={`w-9 h-9 flex items-center justify-center rounded-xl shadow-sm border ${activity.type === 'LOGIN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                                            {activity.type === 'LOGIN' ? <LogIn size={16} /> : <LogOut size={16} />}
+                                        <div className={`w-9 h-9 flex items-center justify-center rounded-xl shadow-sm border ${activity.type === 'LOGIN' ? 'bg-green-50 text-green-600 border-green-100' : activity.type === 'SALE' ? 'bg-brand-50 text-brand-600 border-brand-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                                            {activity.type === 'LOGIN' ? <LogIn size={16} /> : activity.type === 'SALE' ? <ShoppingCart size={16} /> : <LogOut size={16} />}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start mb-0.5">
@@ -134,10 +134,11 @@ const StaffActivity = () => {
                                                 <span className="text-[10px] font-black text-slate-400 uppercase">{new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                             <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">
-                                                {activity.type === 'LOGIN' ? 'Logged into Terminal' : 'Logged out of Session'}
+                                                {activity.type === 'LOGIN' ? 'Logged into Terminal' : activity.type === 'SALE' ? 'Processed a Sale' : 'Logged out of Session'}
                                             </p>
                                             <div className="text-[9px] text-slate-300 mt-1 flex items-center gap-1 font-bold">
                                                 <Calendar size={10} />
+
                                                 {new Date(activity.createdAt).toLocaleDateString()}
                                             </div>
                                         </div>
