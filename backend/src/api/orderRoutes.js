@@ -108,20 +108,13 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       });
       const productMap = new Map(productsFromDb.map(p => [p.id, p]));
 
-      // 2. Generate Collision-Proof Sequential Invoice Number
-      // Search for the absolute max invoice number ignoring the 9000-series
-      const allOrders = await tx.order.findMany({
-        where: { 
-          NOT: { invoiceNo: { startsWith: '9' } }
-        },
-        select: { invoiceNo: true }
-      });
-      
-      const invoiceNums = allOrders
-        .map(o => parseInt(o.invoiceNo))
-        .filter(n => !isNaN(n));
-      
-      const maxNum = invoiceNums.length > 0 ? Math.max(...invoiceNums) : 99;
+      // 2. Generate Collision-Proof Sequential Invoice Number (RAW SQL MAX)
+      const rawMax = await tx.$queryRaw`
+        SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
+        FROM "Order" 
+        WHERE "invoiceNo" ~ '^[0-9]+$' AND "invoiceNo" NOT LIKE '9%'
+      `;
+      const maxNum = Number(rawMax[0]?.maxNum) || 99;
       const invoiceNo = (maxNum + 1).toString();
 
       // 3. Validation & Stock Check
@@ -188,20 +181,25 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         }
       });
 
-      // 5. Sequential Stock Updates (Guaranteed execution)
+      // 5. Sequential Sledgehammer Stock Updates (Guaranteed execution via Direct SQL)
+      // This bypasses Prisma caching/relation bottlenecks
       for (const item of orderItems) {
         const pid = item.productId || item.id;
-        // Decrement Product Stock
-        await tx.product.update({
-          where: { id: pid },
-          data: { stockQuantity: { decrement: Number(item.quantity) } }
-        });
+        const qty = Number(item.quantity) || 0;
+        
+        // Decrement Product Stock via Raw SQL for maximum reliability
+        await tx.$executeRaw`
+          UPDATE "Product" 
+          SET "stockQuantity" = "stockQuantity" - ${qty} 
+          WHERE id = ${pid}
+        `;
+
         // Create Inventory Log
         await tx.inventoryLog.create({
           data: {
             productId: pid,
             type: 'OUT',
-            quantity: item.quantity,
+            quantity: qty,
             reason: `Order ${invoiceNo}`
           }
         });
