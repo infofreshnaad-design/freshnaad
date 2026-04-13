@@ -99,11 +99,16 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
       // 2. Generate Sequential Invoice Number
       const latestOrder = await tx.order.findFirst({
+        where: {
+            NOT: {
+              invoiceNo: { startsWith: '9' }
+            }
+        },
         orderBy: { createdAt: 'desc' },
         select: { invoiceNo: true }
       });
       
-      let nextNum = 1001;
+      let nextNum = 100;
       if (latestOrder) {
         const match = latestOrder.invoiceNo.match(/\d+/);
         if (match) nextNum = parseInt(match[0]) + 1;

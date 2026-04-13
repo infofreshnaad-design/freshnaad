@@ -206,9 +206,9 @@ const POSInterface: React.FC = () => {
     const localOrders = await offlineDB.getAll('orders');
     const numericInvoices = localOrders
       .map(o => parseInt(o.invoiceNo))
-      .filter(n => !isNaN(n));
+      .filter(n => !isNaN(n) && n < 9000); // Filter out the accidental 9000 series
     
-    const maxLocal = numericInvoices.length > 0 ? Math.max(...numericInvoices) : 1000;
+    const maxLocal = numericInvoices.length > 0 ? Math.max(...numericInvoices) : 99;
     const nextInvoiceNo = (maxLocal + 1).toString();
     
     const orderData = {
