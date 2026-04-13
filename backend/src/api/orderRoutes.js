@@ -135,6 +135,9 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       // 4. Create Order + Items + Payment in ONE nested call
       // ATTEMPT 1: With creatorId (Modern Schema)
       let newOrder;
+      const earnRate = 100;
+      const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
+
       const orderBaseData = {
         invoiceNo,
         customerId,
