@@ -246,20 +246,10 @@ const POSInterface: React.FC = () => {
     };
 
     try {
-      let finalOrderData = { ...orderData, isSyncing: false };
-      
-      // 1. SYNC TO SERVER FIRST
-      if (isOnline) {
-        const response = await api.post('/orders', orderData, {
-          headers: { 'x-terminal-id': 'T1' }
-        });
-        finalOrderData = { ...orderData, ...response.data, isSyncing: false, isSynced: true };
-      } else {
-        await addToSyncQueue('CREATE_ORDER', orderData);
-        finalOrderData.isSynced = false;
-      }
+      // Optimistic UI state
+      let finalOrderData = { ...orderData, isSyncing: true, isSynced: false };
 
-      // 2. LOCAL PERSISTENCE & STOCK GUARD
+      // 1. LOCAL PERSISTENCE & STOCK GUARD (Fast, 0ms latency)
       try {
         await offlineDB.put('orders', finalOrderData);
         const offlineProducts = await offlineDB.getAll('products');
@@ -276,31 +266,44 @@ const POSInterface: React.FC = () => {
         console.error('Local persistence failed:', err);
       }
       
-      if (isOnline) {
-        setTimeout(() => fetchProducts().catch(() => {}), 100);
-      }
-
-      // 3. UI TRANSITION (ONLY ON SUCCESS)
+      // 2. UI TRANSITION (INSTANT)
       setRecentOrder(finalOrderData);
       clearCart();
       setIsPaymentModalOpen(false);
       setIsPreviewOpen(true);
-      
-      // 4. FIRE AND FORGET WHATSAPP RECEIPT (True Asynchronous decoupling)
-      if (isOnline && finalOrderData.customer?.phone) {
-        api.post('/orders/share-whatsapp', { 
-            orderId: finalOrderData.id || finalOrderData.invoiceNo, 
-            phone: finalOrderData.customer.phone 
-        }).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
+
+      // 3. TRUE BACKGROUND SERVER SYNC
+      if (isOnline) {
+        api.post('/orders', orderData, {
+          headers: { 'x-terminal-id': 'T1' }
+        }).then(response => {
+          const syncedData = { ...orderData, ...response.data, isSyncing: false, isSynced: true };
+          offlineDB.put('orders', syncedData).catch(() => {});
+          
+          // Silently update live receipt state if it's still open
+          setRecentOrder(prev => prev?.id === finalOrderData.id ? syncedData : prev);
+          
+          // Fire WhatsApp ONLY after successful sync completion
+          if (syncedData.customer?.phone) {
+             api.post('/orders/share-whatsapp', { 
+                 orderId: syncedData.id || syncedData.invoiceNo, 
+                 phone: syncedData.customer.phone 
+             }).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
+          }
+          
+          // Trigger silent stock reload
+          setTimeout(() => fetchProducts().catch(() => {}), 100);
+        }).catch(async (error) => {
+          console.error('Checkout Sync Failed, added to queue:', error);
+          await addToSyncQueue('CREATE_ORDER', orderData);
+        });
+      } else {
+        await addToSyncQueue('CREATE_ORDER', orderData);
       }
       
     } catch (error: any) {
-      console.error('Checkout Sync Failed:', error);
-      const errorMsg = error.response?.data?.error || error.message || "Unknown Server Error";
-      alert(`Checkout Failed! The server rejected the sale.\nReason: ${errorMsg}`);
-      
-      // We explicitly log this to the console for the black box
-      throw new Error(`Checkout sync failure: ${errorMsg}`);
+      console.error('Critical Layout Error:', error);
+      alert('A critical error occurred while attempting to process the layout.');
     }
   };
 
