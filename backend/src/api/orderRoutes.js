@@ -265,7 +265,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
     console.log(`[Order API] Success! Processed in ${Date.now() - startTime}ms`);
 
-    res.json(newOrder);
+    res.json(order);
     
     // Note: WhatsApp messaging has been decoupled. The frontend now independently 
     // triggers the /share-whatsapp endpoint asynchronously after the UI seamlessly transitions.
