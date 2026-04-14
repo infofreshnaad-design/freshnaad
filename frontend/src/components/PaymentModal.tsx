@@ -18,14 +18,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   const [isAmountCustom, setIsAmountCustom] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
-
-  // Reset confirmation if anything changes
-  useEffect(() => {
-    setIsConfirming(false);
-  }, [amountPaid, paymentMethod, customer]);
 
   // Smarter Sync: Auto-update if total changes (e.g. loyalty points applied)
   useEffect(() => {
@@ -69,14 +63,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
       return;
     }
 
-    // Safety Step 1: Request Confirmation first
-    if (!isConfirming) {
-      setIsConfirming(true);
-      return;
-    }
-    
     if (isCreditMode && numAmount < roundedTotal && !window.confirm(`You are processing a Credit Sale of ₹${Math.abs(change).toFixed(2)}. Proceed?`)) {
-      setIsConfirming(false);
       return;
     }
     
@@ -279,21 +266,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
           <button 
             disabled={loading || isAmountInsufficient}
             onClick={submitPayment}
-            className={`w-full h-16 md:h-20 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-1 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 ${isAmountInsufficient ? 'bg-slate-300' : (isConfirming ? 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700' : 'bg-slate-900 hover:bg-slate-800')}`}
+            className={`w-full h-16 md:h-20 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-1 transition-all shadow-xl active:scale-[0.98] disabled:opacity-50 ${isAmountInsufficient ? 'bg-slate-300' : 'bg-emerald-600 ring-4 ring-emerald-100 hover:bg-emerald-700 text-white'}`}
           >
             {loading ? (
               <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
                 <div className={`flex items-center gap-3 ${isAmountInsufficient ? 'text-slate-500' : 'text-white'}`}>
-                  {isAmountInsufficient ? <X size={24} /> : (isConfirming ? <CheckCircle2 size={24} /> : <Banknote size={24} />)}
-                  <span>{isAmountInsufficient ? 'INSUFFICIENT AMOUNT' : (isConfirming ? 'CONFIRM PAYMENT' : 'PROCESS CHECKOUT')}</span>
+                  {isAmountInsufficient ? <X size={24} /> : <CheckCircle2 size={24} />}
+                  <span>{isAmountInsufficient ? 'INSUFFICIENT AMOUNT' : 'PROCESS CHECKOUT'}</span>
                 </div>
-                {isConfirming && !isAmountInsufficient && (
-                  <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
-                    {paymentMethod} • ₹{amountPaid}
-                  </span>
-                )}
               </>
             )}
           </button>
