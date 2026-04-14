@@ -142,9 +142,6 @@ export class EscPosBuilder {
            .feed(1)
            .line('THANK YOU VISIT AGAIN')
            .line('Digital Bill by Fresh Naad')
-           .bold(true)
-           .line('Software by NIVAN SOLUTIONS')
-           .bold(false)
            .feed(3)
            .cut();
 
