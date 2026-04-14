@@ -344,9 +344,6 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <div className="mt-3 text-center border-t border-slate-900 pt-2 font-bold text-xs uppercase">
               THANK YOU VISIT AGAIN
             </div>
-            <div className="text-center font-black text-xs mt-1 uppercase">
-              SOFTWARE BY NIVAN SOLUTIONS
-            </div>
           </div>
 
           <div className="p-6 bg-white border-t flex flex-col gap-4 print:hidden">
