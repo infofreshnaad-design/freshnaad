@@ -99,10 +99,22 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   const startTime = Date.now();
 
   try {
-    const { customerId, orderItems, subtotal, discount, manualDiscount, taxTotal, grandTotal, roundedTotal, savings, amountPaid, balance, paymentMode, orderType, loyaltyPointsRedeemed = 0 } = req.body;
+    const { id, invoiceNo: clientInvoiceNo, customerId, orderItems, subtotal, discount, manualDiscount, taxTotal, grandTotal, roundedTotal, savings, amountPaid, balance, paymentMode, orderType, loyaltyPointsRedeemed = 0 } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ error: 'Order must contain at least one item.' });
+    }
+
+    // 0. IDEMPOTENCY CHECK: If ID already exists, just return the existing order
+    if (id) {
+      const existing = await prisma.order.findUnique({ 
+        where: { id },
+        include: { orderItems: { include: { product: true } }, payments: true }
+      });
+      if (existing) {
+        console.log(`[Order API] Idempotency Hit: Order ${id} already exists. Returning existing.`);
+        return res.json(existing);
+      }
     }
 
     const order = await prisma.$transaction(async (tx) => {
@@ -113,14 +125,20 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       });
       const productMap = new Map(productsFromDb.map(p => [p.id, p]));
 
-      // 2. Generate Collision-Proof Sequential Invoice Number (RAW SQL MAX)
-      const rawMax = await tx.$queryRaw`
-        SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
-        FROM "Order" 
-        WHERE "invoiceNo" ~ '^[0-9]+$' AND "invoiceNo" NOT LIKE '9%'
-      `;
-      const maxNum = Number(rawMax[0]?.maxNum) || 99;
-      const invoiceNo = (maxNum + 1).toString();
+      // 2. Determine Invoice Number (Trust Client first, Fallback to Server Seq)
+      let invoiceNo = clientInvoiceNo;
+      
+      const existingNum = await tx.order.findUnique({ where: { invoiceNo: String(clientInvoiceNo) } });
+      if (!clientInvoiceNo || existingNum) {
+          // If client provided no number or it's already taken, calculate next safe one
+          const rawMax = await tx.$queryRaw`
+            SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
+            FROM "Order" 
+            WHERE "invoiceNo" ~ '^[0-9]+$' AND "invoiceNo" NOT LIKE '9%'
+          `;
+          const maxNum = Number(rawMax[0]?.maxNum) || 99;
+          invoiceNo = (maxNum + 1).toString();
+      }
 
       // 3. Validation & Stock Check
       for (const item of orderItems) {
@@ -137,6 +155,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
       const orderBaseData = {
+        id: id || undefined, // Respect the Client's Optimistic ID
         invoiceNo,
         customerId,
         subtotal,

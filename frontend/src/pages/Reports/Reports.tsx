@@ -141,11 +141,20 @@ const Reports = () => {
           const detailsList = data.details || data.transactions || [];
           
           if (Array.isArray(detailsList)) {
-            // Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
+            // 2.a Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
+            // OR contextually deduplicate if the amount and time are nearly identical (handles numbering jumps)
             const unsynced = offlineOrders.filter(o => {
-              const isNotOnServer = detailsList.every((existingOrder: any) => 
-                existingOrder.id !== o.id && existingOrder.serverId !== o.id
-              );
+              const isNotOnServer = detailsList.every((ex: any) => {
+                const idMatch = ex.id === o.id || ex.serverId === o.id;
+                
+                // Fuzzy match: same amount (+/- 1 Rupee) and same time (+/- 5 mins)
+                const exTime = new Date(ex.createdAt || ex.date).getTime();
+                const oTime = new Date(o.createdAt || o.date).getTime();
+                const timeMatch = Math.abs(exTime - oTime) < 5 * 60 * 1000;
+                const amountMatch = Math.abs((ex.grandTotal || ex.amount) - o.grandTotal) < 1;
+                
+                return !(idMatch || (timeMatch && amountMatch));
+              });
               // Only include if NOT synced AND truly missing from the server list
               return !o.isSynced && isNotOnServer;
             });
