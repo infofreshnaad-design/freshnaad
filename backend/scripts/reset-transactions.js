@@ -25,6 +25,7 @@ async function main() {
     if (prisma.purchaseOrder) await prisma.purchaseOrder.deleteMany({});
     await prisma.purchase.deleteMany({});
     await prisma.expense.deleteMany({});
+    if (prisma.userActivity) await prisma.userActivity.deleteMany({});
 
     console.log('Step 4: Resetting Customer Balances...');
     await prisma.customer.updateMany({

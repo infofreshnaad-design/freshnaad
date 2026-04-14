@@ -286,6 +286,14 @@ const POSInterface: React.FC = () => {
       setIsPaymentModalOpen(false);
       setIsPreviewOpen(true);
       
+      // 4. FIRE AND FORGET WHATSAPP RECEIPT (True Asynchronous decoupling)
+      if (isOnline && finalOrderData.customer?.phone) {
+        api.post('/orders/share-whatsapp', { 
+            orderId: finalOrderData.id || finalOrderData.invoiceNo, 
+            phone: finalOrderData.customer.phone 
+        }).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
+      }
+      
     } catch (error: any) {
       console.error('Checkout Sync Failed:', error);
       const errorMsg = error.response?.data?.error || error.message || "Unknown Server Error";
