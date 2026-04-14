@@ -200,9 +200,11 @@ const POSInterface: React.FC = () => {
     };
   }, [products, addToCart]);
 
-  const handlePaymentComplete = async (method: string, amount: string) => {
+  const handlePaymentComplete = async (method: string, amount: string, orderType: string = 'Walk-in') => {
+    if (cart.length === 0) return;
+
     const { subtotal, taxTotal, grandTotal, roundedTotal, savings } = getTotals();
-    
+
     // DETECT NEXT SEQUENTIAL INVOICE NO
     const localOrders = await offlineDB.getAll('orders');
     const numericInvoices = localOrders
@@ -235,6 +237,7 @@ const POSInterface: React.FC = () => {
       amountPaid: parseFloat(amount) || 0,
       balance: Math.max(0, roundedTotal - (parseFloat(amount) || 0)),
       paymentMode: method,
+      orderType: orderType, // Added Order Type
       discount: loyaltyDiscount + manualDiscount,
       manualDiscount: manualDiscount,
       loyaltyPointsRedeemed: appliedPoints,

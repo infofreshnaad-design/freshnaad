@@ -6,7 +6,7 @@ import CustomerSelectionModal from './CustomerSelectionModal';
 import RedeemPointsModal from './RedeemPointsModal';
 
 interface PaymentModalProps {
-  onPaymentComplete: (method: string, amount: string) => Promise<void>;
+  onPaymentComplete: (method: string, amount: string, orderType: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -17,6 +17,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
   const [amountPaid, setAmountPaid] = useState(roundedTotal.toString());
   const [isAmountCustom, setIsAmountCustom] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [orderType, setOrderType] = useState('Walk-in'); // Order Type State
   const [loading, setLoading] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
@@ -69,7 +70,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
     
     setLoading(true);
     try {
-      await onPaymentComplete(paymentMethod, amountPaid);
+      await onPaymentComplete(paymentMethod, amountPaid, orderType);
     } catch (err) {
       console.error('Payment Error:', err);
       setLoading(false);
@@ -193,6 +194,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                    setManualDiscount(val);
                  }}
                />
+            </div>
+          </div>
+
+          {/* Order Type Section */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">Order Type</h3>
+            <div className="flex bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+              <button
+                onClick={() => setOrderType('Walk-in')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all shadow-sm ${orderType === 'Walk-in' ? 'bg-white text-brand-600 border border-brand-100' : 'bg-transparent text-slate-400 hover:text-slate-600 shadow-none border border-transparent'}`}
+              >Walk-in</button>
+              <button
+                onClick={() => setOrderType('Delivery')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all shadow-sm ${orderType === 'Delivery' ? 'bg-white text-orange-600 border border-orange-100' : 'bg-transparent text-slate-400 hover:text-slate-600 shadow-none border border-transparent'}`}
+              >Delivery</button>
             </div>
           </div>
 

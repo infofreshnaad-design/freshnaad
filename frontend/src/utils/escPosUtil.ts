@@ -94,6 +94,7 @@ export class EscPosBuilder {
            .line(`Invoice : ${order.invoiceNo || 'N/A'}`)
            .line(`Date    : ${new Date(order.createdAt || Date.now()).toLocaleString()}`)
            .line(`Cust    : ${order.customer?.name || order.customerName || 'Walk-in'}`)
+           .line(`Type    : ${order.orderType || 'Walk-in'}`)
            .line('------------------------------------------------'); // 48 chars (80mm)
 
     // Items Header (6 cols: #, Desc, Qty, FRP, MRP, Total)

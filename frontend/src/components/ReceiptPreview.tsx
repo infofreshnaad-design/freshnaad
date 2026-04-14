@@ -105,6 +105,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <div class="dashed-border"></div>
             <div style="margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
               <div class="total-row"><span>Cust : ${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
+              <div class="total-row"><span>Type : ${order.orderType || 'Walk-in'}</span></div>
               <div class="total-row"><span>Invoice : ${order.invoiceNo}</span></div>
             </div>
             <table>
@@ -255,6 +256,10 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between">
                 <span>Cust :</span>
                 <span className="font-bold">{order.customer?.name || order.customerName || 'Walk-in'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Type :</span>
+                <span className="font-bold text-orange-600 uppercase text-[9.5px] tracking-tight">{order.orderType || 'Walk-in'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Invoice :</span>

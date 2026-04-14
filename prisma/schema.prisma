@@ -166,6 +166,7 @@ model Order {
   loyaltyPointsEarned   Int         @default(0)
   loyaltyPointsRedeemed Int         @default(0)
   paymentMode           String      
+  orderType             String      @default("Walk-in")
   status                String      @default("COMPLETED")
   orderItems            OrderItem[]
   payments              Payment[]
