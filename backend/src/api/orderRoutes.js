@@ -512,4 +512,71 @@ router.patch('/:id/settle-credit', auth(['ADMIN', 'MANAGER']), async (req, res) 
   }
 });
 
+// Delete existing order completely (with inventory reversal)
+router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const { id } = req.params;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Fetch old order with items
+      const oldOrder = await tx.order.findUnique({
+        where: { id },
+        include: { orderItems: true, customer: true }
+      });
+      if (!oldOrder) throw new Error('Order not found');
+
+      // 2. REVERSE: Old Loyalty and Spending
+      if (oldOrder.customerId) {
+        await tx.customer.update({
+          where: { id: oldOrder.customerId },
+          data: {
+            // Prevent negative points
+            loyaltyPoints: { decrement: Math.min(oldOrder.customer.loyaltyPoints, (oldOrder.loyaltyPointsEarned || 0) - (oldOrder.loyaltyPointsRedeemed || 0)) },
+            totalSpent: { decrement: oldOrder.grandTotal },
+            creditBalance: { decrement: oldOrder.balance || 0 }
+          }
+        });
+      }
+
+      // 3. Reverse old items (Increment stock back)
+      for (const item of oldOrder.orderItems) {
+        if (!item.productId) continue;
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { increment: item.quantity } }
+        });
+        await tx.inventoryLog.create({
+          data: {
+            productId: item.productId,
+            type: 'IN',
+            quantity: item.quantity,
+            reason: `Delete Reverse: ${oldOrder.invoiceNo}`
+          }
+        });
+      }
+
+      // 4. Delete mappings and the order itself
+      await tx.orderItem.deleteMany({ where: { orderId: id } });
+      await tx.payment.deleteMany({ where: { orderId: id } });
+      await tx.order.delete({ where: { id } });
+
+      // 5. Emit events
+      const io = req.app.get('io');
+      if (io) {
+          // Dummy inventory update emit to trigger refresh
+          io.emit('INVENTORY_UPDATE', { items: oldOrder.orderItems });
+          // Note: Frontend likely only cares about fetching reports again, but we emit anyway
+      }
+
+    }, { timeout: 30000 });
+
+    console.log(`[Order API] Delete Success in ${Date.now() - startTime}ms`);
+    res.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('[Order API] Delete FAILED:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

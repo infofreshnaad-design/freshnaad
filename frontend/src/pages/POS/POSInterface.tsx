@@ -40,7 +40,7 @@ const POSInterface: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const isOnline = useNetworkStatus();
-  const { isConnected, disconnect, ensureConnected } = useBluetoothPrinter();
+  const { isConnected, disconnect, connect } = useBluetoothPrinter();
   
   const customer = usePOSStore(state => state.customer);
   const setCustomer = usePOSStore(state => state.setCustomer);
@@ -342,7 +342,7 @@ const POSInterface: React.FC = () => {
           </div>
 
           <button 
-            onClick={() => isConnected ? disconnect() : ensureConnected().catch(() => {})}
+            onClick={() => isConnected ? disconnect() : connect().catch(() => {})}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-400'} hover:bg-white/5`}
             title={isConnected ? "Click to release printer" : "Click to connect to printer"}
           >

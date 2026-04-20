@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2 } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
+import ReceiptPreview from '../../components/ReceiptPreview';
 import CreditSettlementModal from '../../components/CreditSettlementModal';
 import { Coins } from 'lucide-react';
 import { offlineDB } from '../../utils/offlineDB';
@@ -79,6 +80,8 @@ const Reports = () => {
   // Credit settlement state
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
   const [selectedSettleOrder, setSelectedSettleOrder] = useState<any>(null);
+  const [printPreviewOrder, setPrintPreviewOrder] = useState<any>(null);
+  const [isFetchingPrint, setIsFetchingPrint] = useState<string | null>(null);
 
   // Initial load for specific entities
   useEffect(() => {
@@ -391,8 +394,10 @@ const Reports = () => {
                   <tr>
                     <th className="p-4">Date</th>
                     <th className="p-4">Invoice</th>
+                    {activeReport === 'sales' && <th className="p-4 text-center">Print</th>}
                     {activeReport === 'sales' ? <th className="p-4">Customer</th> : <th className="p-4">Supplier</th>}
                     <th className="p-4 text-right">Amount</th>
+                    {activeReport === 'sales' && <th className="p-4 text-center">Action</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
@@ -410,6 +415,29 @@ const Reports = () => {
                           {item.invoiceNo}
                         </button>
                       </td>
+                      {activeReport === 'sales' && (
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                setIsFetchingPrint(item.id);
+                                try {
+                                    const res = await api.get(`/orders/${item.id}`);
+                                    setPrintPreviewOrder(res.data);
+                                } catch (err) {
+                                    alert('Failed to load bill details for printing');
+                                } finally {
+                                    setIsFetchingPrint(null);
+                                }
+                            }}
+                            disabled={isFetchingPrint === item.id}
+                            className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all disabled:opacity-50"
+                            title="Print Bill"
+                          >
+                             {isFetchingPrint === item.id ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
+                          </button>
+                        </td>
+                      )}
                       <td className="p-4">
                         {activeReport === 'sales' ? (
                           (item.customerId || item.customer?.id) ? (
@@ -427,6 +455,27 @@ const Reports = () => {
                         )}
                       </td>
                       <td className="p-4 text-right font-bold text-slate-900">₹{item.grandTotal.toFixed(2)}</td>
+                      {activeReport === 'sales' && (
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Are you sure you want to permanently delete this bill? This action cannot be undone and will reverse inventory and loyalty points.')) {
+                                    try {
+                                        await api.delete(`/orders/${item.id}`);
+                                        fetchReport(); // Refresh the list
+                                    } catch (err: any) {
+                                        alert('Failed to delete bill: ' + (err.response?.data?.error || err.message));
+                                    }
+                                }
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete Bill"
+                          >
+                             <Trash2 size={16} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -1512,6 +1561,14 @@ const Reports = () => {
               </div>
            </div>
         </div>
+      )}
+      
+      {/* Print Preview Modal */}
+      {printPreviewOrder && (
+        <ReceiptPreview
+          order={printPreviewOrder}
+          onClose={() => setPrintPreviewOrder(null)}
+        />
       )}
     </div>
   );

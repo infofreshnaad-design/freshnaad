@@ -172,7 +172,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                </div>
                <div>
                   <span className="text-sm font-bold text-slate-800 block leading-tight">Apply Extra Disc.</span>
-                  <span className="text-[10px] text-slate-400 font-bold block">Limit 25% (₹{Math.floor((subtotal + taxTotal) * 0.25)})</span>
+                  <span className="text-[10px] text-slate-400 font-bold block">Limit 10% (₹{Math.floor((subtotal + taxTotal) * 0.10)})</span>
                </div>
             </div>
             <div className="relative">
@@ -184,9 +184,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ onPaymentComplete, onClose 
                  placeholder="0.00"
                  onChange={(e) => {
                    let val = parseFloat(e.target.value) || 0;
-                   const absoluteMax = Math.floor((subtotal + taxTotal) * 0.25);
+                   const absoluteMax = Math.floor((subtotal + taxTotal) * 0.10);
                    if (val > absoluteMax) {
-                     alert(`Max custom discount allowed is 25% of subtotal (₹${absoluteMax}). Need more? Use loyalty points.`);
+                     alert(`Max custom discount allowed is 10% of subtotal (₹${absoluteMax}). Need more? Use loyalty points.`);
                      val = absoluteMax;
                    } else if (val < 0) {
                      val = 0;
