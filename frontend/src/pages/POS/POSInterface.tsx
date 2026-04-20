@@ -343,11 +343,11 @@ const POSInterface: React.FC = () => {
 
           <button 
             onClick={() => isConnected ? disconnect() : connect().catch(() => {})}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-400'} hover:bg-white/5`}
-            title={isConnected ? "Click to release printer" : "Click to connect to printer"}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : 'bg-brand-primary/10 border-brand-primary/30 text-brand-primary'} hover:bg-white/5`}
+            title={isConnected ? "Click to release printer" : "Click to authorize printer"}
           >
             {isConnected ? <Bluetooth size={14} className="animate-pulse" /> : <BluetoothOff size={14} />}
-            <span className="hidden xs:block tracking-[0.15em]">{isConnected ? 'BT PRINTER: READY' : 'BT PRINTER: OFF'}</span>
+            <span className="hidden xs:block tracking-[0.15em]">{isConnected ? 'BT PRINTER: READY' : 'CONNECT PRINTER'}</span>
           </button>
 
           <div className="h-6 w-px bg-white/10 hidden sm:block mx-1"></div>
@@ -537,8 +537,7 @@ const POSInterface: React.FC = () => {
                       <div className="flex items-center bg-slate-100 rounded-lg p-0.5 md:p-1">
                         <button 
                           onClick={() => {
-                            const step = isFractionalUnit(item.unit) ? 0.1 : 1;
-                            updateQuantity(item.id, Math.max(step, item.quantity - step));
+                            updateQuantity(item.id, Math.max(1, item.quantity - 1));
                           }}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-500"
                         >
@@ -546,21 +545,18 @@ const POSInterface: React.FC = () => {
                         </button>
                         <input 
                           type="number" 
-                          step={isFractionalUnit(item.unit) ? "0.001" : "1"}
+                          step="1"
+                          min="1"
                           value={item.quantity}
                           onChange={(e) => {
-                            let val = parseFloat(e.target.value) || 0;
-                            if (!isFractionalUnit(item.unit)) {
-                              val = Math.round(val);
-                            }
+                            let val = Math.max(1, Math.round(parseFloat(e.target.value) || 1));
                             updateQuantity(item.id, val);
                           }}
                           className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
                         />
                         <button 
                           onClick={() => {
-                            const step = isFractionalUnit(item.unit) ? 0.1 : 1;
-                            updateQuantity(item.id, item.quantity + step);
+                            updateQuantity(item.id, item.quantity + 1);
                           }}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600"
                         >
