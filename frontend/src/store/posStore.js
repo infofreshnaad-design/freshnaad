@@ -73,7 +73,7 @@ const usePOSStore = create(
     }),
   })),
 
-  clearCart: () => set({ cart: [], loyaltyDiscount: 0, manualDiscount: 0, appliedPoints: 0 }),
+  clearCart: () => set({ cart: [], customer: null, loyaltyDiscount: 0, manualDiscount: 0, appliedPoints: 0 }),
   
   setCustomer: (customer) => set({ customer, loyaltyDiscount: 0, appliedPoints: 0 }),
 

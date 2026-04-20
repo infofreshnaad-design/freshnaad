@@ -242,6 +242,7 @@ const POSInterface: React.FC = () => {
       manualDiscount: manualDiscount,
       loyaltyPointsRedeemed: appliedPoints,
       customerId: customer?.id || null,
+      customer: customer,
       userName: user?.name || 'Staff',
       creatorId: user?.id || null,
       createdAt: new Date().toISOString(),
