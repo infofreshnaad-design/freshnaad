@@ -118,9 +118,19 @@ const POSInterface: React.FC = () => {
     fetchProducts('', id);
   };
 
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    fetchProducts(e.target.value, selectedCategoryId);
+    const val = e.target.value;
+    setSearch(val);
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchProducts(val, selectedCategoryId);
+    }, 300);
   };
 
   const toggleFullscreen = () => {
