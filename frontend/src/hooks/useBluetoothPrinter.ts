@@ -11,6 +11,8 @@ const SUPPORTED_SERVICES = [
 
 const PRINTER_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
 
+let hasAttemptedAutoReconnect = false;
+
 export const useBluetoothPrinter = () => {
   const { 
     device, 
@@ -25,6 +27,69 @@ export const useBluetoothPrinter = () => {
   } = usePrinterStore();
 
   const isPrintingRef = useRef(false);
+
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (hasAttemptedAutoReconnect) return;
+      hasAttemptedAutoReconnect = true;
+
+      const bluetooth = (navigator as any).bluetooth;
+      if (bluetooth && bluetooth.getDevices) {
+        try {
+          const devices = await bluetooth.getDevices();
+          if (devices && devices.length > 0) {
+            const dev = devices[0];
+            
+            dev.addEventListener('gattserverdisconnected', () => {
+              setIsConnected(false);
+              setCharacteristic(null);
+            });
+
+            setDevice(dev);
+            
+            try {
+              const server = await dev.gatt.connect();
+              let service;
+              for (const uuid of SUPPORTED_SERVICES) {
+                try {
+                  service = await server.getPrimaryService(uuid);
+                  if (service) break;
+                } catch (e) { continue; }
+              }
+              if (!service) {
+                try {
+                  const services = await server.getPrimaryServices();
+                  if (services.length > 0) service = services[0];
+                } catch (e) {}
+              }
+
+              if (service) {
+                let char;
+                try {
+                  char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+                } catch (e) {
+                  const characteristics = await service.getCharacteristics();
+                  char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+                }
+                
+                if (char) {
+                  setCharacteristic(char);
+                  setIsConnected(true);
+                  console.log('Bluetooth Auto-reconnected!');
+                }
+              }
+            } catch (err) {
+              console.warn('Auto-reconnect GATT failed', err);
+            }
+          }
+        } catch (err) {
+          console.warn('getDevices() failed', err);
+        }
+      }
+    };
+
+    autoConnect();
+  }, [setDevice, setCharacteristic, setIsConnected]);
 
   const connect = useCallback(async () => {
     try {
