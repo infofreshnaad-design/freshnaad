@@ -95,7 +95,7 @@ async function generateExcel() {
 
     // 1. Fetch and format Products
     const products = await prisma.product.findMany({
-      include: { category: true, supplier: true } // Though supplier might be string, it has a supplierId relation now
+      include: { category: true } 
     });
     const productData = products.map(p => ({
       'ID': p.id,

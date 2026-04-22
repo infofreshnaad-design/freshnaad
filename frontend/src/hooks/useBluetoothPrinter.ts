@@ -47,39 +47,45 @@ export const useBluetoothPrinter = () => {
 
             setDevice(dev);
             
-            try {
-              const server = await dev.gatt.connect();
-              let service;
-              for (const uuid of SUPPORTED_SERVICES) {
-                try {
-                  service = await server.getPrimaryService(uuid);
-                  if (service) break;
-                } catch (e) { continue; }
-              }
-              if (!service) {
-                try {
-                  const services = await server.getPrimaryServices();
-                  if (services.length > 0) service = services[0];
-                } catch (e) {}
-              }
+            let connected = false;
+            for (let i = 0; i < 5; i++) {
+              try {
+                const server = await dev.gatt.connect();
+                let service;
+                for (const uuid of SUPPORTED_SERVICES) {
+                  try {
+                    service = await server.getPrimaryService(uuid);
+                    if (service) break;
+                  } catch (e) { continue; }
+                }
+                if (!service) {
+                  try {
+                    const services = await server.getPrimaryServices();
+                    if (services.length > 0) service = services[0];
+                  } catch (e) {}
+                }
 
-              if (service) {
-                let char;
-                try {
-                  char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-                } catch (e) {
-                  const characteristics = await service.getCharacteristics();
-                  char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+                if (service) {
+                  let char;
+                  try {
+                    char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
+                  } catch (e) {
+                    const characteristics = await service.getCharacteristics();
+                    char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+                  }
+                  
+                  if (char) {
+                    setCharacteristic(char);
+                    setIsConnected(true);
+                    console.log(`Bluetooth Auto-reconnected on attempt ${i + 1}!`);
+                    connected = true;
+                    break;
+                  }
                 }
-                
-                if (char) {
-                  setCharacteristic(char);
-                  setIsConnected(true);
-                  console.log('Bluetooth Auto-reconnected!');
-                }
+              } catch (err) {
+                console.warn(`Auto-reconnect GATT attempt ${i + 1} failed`, err);
+                if (i < 4) await new Promise(r => setTimeout(r, 1000));
               }
-            } catch (err) {
-              console.warn('Auto-reconnect GATT failed', err);
             }
           }
         } catch (err) {
