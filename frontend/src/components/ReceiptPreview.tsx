@@ -53,12 +53,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
         const itemName = item.product?.name || item.name || 'Product';
         return `
         <tr>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">${item.slNo || index + 1}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-weight: bold; text-transform: uppercase;">${itemName}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right;">${(Number(item.quantity) || 0).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px;">${(Number(item.price) || 0).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; text-align: right; font-weight: bold; border-bottom: 1px solid #f0f0f0;">${(Number(item.total) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; vertical-align: top;">${item.slNo || index + 1}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-weight: bold; text-transform: uppercase; word-break: break-word; max-width: 120px; vertical-align: top;">${itemName}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; vertical-align: top;">${(Number(item.quantity) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px; vertical-align: top;">${(Number(item.price) || 0).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px; vertical-align: top;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
+          <td style="font-size: 11px; padding: 4px 0; text-align: right; font-weight: bold; border-bottom: 1px solid #f0f0f0; vertical-align: top;">${(Number(item.total) || 0).toFixed(2)}</td>
         </tr>
         `;
       }).join('');
@@ -282,11 +282,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 {order.orderItems?.map((item: any, idx: number) => (
                   <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
                     <td className="py-2 align-top">{item.slNo || idx + 1}</td>
-                    <td className="py-2 font-bold uppercase">{item.product?.name || item.name}</td>
-                    <td className="py-2 text-right">{(Number(item.quantity) || 0).toFixed(2)}</td>
-                    <td className="py-2 text-right pr-2">{(Number(item.price) || 0).toFixed(2)}</td>
-                    <td className="py-2 text-right pr-2">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
-                    <td className="py-2 text-right font-black">{(Number(item.total) || 0).toFixed(2)}</td>
+                    <td className="py-2 font-bold uppercase break-words whitespace-normal max-w-[120px] align-top">{item.product?.name || item.name}</td>
+                    <td className="py-2 text-right align-top">{(Number(item.quantity) || 0).toFixed(2)}</td>
+                    <td className="py-2 text-right pr-2 align-top">{(Number(item.price) || 0).toFixed(2)}</td>
+                    <td className="py-2 text-right pr-2 align-top">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2)}</td>
+                    <td className="py-2 text-right font-black align-top">{(Number(item.total) || 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

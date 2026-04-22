@@ -105,12 +105,17 @@ export class EscPosBuilder {
     // Items
     (order.orderItems || []).forEach((item: any, idx: number) => {
       const slNo = (idx + 1).toString().padEnd(2);
-      const name = (item.product?.name || item.name || 'Item').substring(0, 14).padEnd(14);
+      const fullName = item.product?.name || item.name || 'Item';
+      const name = fullName.substring(0, 14).padEnd(14);
       const qty = (Number(item.quantity) || 0).toFixed(1).padStart(5);
       const frp = (Number(item.price) || 0).toFixed(2).padStart(7);
       const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2).padStart(7);
       const total = (Number(item.total) || 0).toFixed(2).padStart(8);
       builder.line(`${slNo} ${name} ${qty} ${frp} ${mrp} ${total}`);
+      if (fullName.length > 14) {
+        const remainingName = fullName.substring(14, 44);
+        builder.line(`   ${remainingName}`);
+      }
     });
 
     builder.line('------------------------------------------------');
