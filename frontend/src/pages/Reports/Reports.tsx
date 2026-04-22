@@ -146,7 +146,7 @@ const Reports = () => {
           if (Array.isArray(detailsList)) {
             // 2.a Deduplicate using BOTH id and serverId (client UUID) to prevent "POS-" duplicates
             // OR contextually deduplicate if the amount and time are nearly identical (handles numbering jumps)
-            const unsynced = offlineOrders.filter(o => {
+            let unsynced = offlineOrders.filter(o => {
               const isNotOnServer = detailsList.every((ex: any) => {
                 const idMatch = ex.id === o.id || ex.serverId === o.id;
                 
@@ -161,6 +161,35 @@ const Reports = () => {
               // Only include if NOT synced AND truly missing from the server list
               return !o.isSynced && isNotOnServer;
             });
+
+            // 2.b Filter unsynced orders by dateFilter
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (dateFilter === 'Today') {
+              unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= todayStart);
+            } else if (dateFilter === 'Yesterday') {
+              const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+              const yesterdayEnd = new Date(todayStart.getTime() - 1);
+              unsynced = unsynced.filter(o => {
+                const d = new Date(o.createdAt || o.date);
+                return d >= yesterdayStart && d <= yesterdayEnd;
+              });
+            } else if (dateFilter === 'This Week') {
+               const weekStart = new Date(todayStart);
+               weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+               unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= weekStart);
+            } else if (dateFilter === 'This Month') {
+               const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+               unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= monthStart);
+            } else if (dateFilter === 'Custom' && customStart && customEnd) {
+               const start = new Date(customStart);
+               const end = new Date(customEnd);
+               end.setHours(23,59,59,999);
+               unsynced = unsynced.filter(o => {
+                 const d = new Date(o.createdAt || o.date);
+                 return d >= start && d <= end;
+               });
+            }
 
             if (unsynced.length > 0) {
               // Merge into the correct array
