@@ -7,6 +7,8 @@ const SUPPORTED_SERVICES = [
   '0000ff00-0000-1000-8000-00805f9b34fb', // ESC/POS Standard
   '0000af00-0000-1000-8000-00805f9b34fb', // Newer Android/Chinese printers
   '0000e0ff-0000-1000-8000-00805f9b34fb', // Some Zjiang/Goojprt
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // B-POS / ISSC
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Zijiang B-POS
 ];
 
 const PRINTER_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
@@ -52,8 +54,8 @@ export const useBluetoothPrinter = () => {
             setDevice(dev);
             
             let connected = false;
-            // Increased to 15 retries because some printers take 10+ seconds to clear dropped connections
-            for (let i = 0; i < 15; i++) {
+            // Limited to 4 retries to avoid locking the GATT server if the user tries manual connection
+            for (let i = 0; i < 4; i++) {
               try {
                 const server = await dev.gatt.connect();
                 let service;
@@ -89,7 +91,7 @@ export const useBluetoothPrinter = () => {
                 }
               } catch (err) {
                 console.warn(`Auto-reconnect GATT attempt ${i + 1} failed`, err);
-                if (i < 14) await new Promise(r => setTimeout(r, 1500));
+                if (i < 3) await new Promise(r => setTimeout(r, 2000));
               }
             }
           }
