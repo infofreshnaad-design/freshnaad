@@ -52,7 +52,8 @@ export const useBluetoothPrinter = () => {
             setDevice(dev);
             
             let connected = false;
-            for (let i = 0; i < 5; i++) {
+            // Increased to 15 retries because some printers take 10+ seconds to clear dropped connections
+            for (let i = 0; i < 15; i++) {
               try {
                 const server = await dev.gatt.connect();
                 let service;
@@ -88,7 +89,7 @@ export const useBluetoothPrinter = () => {
                 }
               } catch (err) {
                 console.warn(`Auto-reconnect GATT attempt ${i + 1} failed`, err);
-                if (i < 4) await new Promise(r => setTimeout(r, 1000));
+                if (i < 14) await new Promise(r => setTimeout(r, 1500));
               }
             }
           }
