@@ -131,18 +131,13 @@ const pdfUtil = {
     doc.fillColor('#444444')
        .font('Helvetica')
        .fontSize(8)
-       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 765)
-       .text(`User Index: ${order.userName || 'Staff'}`, 40, 775);
+       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 735)
+       .text(`User Index: ${order.userName || 'Staff'}`, 40, 745);
 
     doc.font('Helvetica-Bold')
        .fontSize(10)
        .fillColor('#000000')
-       .text('THANK YOU VISIT AGAIN', 40, 790, { align: 'center' });
-
-    doc.fontSize(8)
-       .fillColor('#000000')
-       .font('Helvetica-Bold')
-       .text('SOFTWARE BY NIVAN SOLUTIONS', 40, 805, { align: 'center' });
+       .text('THANK YOU VISIT AGAIN', 40, 760, { align: 'center' });
 
     doc.end();
   },
@@ -190,8 +185,7 @@ const pdfUtil = {
 
     doc.fontSize(8)
        .fillColor('#999999')
-       .text('Amount credited to your digital wallet.', 50, 690, { align: 'center' })
-       .text('Software by NIVAN SOLUTIONS', 50, 705, { align: 'center', bold: true });
+       .text('Amount credited to your digital wallet.', 50, 690, { align: 'center' });
     doc.end();
   }
 };
