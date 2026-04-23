@@ -41,8 +41,8 @@ const whatsappUtil = {
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const formattedPhone = `91${cleanPhone}`;
 
-    // PDF URL pointing to our public endpoint
-    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/orders/${order.id}/pdf`;
+    // PDF URL pointing to our public endpoint (Cache Buster added)
+    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/orders/${order.id}/pdf?t=${Date.now()}`;
     
     // Vercel Deployment Protection Bypass if token is provided
     const bypassToken = process.env.VERCEL_BYPASS_TOKEN;
@@ -108,7 +108,7 @@ const whatsappUtil = {
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const formattedPhone = `91${cleanPhone}`;
-    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/sales-returns/${salesReturn.id}/pdf`;
+    let pdfUrl = `${appURL.replace(/\/$/, '')}/api/sales-returns/${salesReturn.id}/pdf?t=${Date.now()}`;
     
     // Vercel Deployment Protection Bypass
     const bypassToken = process.env.VERCEL_BYPASS_TOKEN;

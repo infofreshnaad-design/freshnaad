@@ -239,7 +239,17 @@ export const useBluetoothPrinter = () => {
       const CHUNK_SIZE = 20;
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
-        await characteristic.writeValue(chunk);
+        try {
+          // B-POS printers often drop connection if waiting for GATT ACKs. writeValueWithoutResponse is safer.
+          if (characteristic.properties.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+            await characteristic.writeValueWithoutResponse(chunk);
+          } else {
+            await characteristic.writeValue(chunk);
+          }
+        } catch (e) {
+          // Fallback
+          await characteristic.writeValue(chunk);
+        }
         // 40ms delay allows the print head to mechanically catch up and clears the internal BLE queue
         await new Promise(resolve => setTimeout(resolve, 40));
       }
@@ -255,26 +265,7 @@ export const useBluetoothPrinter = () => {
     }
   }, [characteristic, ensureConnected]);
 
-  // 3. HEARTBEAT / KEEP-ALIVE
-  // To prevent printers from timing out and disconnecting internally
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isConnected && characteristic && device?.gatt.connected) {
-      console.log('Starting Bluetooth Heartbeat...');
-      interval = setInterval(async () => {
-        if (isPrintingRef.current) return; // Suppress heartbeat if actively printing
-        try {
-          if (device?.gatt.connected && characteristic) {
-            // Send a NUL byte to keep the connection alive
-            await characteristic.writeValue(new Uint8Array([0x00]));
-          }
-        } catch (e) {
-          console.warn('Heartbeat failed, printer might have sleep mode enabled.');
-        }
-      }, 20000); // Send heartbeat every 20 seconds
-    }
-    return () => clearInterval(interval);
-  }, [isConnected, characteristic, device]);
+  // Removed HEARTBEAT: B-POS and similar printers often crash or forcefully disconnect if sent 0x00 bytes while idle.
 
   return { connect, disconnect, print, isConnected, device, error, ensureConnected };
 };
