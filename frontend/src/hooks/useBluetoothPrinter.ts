@@ -38,7 +38,11 @@ export const useBluetoothPrinter = () => {
         try {
           const devices = await bluetooth.getDevices();
           if (devices && devices.length > 0) {
-            const dev = devices[0];
+            const lastId = localStorage.getItem('lastConnectedPrinterId');
+            const dev = devices.find((d: any) => d.id === lastId) || devices[0];
+            
+            // Allow time for previous connection to drop on refresh
+            await new Promise(r => setTimeout(r, 1500));
             
             dev.addEventListener('gattserverdisconnected', () => {
               setIsConnected(false);
@@ -145,6 +149,10 @@ export const useBluetoothPrinter = () => {
       setDevice(dev);
       setCharacteristic(char);
       setIsConnected(true);
+      
+      try {
+        if (dev.id) localStorage.setItem('lastConnectedPrinterId', dev.id);
+      } catch (e) {}
 
       dev.addEventListener('gattserverdisconnected', () => {
         setIsConnected(false);
