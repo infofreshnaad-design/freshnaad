@@ -10,7 +10,7 @@ const pdfUtil = {
    * @param {Stream} res - The writable HTTP stream (express res)
    */
   generateInvoicePDF: (order, res) => {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const doc = new PDFDocument({ margins: { top: 40, bottom: 20, left: 40, right: 40 }, size: 'A4' });
 
     // Stream the PDF directly to the response
     doc.pipe(res);
@@ -82,7 +82,7 @@ const pdfUtil = {
       y += 20;
 
       // Check for page break
-      if (y > 750) {
+      if (y > 600) {
         doc.addPage();
         y = 50;
       }
@@ -131,18 +131,18 @@ const pdfUtil = {
     doc.fillColor('#444444')
        .font('Helvetica')
        .fontSize(8)
-       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 755)
-       .text(`User Index: ${order.userName || 'Staff'}`, 40, 765);
+       .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 765)
+       .text(`User Index: ${order.userName || 'Staff'}`, 40, 775);
 
     doc.font('Helvetica-Bold')
        .fontSize(10)
        .fillColor('#000000')
-       .text('THANK YOU VISIT AGAIN', 40, 780, { align: 'center' });
+       .text('THANK YOU VISIT AGAIN', 40, 790, { align: 'center' });
 
     doc.fontSize(8)
        .fillColor('#000000')
        .font('Helvetica-Bold')
-       .text('SOFTWARE BY NIVAN SOLUTIONS', 40, 795, { align: 'center' });
+       .text('SOFTWARE BY NIVAN SOLUTIONS', 40, 805, { align: 'center' });
 
     doc.end();
   },
