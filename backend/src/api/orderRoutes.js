@@ -547,38 +547,34 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       console.log(`[Order API] Found Order ${invoiceNo}. Starting reversal...`);
 
       // 2. REVERSE: Sales Returns (If any exist, they must be cleaned up first)
-      for (const ret of (oldOrder.salesReturns || [])) {
-        console.log(`[Order API] Reversing associated Sales Return: ${ret.returnNo}`);
-        
-        for (const rItem of ret.returnItems) {
-          // Decrement product stock (because the return had incremented it)
-          await tx.product.update({
-            where: { id: rItem.productId },
-            data: { stockQuantity: { decrement: rItem.quantity } }
-          });
-
-          // Log the reversal
-          await tx.inventoryLog.create({
-            data: {
-              productId: rItem.productId,
-              type: 'OUT',
-              quantity: rItem.quantity,
-              reason: `Return Reversal (Order ${invoiceNo} Deleted)`
-            }
-          });
+      if (oldOrder.salesReturns && oldOrder.salesReturns.length > 0) {
+        console.log(`[Order API] Reversing ${oldOrder.salesReturns.length} associated Sales Returns...`);
+        const returnOps = [];
+        for (const ret of oldOrder.salesReturns) {
+          for (const rItem of ret.returnItems) {
+            returnOps.push(tx.product.update({
+              where: { id: rItem.productId },
+              data: { stockQuantity: { decrement: rItem.quantity } }
+            }));
+            returnOps.push(tx.inventoryLog.create({
+              data: {
+                productId: rItem.productId,
+                type: 'OUT',
+                quantity: rItem.quantity,
+                reason: `Return Reversal (Order ${invoiceNo} Deleted)`
+              }
+            }));
+          }
+          if (oldOrder.customerId) {
+            returnOps.push(tx.customer.update({
+              where: { id: oldOrder.customerId },
+              data: { creditBalance: { decrement: ret.totalAmount } }
+            }));
+          }
+          returnOps.push(tx.salesReturnItem.deleteMany({ where: { salesReturnId: ret.id } }));
+          returnOps.push(tx.salesReturn.delete({ where: { id: ret.id } }));
         }
-
-        // Reverse the credit balance added by the return
-        if (oldOrder.customerId) {
-          await tx.customer.update({
-            where: { id: oldOrder.customerId },
-            data: { creditBalance: { decrement: ret.totalAmount } }
-          });
-        }
-
-        // Delete return items and the return itself
-        await tx.salesReturnItem.deleteMany({ where: { salesReturnId: ret.id } });
-        await tx.salesReturn.delete({ where: { id: ret.id } });
+        await Promise.all(returnOps);
       }
 
       // 3. REVERSE: Loyalty Points, Spending, and Credit Balance
@@ -608,20 +604,26 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       }
 
       // 4. Reverse old items (Increment stock back)
-      for (const item of oldOrder.orderItems) {
-        if (!item.productId) continue;
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stockQuantity: { increment: item.quantity } }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'IN',
-            quantity: item.quantity,
-            reason: `Delete Reverse: ${invoiceNo}`
-          }
-        });
+      if (oldOrder.orderItems && oldOrder.orderItems.length > 0) {
+        console.log(`[Order API] Reversing ${oldOrder.orderItems.length} order items...`);
+        const itemOps = oldOrder.orderItems.map(item => {
+          if (!item.productId) return null;
+          return [
+            tx.product.update({
+              where: { id: item.productId },
+              data: { stockQuantity: { increment: item.quantity } }
+            }),
+            tx.inventoryLog.create({
+              data: {
+                productId: item.productId,
+                type: 'IN',
+                quantity: item.quantity,
+                reason: `Delete Reverse: ${invoiceNo}`
+              }
+            })
+          ];
+        }).flat().filter(Boolean);
+        await Promise.all(itemOps);
       }
 
       // 5. CLEANUP: Associated Discount Expense
