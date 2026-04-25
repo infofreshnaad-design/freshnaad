@@ -522,9 +522,10 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   const startTime = Date.now();
   try {
     const { id } = req.params;
+    console.log(`[Order API] Starting deletion for: ${id}`);
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Fetch old order with items
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Fetch old order
       const oldOrder = await tx.order.findFirst({
         where: { 
           OR: [
@@ -540,29 +541,22 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           }
         }
       });
+
       if (!oldOrder) return { status: 404, error: 'Order not found' };
 
       const orderId = oldOrder.id;
       const invoiceNo = oldOrder.invoiceNo;
-      console.log(`[Order API] Found Order ${invoiceNo}. Starting reversal...`);
+      console.log(`[Order API] Step 1: Found Order ${invoiceNo}`);
 
-      // 2. REVERSE: Sales Returns (If any exist, they must be cleaned up first)
+      // 2. REVERSE: Sales Returns
       if (oldOrder.salesReturns && oldOrder.salesReturns.length > 0) {
-        console.log(`[Order API] Reversing ${oldOrder.salesReturns.length} associated Sales Returns...`);
+        console.log(`[Order API] Step 2: Reversing ${oldOrder.salesReturns.length} returns`);
         const returnOps = [];
         for (const ret of oldOrder.salesReturns) {
           for (const rItem of ret.returnItems) {
             returnOps.push(tx.product.update({
               where: { id: rItem.productId },
               data: { stockQuantity: { decrement: rItem.quantity } }
-            }));
-            returnOps.push(tx.inventoryLog.create({
-              data: {
-                productId: rItem.productId,
-                type: 'OUT',
-                quantity: rItem.quantity,
-                reason: `Return Reversal (Order ${invoiceNo} Deleted)`
-              }
             }));
           }
           if (oldOrder.customerId) {
@@ -577,66 +571,54 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         await Promise.all(returnOps);
       }
 
-      // 3. REVERSE: Loyalty Points, Spending, and Credit Balance
+      // 3. REVERSE: Customer Loyalty
       if (oldOrder.customerId && oldOrder.customer) {
+        console.log(`[Order API] Step 3: Reversing Loyalty`);
         const pointsToReverse = (oldOrder.loyaltyPointsEarned || 0) - (oldOrder.loyaltyPointsRedeemed || 0);
-        
         const customerUpdateData = {
           totalSpent: { decrement: oldOrder.grandTotal },
           creditBalance: { decrement: oldOrder.balance || 0 }
         };
-
-        // Handle points separately to ensure they don't go negative if we are decrementing
         if (pointsToReverse > 0) {
-          customerUpdateData.loyaltyPoints = { 
-            decrement: Math.min(oldOrder.customer.loyaltyPoints, pointsToReverse) 
-          };
+          customerUpdateData.loyaltyPoints = { decrement: Math.min(oldOrder.customer.loyaltyPoints, pointsToReverse) };
         } else if (pointsToReverse < 0) {
-          customerUpdateData.loyaltyPoints = { 
-            increment: Math.abs(pointsToReverse) 
-          };
+          customerUpdateData.loyaltyPoints = { increment: Math.abs(pointsToReverse) };
         }
-
-        await tx.customer.update({
-          where: { id: oldOrder.customerId },
-          data: customerUpdateData
-        });
+        await tx.customer.update({ where: { id: oldOrder.customerId }, data: customerUpdateData });
       }
 
-      // 4. Reverse old items (Increment stock back)
-      if (oldOrder.orderItems && oldOrder.orderItems.length > 0) {
-        console.log(`[Order API] Reversing ${oldOrder.orderItems.length} order items...`);
-        const itemOps = oldOrder.orderItems.map(item => {
-          if (!item.productId) return null;
-          return [
-            tx.product.update({
-              where: { id: item.productId },
-              data: { stockQuantity: { increment: item.quantity } }
-            }),
-            tx.inventoryLog.create({
-              data: {
-                productId: item.productId,
-                type: 'IN',
-                quantity: item.quantity,
-                reason: `Delete Reverse: ${invoiceNo}`
-              }
-            })
-          ];
-        }).flat().filter(Boolean);
-        await Promise.all(itemOps);
-      }
+      // 4. REVERSE: Order Items Stock
+      console.log(`[Order API] Step 4: Reversing Stock`);
+      const itemOps = oldOrder.orderItems.map(item => {
+        if (!item.productId) return null;
+        return [
+          tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: { increment: item.quantity } }
+          }),
+          tx.inventoryLog.create({
+            data: {
+              productId: item.productId,
+              type: 'IN',
+              quantity: item.quantity,
+              reason: `Delete Reverse: ${invoiceNo}`
+            }
+          })
+        ];
+      }).flat().filter(Boolean);
+      await Promise.all(itemOps);
 
-      // 5. CLEANUP: Associated Discount Expense
+      // 5. CLEANUP: Expenses
+      console.log(`[Order API] Step 5: Cleaning Expenses`);
       await tx.expense.deleteMany({
         where: {
-          description: {
-            contains: `Invoice ${invoiceNo}`
-          },
+          description: { contains: `Invoice ${invoiceNo}` },
           type: 'Discount'
         }
       });
 
-      // 6. Delete mappings and the order itself
+      // 6. DELETE: Final
+      console.log(`[Order API] Step 6: Final Deletion`);
       await tx.orderItem.deleteMany({ where: { orderId: orderId } });
       await tx.payment.deleteMany({ where: { orderId: orderId } });
       await tx.order.delete({ where: { id: orderId } });
@@ -648,7 +630,7 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       return res.status(result.status).json({ error: result.error });
     }
 
-    // 7. Emit events (Safely)
+    // 7. Emit events
     try {
       const io = req.app.get('io');
       if (io) {
@@ -656,11 +638,19 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           io.emit('ORDER_DELETED', { id: result.orderId, invoiceNo: result.invoiceNo });
       }
     } catch (ioErr) {
-      console.error('[Order API] Socket Emit Error (non-fatal):', ioErr);
+      console.error('[Order API] Socket Error:', ioErr);
     }
 
-    console.log(`[Order API] Delete Success for ${id} in ${Date.now() - startTime}ms`);
+    console.log(`[Order API] Delete Success for ${id}`);
     res.json({ success: true, message: 'Order and associated data deleted successfully' });
+  } catch (error) {
+    console.error(`[Order API] Delete FAILED for ${id}:`, error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to delete order',
+      code: error.code || 'UNKNOWN_ERROR',
+      details: error.stack
+    });
+  }
   } catch (error) {
     console.error(`[Order API] Delete FAILED for ${id}:`, error);
     res.status(500).json({ 

@@ -494,7 +494,10 @@ const Reports = () => {
                                         await api.delete(`/orders/${item.id}`);
                                         fetchReport(); // Refresh the list
                                     } catch (err: any) {
-                                        alert('Failed to delete bill: ' + (err.response?.data?.error || err.message));
+                                        const errorData = err.response?.data;
+                                        const errorMessage = errorData?.error || err.message;
+                                        const errorCode = errorData?.code ? ` [Code: ${errorData.code}]` : '';
+                                        alert('Failed to delete bill: ' + errorMessage + errorCode);
                                     }
                                 }
                             }}
