@@ -492,9 +492,21 @@ const Reports = () => {
                                 if (window.confirm('Are you sure you want to permanently delete this bill? This action cannot be undone and will reverse inventory and loyalty points.')) {
                                     try {
                                         await api.delete(`/orders/${item.id}`);
+                                        // Also cleanup local offline DB
+                                        try { await offlineDB.delete('orders', item.id); } catch(e) {}
                                         fetchReport(); // Refresh the list
                                     } catch (err: any) {
                                         const errorData = err.response?.data;
+                                        const statusCode = err.response?.status;
+                                        
+                                        // If server says 404, it means it's already gone from server. 
+                                        // We should just clean up locally and refresh.
+                                        if (statusCode === 404) {
+                                            try { await offlineDB.delete('orders', item.id); } catch(e) {}
+                                            fetchReport();
+                                            return;
+                                        }
+
                                         const errorMessage = errorData?.error || err.message;
                                         const errorCode = errorData?.code ? ` [Code: ${errorData.code}]` : '';
                                         alert('Failed to delete bill: ' + errorMessage + errorCode);
