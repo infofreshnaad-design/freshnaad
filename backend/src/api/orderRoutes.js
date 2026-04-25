@@ -651,14 +651,6 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       details: error.stack
     });
   }
-  } catch (error) {
-    console.error(`[Order API] Delete FAILED for ${id}:`, error);
-    res.status(500).json({ 
-      error: error.message || 'Failed to delete order',
-      details: error.stack,
-      code: error.code || 'UNKNOWN_ERROR'
-    });
-  }
 });
 
 module.exports = router;

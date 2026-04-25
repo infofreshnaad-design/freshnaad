@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "prisma:generate": "npx prisma generate --schema ../prisma/schema.prisma",
     "prisma:push": "npx prisma db push --schema ../prisma/schema.prisma",
-    "build": "npm run prisma:generate",
+    "postinstall": "npm run prisma:generate",
     "dev": "nodemon src/index.js"
   },
   "keywords": [],
