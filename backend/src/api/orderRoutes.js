@@ -520,26 +520,88 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 
     await prisma.$transaction(async (tx) => {
       // 1. Fetch old order with items
-      const oldOrder = await tx.order.findUnique({
-        where: { id },
-        include: { orderItems: true, customer: true }
+      const oldOrder = await tx.order.findFirst({
+        where: { 
+          OR: [
+            { id: id },
+            { invoiceNo: id }
+          ]
+        },
+        include: { 
+          orderItems: true, 
+          customer: true,
+          salesReturns: {
+            include: { returnItems: true }
+          }
+        }
       });
       if (!oldOrder) throw new Error('Order not found');
 
-      // 2. REVERSE: Old Loyalty and Spending
-      if (oldOrder.customerId) {
+      const orderId = oldOrder.id;
+      const invoiceNo = oldOrder.invoiceNo;
+
+      // 2. REVERSE: Sales Returns (If any exist, they must be cleaned up first)
+      for (const ret of (oldOrder.salesReturns || [])) {
+        console.log(`[Order API] Reversing associated Sales Return: ${ret.returnNo}`);
+        
+        for (const rItem of ret.returnItems) {
+          // Decrement product stock (because the return had incremented it)
+          await tx.product.update({
+            where: { id: rItem.productId },
+            data: { stockQuantity: { decrement: rItem.quantity } }
+          });
+
+          // Log the reversal
+          await tx.inventoryLog.create({
+            data: {
+              productId: rItem.productId,
+              type: 'OUT',
+              quantity: rItem.quantity,
+              reason: `Return Reversal (Order ${invoiceNo} Deleted)`
+            }
+          });
+        }
+
+        // Reverse the credit balance added by the return
+        if (oldOrder.customerId) {
+          await tx.customer.update({
+            where: { id: oldOrder.customerId },
+            data: { creditBalance: { decrement: ret.totalAmount } }
+          });
+        }
+
+        // Delete return items and the return itself
+        await tx.salesReturnItem.deleteMany({ where: { salesReturnId: ret.id } });
+        await tx.salesReturn.delete({ where: { id: ret.id } });
+      }
+
+      // 3. REVERSE: Loyalty Points, Spending, and Credit Balance
+      if (oldOrder.customerId && oldOrder.customer) {
+        const pointsToReverse = (oldOrder.loyaltyPointsEarned || 0) - (oldOrder.loyaltyPointsRedeemed || 0);
+        
+        const customerUpdateData = {
+          totalSpent: { decrement: oldOrder.grandTotal },
+          creditBalance: { decrement: oldOrder.balance || 0 }
+        };
+
+        // Handle points separately to ensure they don't go negative if we are decrementing
+        if (pointsToReverse > 0) {
+          customerUpdateData.loyaltyPoints = { 
+            decrement: Math.min(oldOrder.customer.loyaltyPoints, pointsToReverse) 
+          };
+        } else if (pointsToReverse < 0) {
+          customerUpdateData.loyaltyPoints = { 
+            increment: Math.abs(pointsToReverse) 
+          };
+        }
+
         await tx.customer.update({
           where: { id: oldOrder.customerId },
-          data: {
-            // Prevent negative points
-            loyaltyPoints: { decrement: Math.min(oldOrder.customer.loyaltyPoints, (oldOrder.loyaltyPointsEarned || 0) - (oldOrder.loyaltyPointsRedeemed || 0)) },
-            totalSpent: { decrement: oldOrder.grandTotal },
-            creditBalance: { decrement: oldOrder.balance || 0 }
-          }
+          data: customerUpdateData
         });
       }
 
-      // 3. Reverse old items (Increment stock back)
+      // 4. Reverse old items (Increment stock back)
       for (const item of oldOrder.orderItems) {
         if (!item.productId) continue;
         await tx.product.update({
@@ -551,31 +613,43 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
             productId: item.productId,
             type: 'IN',
             quantity: item.quantity,
-            reason: `Delete Reverse: ${oldOrder.invoiceNo}`
+            reason: `Delete Reverse: ${invoiceNo}`
           }
         });
       }
 
-      // 4. Delete mappings and the order itself
-      await tx.orderItem.deleteMany({ where: { orderId: id } });
-      await tx.payment.deleteMany({ where: { orderId: id } });
-      await tx.order.delete({ where: { id } });
+      // 5. CLEANUP: Associated Discount Expense
+      await tx.expense.deleteMany({
+        where: {
+          description: {
+            contains: `Invoice ${invoiceNo}`
+          },
+          type: 'Discount'
+        }
+      });
 
-      // 5. Emit events
+      // 6. Delete mappings and the order itself
+      await tx.orderItem.deleteMany({ where: { orderId: orderId } });
+      await tx.payment.deleteMany({ where: { orderId: orderId } });
+      await tx.order.delete({ where: { id: orderId } });
+
+      // 7. Emit events
       const io = req.app.get('io');
       if (io) {
-          // Dummy inventory update emit to trigger refresh
           io.emit('INVENTORY_UPDATE', { items: oldOrder.orderItems });
-          // Note: Frontend likely only cares about fetching reports again, but we emit anyway
+          io.emit('ORDER_DELETED', { id: orderId, invoiceNo });
       }
 
     }, { timeout: 30000 });
 
-    console.log(`[Order API] Delete Success in ${Date.now() - startTime}ms`);
-    res.json({ message: 'Order deleted successfully' });
+    console.log(`[Order API] Delete Success for ${id} in ${Date.now() - startTime}ms`);
+    res.json({ success: true, message: 'Order and associated data deleted successfully' });
   } catch (error) {
-    console.error('[Order API] Delete FAILED:', error);
-    res.status(500).json({ error: error.message });
+    console.error(`[Order API] Delete FAILED for ${id}:`, error);
+    res.status(500).json({ 
+      error: error.message || 'Failed to delete order',
+      details: error.stack 
+    });
   }
 });
 
