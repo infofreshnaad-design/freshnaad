@@ -14,8 +14,13 @@ const logError = (context, err) => {
 router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { 
+        OR: [
+          { id: id },
+          { invoiceNo: id }
+        ]
+      },
       include: { 
         orderItems: { include: { product: true } }, 
         customer: true,
@@ -535,10 +540,11 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           }
         }
       });
-      if (!oldOrder) throw new Error('Order not found');
+      if (!oldOrder) return { status: 404, error: 'Order not found' };
 
       const orderId = oldOrder.id;
       const invoiceNo = oldOrder.invoiceNo;
+      console.log(`[Order API] Found Order ${invoiceNo}. Starting reversal...`);
 
       // 2. REVERSE: Sales Returns (If any exist, they must be cleaned up first)
       for (const ret of (oldOrder.salesReturns || [])) {
@@ -633,14 +639,23 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       await tx.payment.deleteMany({ where: { orderId: orderId } });
       await tx.order.delete({ where: { id: orderId } });
 
-      // 7. Emit events
+      return { status: 200, orderItems: oldOrder.orderItems, orderId, invoiceNo };
+    }, { timeout: 30000 });
+
+    if (result.status !== 200) {
+      return res.status(result.status).json({ error: result.error });
+    }
+
+    // 7. Emit events (Safely)
+    try {
       const io = req.app.get('io');
       if (io) {
-          io.emit('INVENTORY_UPDATE', { items: oldOrder.orderItems });
-          io.emit('ORDER_DELETED', { id: orderId, invoiceNo });
+          io.emit('INVENTORY_UPDATE', { items: result.orderItems });
+          io.emit('ORDER_DELETED', { id: result.orderId, invoiceNo: result.invoiceNo });
       }
-
-    }, { timeout: 30000 });
+    } catch (ioErr) {
+      console.error('[Order API] Socket Emit Error (non-fatal):', ioErr);
+    }
 
     console.log(`[Order API] Delete Success for ${id} in ${Date.now() - startTime}ms`);
     res.json({ success: true, message: 'Order and associated data deleted successfully' });
@@ -648,7 +663,8 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     console.error(`[Order API] Delete FAILED for ${id}:`, error);
     res.status(500).json({ 
       error: error.message || 'Failed to delete order',
-      details: error.stack 
+      details: error.stack,
+      code: error.code || 'UNKNOWN_ERROR'
     });
   }
 });
