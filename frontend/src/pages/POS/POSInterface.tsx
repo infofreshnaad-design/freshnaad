@@ -14,6 +14,7 @@ import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
 import InstallPrompt from '../../components/InstallPrompt';
 import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 import RedeemPointsModal from '../../components/RedeemPointsModal';
+import ProductCard from '../../components/ProductCard';
 
 const POSInterface: React.FC = () => {
   const user = useAuthStore(state => state.user);
@@ -24,7 +25,8 @@ const POSInterface: React.FC = () => {
   const clearCart = usePOSStore(state => state.clearCart);
   const getTotals = usePOSStore(state => state.getTotals);
   
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -73,64 +75,83 @@ const POSInterface: React.FC = () => {
     }
   };
 
-  const fetchProducts = async (query = '', catId = selectedCategoryId) => {
+  const fetchProducts = async () => {
     setLoading(true);
     try {
+      let productList: Product[] = [];
       if (isOnline) {
-        let url = `/products?search=${query}&activeOnly=true`;
-        if (catId) url += `&categoryId=${catId}`;
-        const response = await api.get(url);
-        setProducts(response.data);
-        // Only cache full list if no filter
-        if (query === '' && !catId) {
-          for (const product of response.data) {
-            await offlineDB.put('products', product);
-          }
+        const response = await api.get('/products?activeOnly=true');
+        productList = response.data;
+        // Batch cache full list
+        const tx = (await offlineDB.initDB()).transaction('products', 'readwrite');
+        const store = tx.objectStore('products');
+        await store.clear();
+        for (const product of productList) {
+          await store.put(product);
         }
+        await tx.done;
       } else {
-        const offlineProducts = await offlineDB.getAll('products');
-        let filtered = offlineProducts;
-        if (query) {
-          filtered = filtered.filter(p => p.name.toLowerCase().includes(query.toLowerCase()) || p.barcode?.includes(query));
-        }
-        if (catId) {
-          filtered = filtered.filter(p => p.categoryId === catId);
-        }
-        setProducts(filtered);
+        productList = await offlineDB.getAll('products');
       }
+      setAllProducts(productList);
+      applyFilters(search, selectedCategoryId, productList);
     } catch (error) {
       console.error('Error fetching products:', error);
       const offlineProducts = await offlineDB.getAll('products');
-      setProducts(offlineProducts);
+      setAllProducts(offlineProducts);
+      applyFilters(search, selectedCategoryId, offlineProducts);
     } finally {
       setLoading(false);
     }
   };
 
+  const applyFilters = (query: string, catId: string | null, list: Product[] = allProducts) => {
+    let filtered = [...list];
+    
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(lowerQuery) || 
+        p.barcode?.includes(query)
+      );
+    }
+    
+    if (catId) {
+      filtered = filtered.filter(p => p.categoryId === catId);
+    }
+    
+    setFilteredProducts(filtered);
+  };
+
   useEffect(() => {
     fetchCategories();
     fetchProducts();
+    
+    // Initialize last invoice number from DB once
+    const initInvoiceNo = async () => {
+      const orders = await offlineDB.getAll('orders');
+      if (orders.length > 0) {
+        const numericInvoices = orders
+          .map(o => parseInt(o.invoiceNo))
+          .filter(n => !isNaN(n) && n < 9000);
+        if (numericInvoices.length > 0) {
+          const max = Math.max(...numericInvoices);
+          localStorage.setItem('last_invoice_no', max.toString());
+        }
+      }
+    };
+    initInvoiceNo();
   }, []);
 
   const handleCategorySelect = (id: string | null) => {
     setSelectedCategoryId(id);
-    setSearch('');
-    fetchProducts('', id);
+    applyFilters(search, id);
   };
-
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearch(val);
-    
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchProducts(val, selectedCategoryId);
-    }, 300);
+    applyFilters(val, selectedCategoryId);
   };
 
   const toggleFullscreen = () => {
@@ -150,7 +171,7 @@ const POSInterface: React.FC = () => {
       const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 }, false);
       scanner.render((decodedText: string) => {
         // Find product by barcode
-        const product = products.find((p: Product) => p.barcode === decodedText);
+        const product = allProducts.find((p: Product) => p.barcode === decodedText);
         if (product) {
           if (product.stockQuantity > 0) {
             addToCart(product);
@@ -167,7 +188,7 @@ const POSInterface: React.FC = () => {
         scanner.clear().catch(console.error);
       };
     }
-  }, [showScanner, products]);
+  }, [showScanner, allProducts]);
 
   // Global Keyboard Barcode Scanner Listener
   useEffect(() => {
@@ -182,7 +203,7 @@ const POSInterface: React.FC = () => {
 
       if (e.key === 'Enter') {
         if (barcodeBuffer.length > 3) {
-          const product = products.find(p => p.barcode === barcodeBuffer);
+          const product = allProducts.find(p => p.barcode === barcodeBuffer);
           if (product) {
             if (product.stockQuantity > 0) {
               addToCart(product);
@@ -208,21 +229,28 @@ const POSInterface: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timeout);
     };
-  }, [products, addToCart]);
+  }, [allProducts, addToCart]);
 
   const handlePaymentComplete = async (method: string, amount: string, orderType: string = 'Walk-in') => {
     if (cart.length === 0) return;
 
     const { subtotal, taxTotal, grandTotal, roundedTotal, savings } = getTotals();
 
-    // DETECT NEXT SEQUENTIAL INVOICE NO
-    const localOrders = await offlineDB.getAll('orders');
-    const numericInvoices = localOrders
-      .map(o => parseInt(o.invoiceNo))
-      .filter(n => !isNaN(n) && n < 9000); // Filter out the accidental 9000 series
-    
-    const maxLocal = numericInvoices.length > 0 ? Math.max(...numericInvoices) : 99;
-    const nextInvoiceNo = (maxLocal + 1).toString();
+    // DETECT NEXT SEQUENTIAL INVOICE NO - Optimized to avoid reading all orders
+    let nextInvoiceNo = localStorage.getItem('last_invoice_no') || '100';
+    try {
+      const db = await offlineDB.initDB();
+      const tx = db.transaction('orders', 'readonly');
+      const store = tx.objectStore('orders');
+      // Get the last record by index or by key if IDs are sequential/sortable
+      // Since we use UUIDs for keys, we might need a dedicated way.
+      // For now, let's use the local orders cache if small, or just increment last known.
+      const lastInvoice = parseInt(nextInvoiceNo);
+      nextInvoiceNo = (lastInvoice + 1).toString();
+      localStorage.setItem('last_invoice_no', nextInvoiceNo);
+    } catch (e) {
+      nextInvoiceNo = (Date.now() % 10000).toString();
+    }
     
     const orderData = {
       id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -266,16 +294,27 @@ const POSInterface: React.FC = () => {
       // 1. LOCAL PERSISTENCE & STOCK GUARD (Fast, 0ms latency)
       try {
         await offlineDB.put('orders', finalOrderData);
-        const offlineProducts = await offlineDB.getAll('products');
+        
+        // Update stock in-memory and in-database simultaneously
+        const updatedAllProducts = [...allProducts];
+        const db = await offlineDB.initDB();
+        const tx = db.transaction('products', 'readwrite');
+        const store = tx.objectStore('products');
+
         for (const cartItem of cart) {
-          const product = offlineProducts.find(p => p.id === cartItem.id);
-          if (product) {
-            await offlineDB.put('products', {
-              ...product,
-              stockQuantity: Math.max(0, product.stockQuantity - cartItem.quantity)
-            });
+          const idx = updatedAllProducts.findIndex(p => p.id === cartItem.id);
+          if (idx !== -1) {
+            const newStock = Math.max(0, updatedAllProducts[idx].stockQuantity - cartItem.quantity);
+            updatedAllProducts[idx] = {
+              ...updatedAllProducts[idx],
+              stockQuantity: newStock
+            };
+            await store.put(updatedAllProducts[idx]);
           }
         }
+        await tx.done;
+        setAllProducts(updatedAllProducts);
+        applyFilters(search, selectedCategoryId, updatedAllProducts);
       } catch (err) {
         console.error('Local persistence failed:', err);
       }
@@ -298,15 +337,13 @@ const POSInterface: React.FC = () => {
           setRecentOrder(prev => prev?.id === finalOrderData.id ? syncedData : prev);
           
           // Fire WhatsApp ONLY after successful sync completion
+          // Silent WhatsApp dispatch
           if (syncedData.customer?.phone) {
              api.post('/orders/share-whatsapp', { 
                  orderId: syncedData.id || syncedData.invoiceNo, 
                  phone: syncedData.customer.phone 
              }).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
           }
-          
-          // Trigger silent stock reload
-          setTimeout(() => fetchProducts().catch(() => {}), 100);
         }).catch(async (error) => {
           console.error('Checkout Sync Failed, added to queue:', error);
           await addToSyncQueue('CREATE_ORDER', orderData);
@@ -443,38 +480,13 @@ const POSInterface: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {loading ? (
                 <div className="col-span-full text-center py-10 md:py-20 text-slate-400 animate-pulse">Loading...</div>
-              ) : products.length > 0 ? (
-                products.map((product) => (
-                  <button
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <ProductCard
                     key={product.id}
-                    onClick={() => product.stockQuantity > 0 && addToCart(product)}
-                    disabled={product.stockQuantity <= 0}
-                    className={`flex flex-col bg-white rounded-xl p-2 md:p-3 shadow-sm border border-transparent transition-all text-left group relative ${
-                      product.stockQuantity <= 0 
-                      ? 'opacity-50 grayscale cursor-not-allowed' 
-                      : 'hover:border-brand-400 hover:shadow-md active:scale-95'
-                    }`}
-                  >
-                    {product.stockQuantity <= 0 && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center p-2">
-                        <span className="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-tighter shadow-lg shadow-red-500/40">Out of Stock</span>
-                      </div>
-                    )}
-                    <div className="w-full h-24 md:h-32 bg-slate-50 mb-2 rounded-lg flex items-center justify-center overflow-hidden border border-slate-100 p-1">
-                      {product.image ? (
-                        <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <span className="text-slate-300 font-black text-2xl md:text-3xl uppercase select-none group-hover:text-brand-secondary font-mono transition-colors">
-                          {product.name.charAt(0)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-semibold text-slate-700 truncate text-xs md:text-sm mb-0.5">{product.name}</div>
-                    <div className="text-brand-primary font-bold text-sm md:text-lg">₹{product.sellingPrice.toFixed(2)}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 flex justify-between items-end">
-                      <span className="truncate">Stock: {product.stockQuantity}</span>
-                    </div>
-                  </button>
+                    product={product}
+                    onSelect={addToCart}
+                  />
                 ))
               ) : (
                 <div className="col-span-full text-center py-20 text-slate-400">No products</div>

@@ -204,25 +204,23 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
     };
 
     const handleWhatsAppProceed = async (phone: string) => {
-      setIsSending(true);
+      // Close modal immediately to avoid perceived lag
+      setShowWhatsAppModal(false);
+      
       try {
-        const response = await api.post(`/orders/share-whatsapp`, {
+        // Send request in background
+        api.post(`/orders/share-whatsapp`, {
           orderId: order.id,
           phone: phone
+        }).then(response => {
+           if (response.data.success) {
+             console.log('WhatsApp message sent successfully');
+           }
+        }).catch(err => {
+           console.error('WhatsApp Error:', err);
         });
-        
-        if (response.data.success) {
-          setWaStatus({ success: true, message: 'Message Sent Successfully' });
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        } else {
-          setWaStatus({ success: false, error: response.data.error || 'Failed to send' });
-        }
       } catch (error) {
-        console.error('WhatsApp Error:', error);
-        setWaStatus({ success: false, error: 'Connection to server failed' });
-      } finally {
-        setIsSending(false);
-        setShowWhatsAppModal(false);
+        console.error('WhatsApp dispatch error:', error);
       }
     };
 
