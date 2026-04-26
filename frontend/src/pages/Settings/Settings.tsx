@@ -7,7 +7,7 @@ import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
 const Settings = () => {
     const user = useAuthStore((state: any) => state.user);
     const [activeTab, setActiveTab] = useState<'SECURITY' | 'USERS' | 'CATEGORIES' | 'PHOTOS' | 'PRINTER'>(user?.role === 'ADMIN' ? 'USERS' : 'SECURITY');
-    const { connect, disconnect, isConnected, device, error: bluetoothError, print } = useBluetoothPrinter();
+    const { connect, disconnect, isConnected, isConnecting, device, error: bluetoothError, print } = useBluetoothPrinter();
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -948,10 +948,11 @@ const Settings = () => {
                                                         await connect();
                                                     } catch (e) {}
                                                 }}
-                                                className="w-full py-4 bg-brand-primary hover:bg-brand-secondary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                                                disabled={isConnecting}
+                                                className="w-full py-4 bg-brand-primary hover:bg-brand-secondary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
                                             >
-                                                <Bluetooth size={20} />
-                                                PAIR NEW PRINTER
+                                                {isConnecting ? <Bluetooth size={20} className="animate-spin" /> : <Bluetooth size={20} />}
+                                                {isConnecting ? 'RECONNECTING...' : 'PAIR NEW PRINTER'}
                                             </button>
                                         )}
                                         

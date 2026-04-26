@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff } from 'lucide-react';
+import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff, RefreshCw } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
@@ -42,7 +42,7 @@ const POSInterface: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const isOnline = useNetworkStatus();
-  const { isConnected, disconnect, connect } = useBluetoothPrinter();
+  const { isConnected, isConnecting, disconnect, connect } = useBluetoothPrinter();
   
   const customer = usePOSStore(state => state.customer);
   const setCustomer = usePOSStore(state => state.setCustomer);
@@ -391,14 +391,31 @@ const POSInterface: React.FC = () => {
 
           <button 
             onClick={() => isConnected ? disconnect() : connect().catch(() => {})}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : 'bg-brand-primary/10 border-brand-primary/30 text-brand-primary'} hover:bg-white/5`}
-            title={isConnected ? "Click to release printer" : "Click to authorize printer"}
+            disabled={isConnecting}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isConnected ? 'bg-brand-300/10 border-brand-300/30 text-brand-300' : isConnecting ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 cursor-wait' : 'bg-brand-primary/10 border-brand-primary/30 text-brand-primary'} hover:bg-white/5 disabled:opacity-70`}
+            title={isConnected ? "Click to release printer" : isConnecting ? "Reconnecting..." : "Click to authorize printer"}
           >
-            {isConnected ? <Bluetooth size={14} className="animate-pulse" /> : <BluetoothOff size={14} />}
-            <span className="hidden xs:block tracking-[0.15em]">{isConnected ? 'BT PRINTER: READY' : 'CONNECT PRINTER'}</span>
+            {isConnected ? (
+              <Bluetooth size={14} className="animate-pulse" />
+            ) : isConnecting ? (
+              <Bluetooth size={14} className="animate-spin" />
+            ) : (
+              <BluetoothOff size={14} />
+            )}
+            <span className="hidden xs:block tracking-[0.15em]">
+              {isConnected ? 'BT PRINTER: READY' : isConnecting ? 'RECONNECTING...' : 'CONNECT PRINTER'}
+            </span>
           </button>
 
           <div className="h-6 w-px bg-white/10 hidden sm:block mx-1"></div>
+
+          <button 
+            onClick={() => window.location.reload()}
+            className="p-2 hover:bg-white/10 rounded-xl transition-all flex items-center justify-center text-white/70 hover:text-white"
+            title="Refresh Terminal"
+          >
+            <RefreshCw size={18} />
+          </button>
 
           <button 
             onClick={toggleFullscreen}

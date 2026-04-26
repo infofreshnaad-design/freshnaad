@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePrinterStore } from '../store/printerStore';
 
 // Common Thermal Printer UUIDs (Expanded for broader compatibility)
@@ -9,9 +9,15 @@ const SUPPORTED_SERVICES = [
   '0000e0ff-0000-1000-8000-00805f9b34fb', // Some Zjiang/Goojprt
   '49535343-fe7d-4ae5-8fa9-9fafd205e455', // B-POS / ISSC
   'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Zijiang B-POS
+  '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
+  '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute
 ];
 
-const PRINTER_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
+const PRINTER_CHARACTERISTIC_UUIDS = [
+  '00002af1-0000-1000-8000-00805f9b34fb',
+  '00002af0-0000-1000-8000-00805f9b34fb',
+  '0000be02-0000-1000-8000-00805f9b34fb',
+];
 
 let hasAttemptedAutoReconnect = false;
 
@@ -28,7 +34,54 @@ export const useBluetoothPrinter = () => {
     disconnect: globalDisconnect
   } = usePrinterStore();
 
+  const [isConnecting, setIsConnecting] = useState(false);
   const isPrintingRef = useRef(false);
+
+  const setupDeviceListeners = useCallback((dev: any) => {
+    dev.addEventListener('gattserverdisconnected', () => {
+      setIsConnected(false);
+      setCharacteristic(null);
+      console.warn('Printer GATT Server Disconnected!');
+    });
+  }, [setIsConnected, setCharacteristic]);
+
+  const discoverServiceAndCharacteristic = useCallback(async (server: any) => {
+    let service;
+    // 1. Try known services
+    for (const uuid of SUPPORTED_SERVICES) {
+      try {
+        service = await server.getPrimaryService(uuid);
+        if (service) break;
+      } catch (e) { continue; }
+    }
+
+    // 2. Fallback: Get all primary services and find one that looks like a printer
+    if (!service) {
+      try {
+        const services = await server.getPrimaryServices();
+        service = services[0]; // Take the first one as a last resort
+      } catch (e) {}
+    }
+
+    if (!service) throw new Error('Could not find a compatible printing service.');
+
+    // 3. Find writable characteristic
+    let char;
+    for (const uuid of PRINTER_CHARACTERISTIC_UUIDS) {
+      try {
+        char = await service.getCharacteristic(uuid);
+        if (char) break;
+      } catch (e) { continue; }
+    }
+
+    if (!char) {
+      const characteristics = await service.getCharacteristics();
+      char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
+    }
+
+    if (!char) throw new Error('No writable characteristic found.');
+    return char;
+  }, []);
 
   useEffect(() => {
     const autoConnect = async () => {
@@ -43,56 +96,23 @@ export const useBluetoothPrinter = () => {
             const lastId = localStorage.getItem('lastConnectedPrinterId');
             const dev = devices.find((d: any) => d.id === lastId) || devices[0];
             
-            // Allow time for previous connection to drop on refresh
-            await new Promise(r => setTimeout(r, 1500));
+            setIsConnecting(true);
+            // Wait for system to settle
+            await new Promise(r => setTimeout(r, 1000));
             
-            dev.addEventListener('gattserverdisconnected', () => {
-              setIsConnected(false);
-              setCharacteristic(null);
-            });
-
-            setDevice(dev);
-            
-            let connected = false;
-            // Limited to 4 retries to avoid locking the GATT server if the user tries manual connection
-            for (let i = 0; i < 4; i++) {
-              try {
-                const server = await dev.gatt.connect();
-                let service;
-                for (const uuid of SUPPORTED_SERVICES) {
-                  try {
-                    service = await server.getPrimaryService(uuid);
-                    if (service) break;
-                  } catch (e) { continue; }
-                }
-                if (!service) {
-                  try {
-                    const services = await server.getPrimaryServices();
-                    if (services.length > 0) service = services[0];
-                  } catch (e) {}
-                }
-
-                if (service) {
-                  let char;
-                  try {
-                    char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-                  } catch (e) {
-                    const characteristics = await service.getCharacteristics();
-                    char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
-                  }
-                  
-                  if (char) {
-                    setCharacteristic(char);
-                    setIsConnected(true);
-                    console.log(`Bluetooth Auto-reconnected on attempt ${i + 1}!`);
-                    connected = true;
-                    break;
-                  }
-                }
-              } catch (err) {
-                console.warn(`Auto-reconnect GATT attempt ${i + 1} failed`, err);
-                if (i < 3) await new Promise(r => setTimeout(r, 2000));
-              }
+            try {
+              const server = await dev.gatt.connect();
+              const char = await discoverServiceAndCharacteristic(server);
+              
+              setupDeviceListeners(dev);
+              setDevice(dev);
+              setCharacteristic(char);
+              setIsConnected(true);
+              console.log('Bluetooth Auto-reconnected successfully!');
+            } catch (err) {
+              console.warn('Auto-reconnect failed', err);
+            } finally {
+              setIsConnecting(false);
             }
           }
         } catch (err) {
@@ -102,163 +122,112 @@ export const useBluetoothPrinter = () => {
     };
 
     autoConnect();
-  }, [setDevice, setCharacteristic, setIsConnected]);
+  }, [setDevice, setCharacteristic, setIsConnected, setupDeviceListeners, discoverServiceAndCharacteristic]);
 
   const connect = useCallback(async () => {
     try {
       setError(null);
+      setIsConnecting(true);
       const bluetooth = (navigator as any).bluetooth;
-      if (!bluetooth) throw new Error('Bluetooth not supported. Use Chrome/Edge over HTTPS.');
+      if (!bluetooth) throw new Error('Bluetooth not supported on this browser.');
 
-      // Switching to a more inclusive filter
+      // Check if we can resume without picker
+      if (bluetooth.getDevices) {
+        const devices = await bluetooth.getDevices();
+        const lastId = localStorage.getItem('lastConnectedPrinterId');
+        const existing = devices.find((d: any) => d.id === lastId);
+        
+        if (existing && !existing.gatt.connected) {
+          try {
+            const server = await existing.gatt.connect();
+            const char = await discoverServiceAndCharacteristic(server);
+            setupDeviceListeners(existing);
+            setDevice(existing);
+            setCharacteristic(char);
+            setIsConnected(true);
+            return existing;
+          } catch (e) {
+            console.warn('Failed to resume existing device, showing picker');
+          }
+        }
+      }
+
       const dev = await bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: SUPPORTED_SERVICES,
       });
 
       const server = await dev.gatt.connect();
-      
-      // Try to find the valid service from our list
-      let service;
-      for (const uuid of SUPPORTED_SERVICES) {
-        try {
-          service = await server.getPrimaryService(uuid);
-          if (service) break;
-        } catch (e) { continue; }
-      }
-
-      // FALLBACK: If standard services fail, try to get ANY service
-      if (!service) {
-        try {
-          const services = await server.getPrimaryServices();
-          if (services.length > 0) service = services[0];
-        } catch (e) { console.warn('Could not find primary services from scanner'); }
-      }
-
-      if (!service) throw new Error('Could not find a compatible printing service on this device.');
-
-      // DYNAMIC CHARACTERISTIC FINDING
-      let char;
-      try {
-        char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-      } catch (e) {
-        // Fallback: Get all characteristics and find a writable one
-        const characteristics = await service.getCharacteristics();
-        char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
-      }
-
-      if (!char) throw new Error('No writable characteristic found for printing.');
+      const char = await discoverServiceAndCharacteristic(server);
 
       setDevice(dev);
       setCharacteristic(char);
       setIsConnected(true);
+      setupDeviceListeners(dev);
       
-      try {
-        if (dev.id) localStorage.setItem('lastConnectedPrinterId', dev.id);
-      } catch (e) {}
-
-      dev.addEventListener('gattserverdisconnected', () => {
-        setIsConnected(false);
-        setCharacteristic(null);
-        console.warn('Printer Disconnected!');
-      });
+      if (dev.id) localStorage.setItem('lastConnectedPrinterId', dev.id);
 
       return dev;
     } catch (err: any) {
       setError(err.message);
       setIsConnected(false);
       throw err;
+    } finally {
+      setIsConnecting(false);
     }
-  }, [setDevice, setCharacteristic, setIsConnected, setError]);
+  }, [setDevice, setCharacteristic, setIsConnected, setError, setupDeviceListeners, discoverServiceAndCharacteristic]);
 
-  const ensureConnected = useCallback(async (retries = 10) => {
+  const ensureConnected = useCallback(async (retries = 3) => {
     if (device && device.gatt.connected && characteristic) return true;
     
     if (device) {
       for (let i = 0; i < retries; i++) {
         try {
-          console.log(`Connection attempt ${i + 1}/${retries}...`);
           const server = await device.gatt.connect();
-          
-          let service;
-          for (const uuid of SUPPORTED_SERVICES) {
-            try {
-              service = await server.getPrimaryService(uuid);
-              if (service) break;
-            } catch (e) { continue; }
-          }
-
-          if (!service) {
-            try {
-              const services = await server.getPrimaryServices();
-              if (services.length > 0) service = services[0];
-            } catch (e) { console.warn('Could not find primary services'); }
-          }
-
-          if (service) {
-            let char;
-            try {
-              char = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID);
-            } catch (e) {
-              const characteristics = await service.getCharacteristics();
-              char = characteristics.find((c: any) => c.properties.write || c.properties.writeWithoutResponse);
-            }
-            
-            if (char) {
-              setCharacteristic(char);
-              setIsConnected(true);
-              return true;
-            }
+          const char = await discoverServiceAndCharacteristic(server);
+          if (char) {
+            setCharacteristic(char);
+            setIsConnected(true);
+            return true;
           }
         } catch (e: any) {
-          console.warn(`Printer busy or connection failed. Retrying... (${i + 1})`);
-          // If printer is busy (connected to another device), wait 500ms and retry
-          if (i < retries - 1) {
-            await new Promise(resolve => setTimeout(resolve, 800));
-          } else {
-            console.error('All connection retries failed:', e);
-          }
+          console.warn(`Reconnection attempt ${i + 1} failed`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     }
     return false;
-  }, [device, characteristic, setCharacteristic, setIsConnected]);
+  }, [device, characteristic, setCharacteristic, setIsConnected, discoverServiceAndCharacteristic]);
 
   const disconnect = useCallback(() => {
     globalDisconnect();
+    localStorage.removeItem('lastConnectedPrinterId');
   }, [globalDisconnect]);
 
   const print = useCallback(async (data: Uint8Array) => {
     try {
       isPrintingRef.current = true;
       const ok = await ensureConnected();
-      if (!ok) throw new Error('Printer is offline. Please reconnect in Settings.');
+      if (!ok) throw new Error('Printer is disconnected. Please reconnect.');
       
-      if (!characteristic) throw new Error('Invalid characteristic handle.');
+      if (!characteristic) throw new Error('Printer not ready.');
 
-      // TRANSMIT DATA (Strict 20-byte max MTU chunking for older tablets)
-      // Generic thermal printers have tiny RX buffers. If we send data faster than the physical print head moves, the buffer overrides itself.
+      // B-POS and older Chinese printers require slow chunking
       const CHUNK_SIZE = 20;
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
         try {
-          // B-POS printers often drop connection if waiting for GATT ACKs. writeValueWithoutResponse is safer.
-          if (characteristic.properties.writeWithoutResponse && characteristic.writeValueWithoutResponse) {
+          if (characteristic.properties.writeWithoutResponse) {
             await characteristic.writeValueWithoutResponse(chunk);
           } else {
             await characteristic.writeValue(chunk);
           }
         } catch (e) {
-          // Fallback
           await characteristic.writeValue(chunk);
         }
-        // 40ms delay allows the print head to mechanically catch up and clears the internal BLE queue
-        await new Promise(resolve => setTimeout(resolve, 40));
+        // Increased delay to 60ms for B-POS stability on weak tablets
+        await new Promise(resolve => setTimeout(resolve, 60));
       }
-
-      // NO AUTOMATIC DISCONNECT (User Request)
-      // The connection stays open until manually closed or the tab is shut.
-
     } catch (err: any) {
       console.error('Print Error:', err);
       throw err;
@@ -267,7 +236,5 @@ export const useBluetoothPrinter = () => {
     }
   }, [characteristic, ensureConnected]);
 
-  // Removed HEARTBEAT: B-POS and similar printers often crash or forcefully disconnect if sent 0x00 bytes while idle.
-
-  return { connect, disconnect, print, isConnected, device, error, ensureConnected };
+  return { connect, disconnect, print, isConnected, isConnecting, device, error, ensureConnected };
 };
