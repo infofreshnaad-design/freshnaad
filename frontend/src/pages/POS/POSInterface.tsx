@@ -566,7 +566,7 @@ const POSInterface: React.FC = () => {
                              <input 
                                type="number"
                                className="w-16 bg-white border border-slate-200 rounded px-1 py-0.5 font-bold text-slate-800 focus:ring-1 focus:ring-brand-primary outline-none"
-                               value={item.sellingPrice}
+                               value={item.sellingPrice === 0 ? '' : item.sellingPrice}
                                onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
                                onClick={(e) => e.currentTarget.select()}
                              />
@@ -592,12 +592,22 @@ const POSInterface: React.FC = () => {
                         <input 
                           type="number" 
                           step={isFractionalUnit(item.unit) ? "0.001" : "1"}
-                          min="0.001"
-                          value={item.quantity}
+                          min="0"
+                          value={item.quantity === 0 ? '' : item.quantity}
                           onChange={(e) => {
-                            let val = parseFloat(e.target.value) || 0;
+                            let valStr = e.target.value;
+                            if (valStr === '') {
+                              updateQuantity(item.id, 0);
+                              return;
+                            }
+                            let val = parseFloat(valStr) || 0;
                             if (!isFractionalUnit(item.unit)) val = Math.round(val);
-                            updateQuantity(item.id, Math.max(0.001, val));
+                            updateQuantity(item.id, Math.max(0, val));
+                          }}
+                          onBlur={() => {
+                            if (item.quantity <= 0) {
+                              updateQuantity(item.id, isFractionalUnit(item.unit) ? 0.001 : 1);
+                            }
                           }}
                           className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
                         />
