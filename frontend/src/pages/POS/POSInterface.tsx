@@ -52,7 +52,7 @@ const POSInterface: React.FC = () => {
   const appliedPoints = usePOSStore(state => state.appliedPoints);
 
   // Helper to determine if a unit allows fractional quantities
-  const isFractionalUnit = (unit) => {
+  const isFractionalUnit = (unit: string | undefined) => {
     const u = unit?.toLowerCase() || '';
     return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm', 'loose'].includes(u);
   };
@@ -568,7 +568,7 @@ const POSInterface: React.FC = () => {
                                className="w-16 bg-white border border-slate-200 rounded px-1 py-0.5 font-bold text-slate-800 focus:ring-1 focus:ring-brand-primary outline-none"
                                value={item.sellingPrice}
                                onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
-                               onClick={(e) => (e.target as HTMLInputElement).select()}
+                               onClick={(e) => e.currentTarget.select()}
                              />
                            </div>
                          ) : (

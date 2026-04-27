@@ -7,6 +7,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
+  return (
     <button
       onClick={() => onSelect(product)}
       className="flex flex-col bg-white rounded-xl p-2 md:p-3 shadow-sm border border-transparent transition-all text-left group relative hover:border-brand-400 hover:shadow-md active:scale-95"
