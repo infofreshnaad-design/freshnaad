@@ -22,6 +22,7 @@ const POSInterface: React.FC = () => {
   const addToCart = usePOSStore(state => state.addToCart);
   const removeFromCart = usePOSStore(state => state.removeFromCart);
   const updateQuantity = usePOSStore(state => state.updateQuantity);
+  const updatePrice = usePOSStore(state => state.updatePrice);
   const clearCart = usePOSStore(state => state.clearCart);
   const getTotals = usePOSStore(state => state.getTotals);
   
@@ -53,7 +54,7 @@ const POSInterface: React.FC = () => {
   // Helper to determine if a unit allows fractional quantities
   const isFractionalUnit = (unit) => {
     const u = unit?.toLowerCase() || '';
-    return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm'].includes(u);
+    return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm', 'loose'].includes(u);
   };
 
   const fetchCategories = async () => {
@@ -173,13 +174,9 @@ const POSInterface: React.FC = () => {
         // Find product by barcode
         const product = allProducts.find((p: Product) => p.barcode === decodedText);
         if (product) {
-          if (product.stockQuantity > 0) {
-            addToCart(product);
-            setShowScanner(false);
-            scanner.clear();
-          } else {
-            alert(`Product ${product.name} is out of stock.`);
-          }
+          addToCart(product);
+          setShowScanner(false);
+          scanner.clear();
         }
       }, (error: any) => {
         // Ignore errors
@@ -205,11 +202,7 @@ const POSInterface: React.FC = () => {
         if (barcodeBuffer.length > 3) {
           const product = allProducts.find(p => p.barcode === barcodeBuffer);
           if (product) {
-            if (product.stockQuantity > 0) {
-              addToCart(product);
-            } else {
-              alert(`Product ${product.name} is out of stock.`);
-            }
+            addToCart(product);
           } else {
             console.warn('Barcode scanned but no product found:', barcodeBuffer);
           }
@@ -567,7 +560,20 @@ const POSInterface: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-800 text-sm md:text-base truncate">{item.name}</div>
                       <div className="text-xs md:text-sm text-slate-500 flex items-center gap-1.5">
-                         <span>₹{item.sellingPrice.toFixed(2)}</span>
+                         {item.unit?.toUpperCase() === 'LOOSE' ? (
+                           <div className="flex items-center gap-1">
+                             <span>₹</span>
+                             <input 
+                               type="number"
+                               className="w-16 bg-white border border-slate-200 rounded px-1 py-0.5 font-bold text-slate-800 focus:ring-1 focus:ring-brand-primary outline-none"
+                               value={item.sellingPrice}
+                               onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
+                               onClick={(e) => (e.target as HTMLInputElement).select()}
+                             />
+                           </div>
+                         ) : (
+                           <span>₹{item.sellingPrice.toFixed(2)}</span>
+                         )}
                          <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
                          <span className="truncate">{item.category?.name || 'General'}</span>
                       </div>
@@ -585,12 +591,13 @@ const POSInterface: React.FC = () => {
                         </button>
                         <input 
                           type="number" 
-                          step="1"
-                          min="1"
+                          step={isFractionalUnit(item.unit) ? "0.001" : "1"}
+                          min="0.001"
                           value={item.quantity}
                           onChange={(e) => {
-                            let val = Math.max(1, Math.round(parseFloat(e.target.value) || 1));
-                            updateQuantity(item.id, val);
+                            let val = parseFloat(e.target.value) || 0;
+                            if (!isFractionalUnit(item.unit)) val = Math.round(val);
+                            updateQuantity(item.id, Math.max(0.001, val));
                           }}
                           className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
                         />

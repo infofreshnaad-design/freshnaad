@@ -189,6 +189,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                       <option value="kg">Kilograms (kg)</option>
                       <option value="ltr">Liters (ltr)</option>
                       <option value="box">Boxes (box)</option>
+                      <option value="LOOSE">LOOSE</option>
                     </select>
                   </div>
                </div>

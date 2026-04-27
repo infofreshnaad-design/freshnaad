@@ -145,14 +145,11 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           invoiceNo = (maxNum + 1).toString();
       }
 
-      // 3. Validation & Stock Check
+      // 3. Validation
       for (const item of orderItems) {
         const pid = item.productId || item.id;
         const p = productMap.get(pid);
         if (!p) throw new Error(`Product ID ${pid} not found in database.`);
-        if (p.stockQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stockQuantity}, Requested: ${item.quantity}`);
-        }
       }
 
       // 4. Create Order + Items + Payment in ONE nested call
