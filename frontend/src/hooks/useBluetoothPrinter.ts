@@ -134,9 +134,37 @@ export const useBluetoothPrinter = () => {
       const bluetooth = (navigator as any).bluetooth;
       if (!bluetooth) throw new Error('Bluetooth not supported on this browser.');
 
-      // We intentionally do not try to resume via getDevices() here because
-      // if gatt.connect() fails, it takes too long and the user gesture expires,
-      // which causes requestDevice() to throw a SecurityError.
+      // Check if we can resume without picker
+      if (bluetooth.getDevices) {
+        const devices = await bluetooth.getDevices();
+        const lastId = localStorage.getItem('lastConnectedPrinterId');
+        const existing = devices.find((d: any) => d.id === lastId);
+        
+        if (existing && !existing.gatt.connected) {
+          try {
+            // Try up to 2 times to reconnect to the known device
+            for (let i = 0; i < 2; i++) {
+              try {
+                const server = await existing.gatt.connect();
+                const char = await discoverServiceAndCharacteristic(server);
+                setupDeviceListeners(existing);
+                setDevice(existing);
+                setCharacteristic(char);
+                setIsConnected(true);
+                return existing;
+              } catch (e) {
+                console.warn(`Reconnection attempt ${i + 1} failed in connect()`);
+                if (i < 1) await new Promise(r => setTimeout(r, 1000));
+              }
+            }
+            throw new Error('Retries exhausted');
+          } catch (e) {
+            console.warn('Failed to resume existing device. Clearing saved printer so next click shows picker.');
+            localStorage.removeItem('lastConnectedPrinterId');
+            throw new Error('Could not reconnect to the saved printer. Please click Connect again to pair.');
+          }
+        }
+      }
 
       const dev = await bluetooth.requestDevice({
         acceptAllDevices: true,
