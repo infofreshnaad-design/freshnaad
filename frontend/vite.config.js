@@ -15,7 +15,7 @@ export default defineConfig({
         description: 'Premium Organic Retail POS Platform',
         theme_color: '#2E7D32',
         background_color: '#f1f8e9',
-        display: 'fullscreen',
+        display: 'standalone',
         orientation: 'landscape',
         start_url: '/',
         icons: [

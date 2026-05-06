@@ -5,12 +5,12 @@ import { Product } from '../../types';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // Reusable Input Component with Floating-Style Label
-const CustomInput = ({ label, value, onChange, placeholder, type = "text", disabled = false, icon = null }: any) => (
+const CustomInput = ({ label, value, onChange, placeholder, type = "text", disabled = false, icon = null, autoFocus = false }: any) => (
   <div className="relative group mb-6">
-    <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">
+    <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-black text-slate-400 uppercase tracking-widest z-10 group-focus-within:text-brand-500 transition-colors">
       {label}
     </label>
-    <div className={`flex items-center gap-3 w-full p-2.5 border-[1.5px] rounded-xl transition-all ${disabled ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200 group-focus-within:border-brand-500 group-focus-within:ring-1 group-focus-within:ring-brand-100'}`}>
+    <div className={`flex items-center gap-3 w-full p-4 border-2 rounded-2xl transition-all ${disabled ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100 group-focus-within:border-brand-500 group-focus-within:shadow-lg shadow-brand-500/5'}`}>
       {icon && <div className="text-slate-400 pl-1">{icon}</div>}
       <input 
         type={type} 
@@ -18,7 +18,8 @@ const CustomInput = ({ label, value, onChange, placeholder, type = "text", disab
         onChange={onChange}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full bg-transparent border-none focus:ring-0 text-slate-800 font-bold placeholder:text-slate-200 p-0 text-[15px]"
+        autoFocus={autoFocus}
+        className="w-full bg-transparent border-none focus:ring-0 text-slate-800 font-black placeholder:text-slate-200 p-0 text-lg md:text-xl"
         autoComplete="off"
       />
     </div>
@@ -112,6 +113,11 @@ const StockEntry = () => {
       price: p.purchasePrice.toString()
     });
     setItemSearch(p.name);
+    // Don't close suggestions, but focus quantity
+    setTimeout(() => {
+        const qtyInput = document.querySelector('input[type="number"]');
+        if (qtyInput instanceof HTMLInputElement) qtyInput.focus();
+    }, 100);
     
     // Fetch last price for intelligence
     try {
@@ -267,15 +273,40 @@ const StockEntry = () => {
 
 
 
-           <button 
-             onClick={() => {
-                 if (!supplierName.trim()) return alert('Please enter Vendor / Sourcing Partner before adding items.');
-                 setStep('add-item');
-             }}
-             className="w-full bg-slate-900 border-b-4 border-slate-950 p-4 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-sm hover:scale-[1.01] transition-all active:scale-[0.98] shadow-xl shadow-slate-900/10"
-           >
-              <Plus size={20} strokeWidth={3} /> {cart.length > 0 ? 'Add More Items' : 'Start Adding Items'}
-           </button>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <button 
+                 onClick={() => {
+                     if (!supplierName.trim()) return alert('Please enter Vendor / Sourcing Partner before adding items.');
+                     setStep('add-item');
+                 }}
+                 className="bg-slate-900 border-b-8 border-slate-950 p-6 rounded-[2rem] flex flex-col items-center justify-center gap-3 text-white font-black text-sm hover:scale-[1.02] transition-all active:scale-[0.98] shadow-2xl shadow-slate-900/20"
+               >
+                  <Plus size={32} strokeWidth={3} className="text-brand-400" />
+                  <span className="uppercase tracking-[0.2em]">{cart.length > 0 ? 'Add More Items' : 'Start Adding Items'}</span>
+               </button>
+
+               {lowStockItems.length > 0 && (
+                   <div className="bg-slate-50 border-2 border-slate-100 p-6 rounded-[2rem] flex flex-col gap-4">
+                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                           <Clock size={14} /> Critical Low Stock
+                       </h3>
+                       <div className="flex flex-wrap gap-2">
+                           {lowStockItems.slice(0, 4).map(item => (
+                               <button 
+                                   key={item.id}
+                                   onClick={() => {
+                                       setSupplierName(supplierName || 'General Sourcing');
+                                       quickAdd(item);
+                                   }}
+                                   className="bg-white border border-slate-200 px-3 py-2 rounded-xl text-[10px] font-black text-slate-600 hover:border-brand-500 hover:text-brand-600 transition-all flex items-center gap-2 shadow-sm"
+                               >
+                                   <Plus size={12} /> {item.name}
+                               </button>
+                           ))}
+                       </div>
+                   </div>
+               )}
+           </div>
 
            {cart.length > 0 && (
              <div className="pt-4 animate-in fade-in slide-in-from-bottom-4">
