@@ -2,10 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html, body, #root {
   overscroll-behavior: none;
   overflow: hidden;
   height: 100%;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 @layer utilities {

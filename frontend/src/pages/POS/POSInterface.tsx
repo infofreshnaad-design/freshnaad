@@ -565,7 +565,7 @@ const POSInterface: React.FC = () => {
                              <span>₹</span>
                              <input 
                                type="number"
-                               className="w-16 bg-white border border-slate-200 rounded px-1 py-0.5 font-bold text-slate-800 focus:ring-1 focus:ring-brand-primary outline-none"
+                               className="w-16 bg-white border border-slate-200 rounded px-1 py-0.5 font-bold text-slate-800 focus:ring-1 focus:ring-brand-primary outline-none text-base"
                                value={item.sellingPrice === 0 ? '' : item.sellingPrice}
                                onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
                                onClick={(e) => e.currentTarget.select()}
@@ -609,7 +609,7 @@ const POSInterface: React.FC = () => {
                               updateQuantity(item.id, isFractionalUnit(item.unit) ? 0.001 : 1);
                             }
                           }}
-                          className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-xs md:text-base text-slate-700 focus:ring-0 p-0"
+                          className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-base text-slate-700 focus:ring-0 p-0"
                         />
                         <button 
                           onClick={() => {

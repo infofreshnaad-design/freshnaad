@@ -28,7 +28,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-brand-50 overflow-hidden relative">
+    <div className="flex h-full bg-brand-50 overflow-hidden relative">
       {/* Sidebar - Only show if authenticated and NOT on login page */}
       {token && (
         <>

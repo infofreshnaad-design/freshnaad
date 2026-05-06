@@ -325,6 +325,7 @@ router.get('/daybook', async (req, res) => {
     const dateFilter = filter === 'Custom' ? filter : 'Today'; // Default DayBook to Today
     const dateRange = getDateRange(dateFilter, startDate, endDate, parseInt(timezoneOffset || 0));
 
+    // 1. Fetch Sales (Bills) - For the transaction list reference
     let sales = [];
     try {
       sales = await prisma.order.findMany({ 
@@ -347,27 +348,58 @@ router.get('/daybook', async (req, res) => {
       }));
     }
 
+    // 2. Fetch Actual Sales Payments (Source of Truth for Cash In)
+    const payments = await prisma.payment.findMany({
+      where: { createdAt: dateRange, status: 'SUCCESS' },
+      include: { order: { include: { customer: true } } }
+    }).catch(() => []);
+
+    // 3. Fetch Sales Returns (Credit Notes)
+    const salesReturns = await prisma.salesReturn.findMany({
+      where: { createdAt: dateRange },
+      include: { customer: true, order: true }
+    }).catch(() => []);
+
+    // 4. Fetch Expenses
     let expenses = [];
     try {
       expenses = await prisma.expense.findMany({ where: { createdAt: dateRange } });
     } catch (err) {
       console.warn('Daybook expenses fallback:', err.message);
-      expenses = await prisma.$queryRaw`SELECT CAST(id AS TEXT) as id, amount, description, "createdAt" FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
+      expenses = await prisma.$queryRaw`SELECT CAST(id AS TEXT) as id, amount, description, "createdAt", type FROM "Expense" WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}`;
     }
     
-    // 1. Fetch Purchase Events
+    // 5. Fetch Purchase Events
     const purchases = await prisma.purchase.findMany({ where: { date: dateRange } }).catch(() => []);
 
-    // 2. Fetch Individual Payments
+    // 6. Fetch Individual Purchase Payments (Source of Truth for Purchase Cash Out)
     const purchasePayments = await prisma.purchasePayment.findMany({ 
       where: { date: dateRange },
       include: { purchase: true }
     }).catch(() => []);
     
     const transactions = [
-      ...sales.map(s => ({ id: s.id, serverId: s.serverId, type: 'SALE', amount: s.grandTotal, date: s.createdAt, details: `Bill: ${s.invoiceNo}`, customerId: s.customerId })),
+      // Sales Payments
+      ...payments.map(p => ({ 
+        id: p.id, 
+        type: 'SALE_PAYMENT', 
+        amount: p.amount, 
+        date: p.createdAt, 
+        details: `Bill: ${p.order.invoiceNo} (${p.method})`,
+        customerId: p.order.customerId 
+      })),
+
+      // Sales Returns (Cash Out / Credit Issued)
+      ...salesReturns.map(sr => ({
+        id: sr.id,
+        type: 'SALES_RETURN',
+        amount: -sr.totalAmount,
+        date: sr.createdAt,
+        details: `Return: ${sr.returnNo}${sr.order ? ' (Bill: ' + sr.order.invoiceNo + ')' : ''}`,
+        customerId: sr.customerId
+      })),
       
-      // Show the bill creation event as ₹0 (Record keeping)
+      // Purchases (Reference event)
       ...purchases.map(p => ({
         id: p.id,
         type: 'PURCHASE',
@@ -376,20 +408,24 @@ router.get('/daybook', async (req, res) => {
         details: `Inv: ${p.invoiceNo}${p.paymentStatus === 'PENDING' ? ' (PENDING)' : p.paymentStatus === 'PARTIAL' ? ' (PARTIAL)' : ''}`
       })),
 
-      // Show the actual cash out (Payment event)
+      // Purchase Payments (Actual Cash Out)
       ...purchasePayments.map(pp => ({ 
         id: pp.id, 
         type: 'PURCHASE_PAYMENT', 
         amount: -pp.amount, 
         date: pp.date, 
-        details: `Inv: ${pp.purchase.invoiceNo} (Payment)` 
+        details: `Inv: ${pp.purchase?.invoiceNo || 'N/A'} (Payment)`,
+        supplierId: pp.supplierId
       })),
 
-      ...expenses.map(e => ({ id: e.id, type: 'EXPENSE', amount: -e.amount, date: e.createdAt, details: e.type }))
+      // General Expenses
+      ...expenses.map(e => ({ id: e.id, type: 'EXPENSE', amount: -e.amount, date: e.createdAt, details: e.type || e.description }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    const cashIn = sales.reduce((sum, s) => sum + (Number(s.grandTotal) || 0), 0);
-    const cashOut = purchasePayments.reduce((sum, pp) => sum + (Number(pp.amount) || 0), 0) + expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const cashIn = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const cashOut = purchasePayments.reduce((sum, pp) => sum + (Number(pp.amount) || 0), 0) + 
+                    expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) +
+                    salesReturns.reduce((sum, sr) => sum + (Number(sr.totalAmount) || 0), 0);
     
     res.json({
       transactions,
