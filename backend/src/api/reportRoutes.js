@@ -322,7 +322,7 @@ router.get('/profit-loss', async (req, res) => {
 router.get('/daybook', async (req, res) => {
   try {
     const { filter, startDate, endDate, timezoneOffset } = req.query;
-    const dateFilter = filter === 'Custom' ? filter : 'Today'; // Default DayBook to Today
+    const dateFilter = filter || 'Today'; // Respect all filter types (Today, Week, Month, All, Custom)
     const dateRange = getDateRange(dateFilter, startDate, endDate, parseInt(timezoneOffset || 0));
 
     // 1. Fetch Sales (Bills) - For the transaction list reference
@@ -395,7 +395,7 @@ router.get('/daybook', async (req, res) => {
         type: 'SALES_RETURN',
         amount: -sr.totalAmount,
         date: sr.createdAt,
-        details: `Return: ${sr.returnNo}${sr.order ? ' (Bill: ' + sr.order.invoiceNo + ')' : ''}`,
+        details: `[STORE CREDIT] Return: ${sr.returnNo}${sr.order ? ' (Bill: ' + sr.order.invoiceNo + ')' : ''}`,
         customerId: sr.customerId
       })),
       
@@ -419,13 +419,19 @@ router.get('/daybook', async (req, res) => {
       })),
 
       // General Expenses
-      ...expenses.map(e => ({ id: e.id, type: 'EXPENSE', amount: -e.amount, date: e.createdAt, details: e.type || e.description }))
+      ...expenses.map(e => ({ 
+        id: e.id, 
+        type: 'EXPENSE', 
+        amount: -e.amount, 
+        date: e.createdAt, 
+        details: (e.type === 'Discount' ? '[NON-CASH] ' : '') + (e.type || e.description) 
+      }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const cashIn = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const cashOut = purchasePayments.reduce((sum, pp) => sum + (Number(pp.amount) || 0), 0) + 
-                    expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0) +
-                    salesReturns.reduce((sum, sr) => sum + (Number(sr.totalAmount) || 0), 0);
+                    expenses.filter(e => e.type !== 'Discount').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+                    // Note: Sales Returns (Credit Notes) are excluded from Cash Out as they are store credit
     
     res.json({
       transactions,
@@ -442,7 +448,8 @@ router.get('/daybook', async (req, res) => {
 // 6. Cashflow (Simplified to In/Out matching daybook)
 router.get('/cashflow', async (req, res) => {
   // Alias to DayBook logic but formatted for high level cashflow
-  res.redirect('/api/reports/daybook?filter=' + req.query.filter);
+  const queryString = new URLSearchParams(req.query).toString();
+  res.redirect(`/api/reports/daybook?${queryString}`);
 });
 
 // 7. Balance Sheet (Summary snapshot)
@@ -742,7 +749,8 @@ router.get('/expenses', async (req, res) => {
 
 // 14. All Transactions alias
 router.get('/transactions', async (req, res) => {
-  res.redirect('/api/reports/daybook?filter=' + req.query.filter);
+  const queryString = new URLSearchParams(req.query).toString();
+  res.redirect(`/api/reports/daybook?${queryString}`);
 });
 
 // 15. Stock Detail
