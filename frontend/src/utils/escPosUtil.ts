@@ -107,7 +107,7 @@ export class EscPosBuilder {
       const slNo = (idx + 1).toString().padEnd(2);
       const fullName = item.product?.name || item.name || 'Item';
       const name = fullName.substring(0, 14).padEnd(14);
-      const qty = (Number(item.quantity) || 0).toFixed(1).padStart(5);
+      const qty = (Number(item.quantity) || 0).toFixed(0).padStart(5);
       const frp = (Number(item.price) || 0).toFixed(2).padStart(7);
       const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2).padStart(7);
       const total = (Number(item.total) || 0).toFixed(2).padStart(8);
@@ -123,7 +123,7 @@ export class EscPosBuilder {
     // Totals
     builder.alignRight()
            .line(`Total Items : ${order.itemsCount || 1}`)
-           .line(`Total Qty : ${(Number(order.totalQty) || 0).toFixed(2)}`)
+           .line(`Total Qty : ${(Number(order.totalQty) || 0).toFixed(0)}`)
            .line(`Total : ${(Number(order.subtotal) || 0).toFixed(2)}`)
            .line(`Discount : ${(Number(order.discount) || 0).toFixed(2)}`)
            .bold(true)

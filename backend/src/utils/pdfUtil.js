@@ -40,6 +40,7 @@ const pdfUtil = {
     const topOfDetails = doc.y;
     doc.font('Helvetica-Bold').fontSize(11).text(`TAX INVOICE: ${order.invoiceNo}`, 40, topOfDetails);
     doc.font('Helvetica').fontSize(9).text(`Date: ${new Date(order.createdAt).toLocaleDateString()} ${new Date(order.createdAt).toLocaleTimeString()}`, 40, topOfDetails + 15);
+    doc.font('Helvetica-Bold').fontSize(10).text(`Type: ${order.orderType || 'Walk-in'}`, 40, topOfDetails + 30);
     doc.font('Helvetica').fontSize(10).text(`Customer: ${order.customer?.name || order.customerName || 'Walk-in'}`, 40, topOfDetails + 30, { align: 'right' });
 
     doc.moveDown(3);
@@ -73,7 +74,7 @@ const pdfUtil = {
          .fillColor('#000000')
          .text((index + 1).toString(), 50, y)
          .text(itemName.toUpperCase(), 80, y, { width: 210 })
-         .text((Number(item.quantity) || 0).toFixed(3), 300, y)
+         .text((Number(item.quantity) || 0).toFixed(0), 300, y)
          .text((Number(item.price) || 0).toFixed(2), 360, y)
          .text((Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0), 420, y)
          .font('Helvetica-Bold')
@@ -107,6 +108,7 @@ const pdfUtil = {
     };
 
     drawRow('Total Items :', (order.itemsCount || items.length).toString(), false);
+    drawRow('Total Qty :', (Number(order.totalQty) || items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)).toFixed(0), false);
     drawRow('Total :', (Number(order.subtotal) || 0).toFixed(2), false);
     drawRow('Discount :', (Number(order.discount) || 0).toFixed(2), false);
     
@@ -132,7 +134,7 @@ const pdfUtil = {
        .font('Helvetica')
        .fontSize(8)
        .text(`Payment Mode: ${order.paymentMode || 'CASH'}`, 40, 735)
-       .text(`User Index: ${order.userName || 'Staff'}`, 40, 745);
+       .text(`Processed By: ${order.userName || 'Staff'}`, 40, 745);
 
     doc.font('Helvetica-Bold')
        .fontSize(10)
