@@ -100,12 +100,15 @@ export const useBluetoothPrinter = () => {
             // Wait for system to settle
             await new Promise(r => setTimeout(r, 1000));
             
+            // Set device immediately so if gatt.connect() fails in background,
+            // ensureConnected() can retry it later on user gesture.
+            setDevice(dev);
+            
             try {
               const server = await dev.gatt.connect();
               const char = await discoverServiceAndCharacteristic(server);
               
               setupDeviceListeners(dev);
-              setDevice(dev);
               setCharacteristic(char);
               setIsConnected(true);
               console.log('Bluetooth Auto-reconnected successfully!');
@@ -131,26 +134,9 @@ export const useBluetoothPrinter = () => {
       const bluetooth = (navigator as any).bluetooth;
       if (!bluetooth) throw new Error('Bluetooth not supported on this browser.');
 
-      // Check if we can resume without picker
-      if (bluetooth.getDevices) {
-        const devices = await bluetooth.getDevices();
-        const lastId = localStorage.getItem('lastConnectedPrinterId');
-        const existing = devices.find((d: any) => d.id === lastId);
-        
-        if (existing && !existing.gatt.connected) {
-          try {
-            const server = await existing.gatt.connect();
-            const char = await discoverServiceAndCharacteristic(server);
-            setupDeviceListeners(existing);
-            setDevice(existing);
-            setCharacteristic(char);
-            setIsConnected(true);
-            return existing;
-          } catch (e) {
-            console.warn('Failed to resume existing device, showing picker');
-          }
-        }
-      }
+      // We intentionally do not try to resume via getDevices() here because
+      // if gatt.connect() fails, it takes too long and the user gesture expires,
+      // which causes requestDevice() to throw a SecurityError.
 
       const dev = await bluetooth.requestDevice({
         acceptAllDevices: true,
