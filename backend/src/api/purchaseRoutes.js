@@ -92,7 +92,10 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       const inventoryUpdates = purchaseItems.map(item => [
         tx.product.update({
           where: { id: item.productId },
-          data: { stockQuantity: { increment: item.quantity } }
+          data: { 
+            stockQuantity: { increment: item.quantity },
+            purchasePrice: item.price // Update master inventory price
+          }
         }),
         tx.inventoryLog.create({
           data: {
@@ -237,7 +240,10 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         const pid = item.productId || item.id;
         await tx.product.update({
           where: { id: pid },
-          data: { stockQuantity: { increment: item.quantity } }
+          data: { 
+            stockQuantity: { increment: item.quantity },
+            purchasePrice: item.price // Update master inventory price on edit
+          }
         });
         await tx.inventoryLog.create({
           data: {
