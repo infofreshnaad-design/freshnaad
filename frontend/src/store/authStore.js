@@ -25,7 +25,7 @@ const useAuthStore = create((set) => ({
   },
   
   isAdmin: () => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const { user } = useAuthStore.getState();
     return user?.role === 'ADMIN';
   }
 }));

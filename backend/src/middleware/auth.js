@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
 
+/**
+ * Auth Middleware
+ * Separates JWT verification from database-dependent license checks
+ * to prevent transient DB errors from triggering 401 (and thus logging out users).
+ */
 const auth = (allowedRoles = []) => {
     return async (req, res, next) => {
         const authHeader = req.headers.authorization;
@@ -8,10 +13,19 @@ const auth = (allowedRoles = []) => {
         }
 
         const token = authHeader.split(' ')[1];
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-            req.user = decoded;
+        let decoded;
 
+        // Phase 1: JWT Verification (Purely local/CPU bound)
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            req.user = decoded;
+        } catch (error) {
+            console.error('JWT Verification Failed:', error.message);
+            return res.status(401).json({ message: 'Session expired or invalid. Please login again.' });
+        }
+
+        // Phase 2: Database Dependent Checks (License/Permissions)
+        try {
             // SaaS: Verify license status if not Super Admin
             if (decoded.role !== 'ADMIN' && decoded.licenseId) {
                 const prisma = require('../config/prisma');
@@ -31,8 +45,13 @@ const auth = (allowedRoles = []) => {
             }
 
             next();
-        } catch (error) {
-            return res.status(401).json({ message: 'Invalid or expired token' });
+        } catch (dbError) {
+            console.error('Database error in auth middleware:', dbError.message);
+            // Return 500 instead of 401 to prevent frontend logout
+            return res.status(500).json({ 
+                message: 'Internal server error during authentication', 
+                details: 'Database connectivity issue' 
+            });
         }
     };
 };
