@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 
 // Bulk sync endpoints
-router.post('/orders', auth(['ADMIN']), async (req, res) => {
+router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
   const { orders } = req.body;
   const results = { synced: [], failed: [] };
 
@@ -16,7 +16,7 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
       });
 
       if (existing) {
-        results.synced.push(existing.invoiceNo);
+        results.synced.push({ id: orderData.id, invoiceNo: existing.invoiceNo });
         continue;
       }
 
@@ -26,9 +26,22 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
         const loyaltyPointsEarned = Math.floor(orderData.grandTotal / earnRate);
         const loyaltyPointsRedeemed = orderData.loyaltyPointsRedeemed || 0;
 
+        // Determine unique invoice number (Trust client first, then safe server fallback)
+        let invoiceNo = orderData.invoiceNo;
+        const existingNum = await tx.order.findUnique({ where: { invoiceNo: String(orderData.invoiceNo) } });
+        if (existingNum) {
+          const rawMax = await tx.$queryRaw`
+            SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
+            FROM "Order" 
+            WHERE "invoiceNo" ~ '^[0-9]+$' AND "invoiceNo" NOT LIKE '9%'
+          `;
+          const maxNum = Number(rawMax[0]?.maxNum) || 99;
+          invoiceNo = (maxNum + 1).toString();
+        }
+
         const order = await tx.order.create({
           data: {
-            invoiceNo: orderData.invoiceNo,
+            invoiceNo: invoiceNo,
             serverId: orderData.id,
             customerId: orderData.customerId,
             subtotal: orderData.subtotal,
@@ -46,11 +59,11 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
             createdAt: new Date(orderData.createdAt || Date.now()),
             orderItems: {
               create: orderData.orderItems.map(item => ({
-                productId: item.id,
+                productId: item.productId || item.id,
                 quantity: item.quantity,
-                price: item.sellingPrice || item.price,
-                taxAmount: ( (item.sellingPrice || item.price) * ((item.gstRate || 0) / 100)) * item.quantity,
-                total: ((item.sellingPrice || item.price) * item.quantity) + (((item.sellingPrice || item.price) * ((item.gstRate || 0) / 100)) * item.quantity)
+                price: item.price || item.sellingPrice,
+                taxAmount: ((item.price || item.sellingPrice) * ((item.gstRate || 0) / 100)) * item.quantity,
+                total: ((item.price || item.sellingPrice) * item.quantity) + (((item.price || item.sellingPrice) * ((item.gstRate || 0) / 100)) * item.quantity)
               }))
             },
             payments: {
@@ -63,11 +76,21 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
           }
         });
 
-        // Deduct inventory
+        // Deduct inventory and log it
         for (const item of orderData.orderItems) {
+          const pid = item.productId || item.id;
           await tx.product.update({
-            where: { id: item.id },
+            where: { id: pid },
             data: { stockQuantity: { decrement: item.quantity } }
+          });
+          
+          await tx.inventoryLog.create({
+            data: {
+              productId: pid,
+              type: 'OUT',
+              quantity: item.quantity,
+              reason: `Offline Order ${invoiceNo}`
+            }
           });
         }
 
@@ -94,11 +117,13 @@ router.post('/orders', auth(['ADMIN']), async (req, res) => {
         return order;
       });
 
-      results.synced.push(syncOrder.invoiceNo);
+      results.synced.push({ id: orderData.id, invoiceNo: syncOrder.invoiceNo });
       
       // Broadcast to other terminals
       const io = req.app.get('io');
-      io.emit('ORDER_SYNCED', { invoiceNo: syncOrder.invoiceNo });
+      if (io) {
+        io.emit('ORDER_SYNCED', { invoiceNo: syncOrder.invoiceNo });
+      }
 
     } catch (error) {
       console.error('Sync Order Failed:', error);

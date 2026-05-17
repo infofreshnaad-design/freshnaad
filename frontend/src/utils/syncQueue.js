@@ -24,16 +24,42 @@ export const processSyncQueue = async () => {
         orders: orders.map(o => o.data) 
       });
       
-      // Remove successfully synced orders from queue
-      const syncedIds = orders
-        .filter(o => response.data.synced.includes(o.data.invoiceNo))
-        .map(o => o.id);
+      // Remove successfully synced orders from queue and update local order status
+      const syncedItems = response.data.synced || [];
+      for (const item of syncedItems) {
+        // Find by client-side UUID 'id' (robust) or legacy 'invoiceNo'
+        const queueItem = orders.find(o => 
+          (typeof item === 'object' && item !== null && o.data.id === item.id) ||
+          (typeof item === 'string' && o.data.invoiceNo === item)
+        );
+        if (queueItem) {
+          await offlineDB.delete('syncQueue', queueItem.id);
+        }
 
-      for (const id of syncedIds) {
-        await offlineDB.delete('syncQueue', id);
+        // Also update local 'orders' store
+        try {
+          const targetId = typeof item === 'object' && item !== null ? item.id : null;
+          const targetInvoice = typeof item === 'object' && item !== null ? item.invoiceNo : item;
+          
+          const localOrders = await offlineDB.getAll('orders');
+          const localOrder = localOrders.find(lo => 
+            (targetId && lo.id === targetId) || 
+            (targetInvoice && lo.invoiceNo === targetInvoice) ||
+            (queueItem && lo.id === queueItem.data.id)
+          );
+          
+          if (localOrder) {
+            if (targetInvoice) localOrder.invoiceNo = targetInvoice;
+            localOrder.isSynced = true;
+            localOrder.isSyncing = false;
+            await offlineDB.put('orders', localOrder);
+          }
+        } catch (dbErr) {
+          console.error('Failed to update local order sync status:', dbErr);
+        }
       }
       
-      console.log('Bulk sync completed:', response.data.synced.length, 'orders');
+      console.log('Bulk sync completed:', syncedItems.length, 'orders');
     } catch (error) {
       console.error('Bulk sync failed:', error);
     }

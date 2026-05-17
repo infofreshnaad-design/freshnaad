@@ -148,7 +148,7 @@ const Reports = () => {
             // OR contextually deduplicate if the amount and time are nearly identical (handles numbering jumps)
             let unsynced = offlineOrders.filter(o => {
               const isNotOnServer = detailsList.every((ex: any) => {
-                const idMatch = ex.id === o.id || ex.serverId === o.id;
+                const idMatch = ex.id === o.id || ex.serverId === o.id || ex.invoiceNo === o.invoiceNo;
                 
                 // Fuzzy match: same amount (+/- 1 Rupee) and same time (+/- 5 mins)
                 const exTime = new Date(ex.createdAt || ex.date).getTime();
