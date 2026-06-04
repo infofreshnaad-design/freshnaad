@@ -22,7 +22,7 @@ export const processSyncQueue = async () => {
     try {
       const response = await api.post('/sync/orders', { 
         orders: orders.map(o => o.data) 
-      });
+      }, { skipAuthRedirect: true });
       
       // Remove successfully synced orders from queue and update local order status
       const syncedItems = response.data.synced || [];
@@ -70,7 +70,7 @@ export const processSyncQueue = async () => {
   for (const item of otherItems) {
     try {
       if (item.action === 'UPDATE_PRODUCT') {
-        await api.put(`/products/${item.data.id}`, item.data);
+        await api.put(`/products/${item.data.id}`, item.data, { skipAuthRedirect: true });
       }
       await offlineDB.delete('syncQueue', item.id);
     } catch (error) {

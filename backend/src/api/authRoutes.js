@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role, licenseId: user.licenseId }, 
-      process.env.JWT_SECRET || 'secret',
+      process.env.JWT_SECRET || 'freshnaad_pos_enterprise_secret_2026',
       { expiresIn: '365d' }
     );
 

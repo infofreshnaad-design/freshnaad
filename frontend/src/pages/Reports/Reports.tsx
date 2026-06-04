@@ -174,11 +174,11 @@ const Reports = () => {
                 const d = new Date(o.createdAt || o.date);
                 return d >= yesterdayStart && d <= yesterdayEnd;
               });
-            } else if (dateFilter === 'This Week') {
+            } else if (dateFilter === 'Week') {
                const weekStart = new Date(todayStart);
                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
                unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= weekStart);
-            } else if (dateFilter === 'This Month') {
+            } else if (dateFilter === 'Month') {
                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= monthStart);
             } else if (dateFilter === 'Custom' && customStart && customEnd) {

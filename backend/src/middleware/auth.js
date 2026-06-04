@@ -17,7 +17,7 @@ const auth = (allowedRoles = []) => {
 
         // Phase 1: JWT Verification (Purely local/CPU bound)
         try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            decoded = jwt.verify(token, process.env.JWT_SECRET || 'freshnaad_pos_enterprise_secret_2026');
             req.user = decoded;
         } catch (error) {
             console.error('JWT Verification Failed:', error.message);

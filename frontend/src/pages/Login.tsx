@@ -13,6 +13,63 @@ const LoginPage = () => {
   const [regData, setRegData] = useState({ licenseKey: '', deviceName: '' });
   const login = useAuthStore((state) => state.login);
 
+  const handleEmergencyRecovery = async () => {
+    const confirmRecovery = window.confirm("⚠️ EMERGENCY RECOVERY:\nAre you currently on your BYJUS Billing Tablet?\n\nThis will extract all your May billing history stored locally on this tablet and automatically send it to the server database. Do you want to proceed?");
+    if (!confirmRecovery) return;
+
+    try {
+      const openRequest = indexedDB.open('pos_offline_db');
+      openRequest.onsuccess = async (event: any) => {
+        const db = event.target.result;
+        const stores = ['orders', 'products', 'customers', 'categories'];
+        const backupData: any = {};
+        
+        for (const storeName of stores) {
+          if (db.objectStoreNames.contains(storeName)) {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            backupData[storeName] = await new Promise((resolve) => {
+              const req = store.getAll();
+              req.onsuccess = () => resolve(req.result);
+            });
+          }
+        }
+        
+        const totalOrders = backupData.orders ? backupData.orders.length : 0;
+        const totalProducts = backupData.products ? backupData.products.length : 0;
+        
+        if (totalOrders === 0 && totalProducts === 0) {
+          alert("❌ No offline billing data was found in this tablet browser's storage.");
+          return;
+        }
+
+        if (!window.navigator.onLine) {
+          alert("📶 Device Offline: Please connect your BYJUS tablet to Wi-Fi/Internet first.");
+          return;
+        }
+
+        const confirmSync = window.confirm(`Found ${totalOrders} Orders and ${totalProducts} Products offline in this tablet!\n\nReady to upload and restore these records now?`);
+        if (!confirmSync) return;
+
+        alert("📤 Restoring data... Please do NOT close this browser window.");
+
+        const response = await api.post('/recovery/restore', { data: backupData });
+        if (response.data.success) {
+          alert(`🎉 ABSOLUTE SUCCESS!\n\nSuccessfully recovered and synced:\n- ${totalOrders} Orders\n- ${totalProducts} Products\n\nAll your May billing data has been fully restored to the database! You can now log in normally.`);
+          window.location.reload();
+        } else {
+          alert("❌ Data recovery failed: " + response.data.error);
+        }
+      };
+      
+      openRequest.onerror = () => {
+        alert("❌ Error: Failed to open tablet local database storage.");
+      };
+    } catch (err: any) {
+      alert("❌ Emergency recovery error: " + err.message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -169,6 +226,17 @@ const LoginPage = () => {
                 </div>
             </div>
           )}
+
+          <div className="mt-6 pt-6 border-t border-white/10 text-center">
+            <button
+              type="button"
+              onClick={handleEmergencyRecovery}
+              className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold py-3 px-4 rounded-xl transition-all active:scale-95 text-xs flex items-center justify-center gap-2"
+            >
+              <AlertCircle size={16} />
+              <span>⚠️ BYJUS TABLET RECOVERY SYNC</span>
+            </button>
+          </div>
 
           <p className="mt-8 text-center text-slate-500 text-xs font-bold uppercase tracking-[0.2em]">
             Fresh Naad POS v1.0.4 • Cloud Sync Active

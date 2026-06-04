@@ -35,14 +35,30 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration
+// Response interceptor to handle token expiration and transient errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
     if (error.response?.status === 401) {
+      // Attempt a single silent retry for transient / cold-start 401s
+      if (originalRequest && !originalRequest._retry) {
+        originalRequest._retry = true;
+        console.warn('Transient 401 detected. Retrying request once in 1000ms...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return api(originalRequest);
+      }
+      
+      // If retry failed, or skipAuthRedirect is active, do not force logout
+      if (originalRequest?.skipAuthRedirect) {
+        console.warn('Unauthorized background request detected (skipAuthRedirect). Preventing global logout.');
+        return Promise.reject(error);
+      }
+      
       // Avoid redirecting if already on login page
       if (window.location.pathname !== '/login') {
-        console.warn('Unauthorized request detected. Clearing session and redirecting to login...');
+        console.error('Session expired or unauthorized. Clearing session and redirecting to login...');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         

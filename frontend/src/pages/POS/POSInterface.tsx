@@ -321,8 +321,9 @@ const POSInterface: React.FC = () => {
       // 3. TRUE BACKGROUND SERVER SYNC
       if (isOnline) {
         api.post('/orders', orderData, {
-          headers: { 'x-terminal-id': 'T1' }
-        }).then(response => {
+          headers: { 'x-terminal-id': 'T1' },
+          skipAuthRedirect: true
+        } as any).then(response => {
           const syncedData = { ...orderData, ...response.data, isSyncing: false, isSynced: true };
           offlineDB.put('orders', syncedData).catch(() => {});
           
@@ -335,7 +336,7 @@ const POSInterface: React.FC = () => {
              api.post('/orders/share-whatsapp', { 
                  orderId: syncedData.id || syncedData.invoiceNo, 
                  phone: syncedData.customer.phone 
-             }).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
+             }, { skipAuthRedirect: true } as any).catch(err => console.error('Silent WhatsApp dispatch failed:', err));
           }
         }).catch(async (error) => {
           console.error('Checkout Sync Failed, added to queue:', error);

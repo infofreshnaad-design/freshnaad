@@ -27,9 +27,11 @@ const getDateRange = (filter, startDate, endDate, timezoneOffset = 0) => {
   if (filter === 'Today') {
     // Already set to local today
   } else if (filter === 'Week') {
-    start.setUTCDate(start.getUTCDate() - 7);
+    // Start from Sunday of this week (client local time)
+    start.setUTCDate(start.getUTCDate() - start.getUTCDay());
   } else if (filter === 'Month') {
-    start.setUTCDate(start.getUTCDate() - 30);
+    // Start from 1st day of this calendar month (client local time)
+    start.setUTCDate(1);
   } else if (filter === 'Custom' && startDate && endDate) {
     start = new Date(startDate);
     start.setUTCHours(0, 0, 0, 0);
@@ -173,8 +175,8 @@ router.get('/sales', async (req, res) => {
 // 1.05 Credit Sales Report (Outstanding Payments)
 router.get('/credit-sales', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
     let credits = [];
     try {
@@ -216,8 +218,8 @@ router.get('/credit-sales', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 // 1.1 Payment Mode Summary
 router.get('/payment-summary', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
     const orders = await prisma.order.findMany({
       where: { createdAt: dateRange },
@@ -695,8 +697,8 @@ router.get('/stock-summary', async (req, res) => {
 // 12. Item Wise Profit & Loss
 router.get('/item-profit', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
 
     const orderItems = await prisma.orderItem.findMany({
       where: {
@@ -729,8 +731,8 @@ router.get('/item-profit', async (req, res) => {
 // 13. Expense Reports 
 router.get('/expenses', async (req, res) => {
   try {
-    const { filter, startDate, endDate } = req.query;
-    const dateRange = getDateRange(filter, startDate, endDate);
+    const { filter, startDate, endDate, timezoneOffset } = req.query;
+    const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));
     
     const expenses = await prisma.expense.findMany({
       where: { createdAt: dateRange },
