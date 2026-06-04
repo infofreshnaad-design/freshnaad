@@ -176,7 +176,9 @@ const Reports = () => {
               });
             } else if (dateFilter === 'Week') {
                const weekStart = new Date(todayStart);
-               weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+               const day = weekStart.getDay();
+               const diff = day === 0 ? 6 : day - 1;
+               weekStart.setDate(weekStart.getDate() - diff);
                unsynced = unsynced.filter(o => new Date(o.createdAt || o.date) >= weekStart);
             } else if (dateFilter === 'Month') {
                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

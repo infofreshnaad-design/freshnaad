@@ -27,8 +27,10 @@ const getDateRange = (filter, startDate, endDate, timezoneOffset = 0) => {
   if (filter === 'Today') {
     // Already set to local today
   } else if (filter === 'Week') {
-    // Start from Sunday of this week (client local time)
-    start.setUTCDate(start.getUTCDate() - start.getUTCDay());
+    // Start from Monday of this week (client local time)
+    const day = start.getUTCDay();
+    const diff = day === 0 ? 6 : day - 1;
+    start.setUTCDate(start.getUTCDate() - diff);
   } else if (filter === 'Month') {
     // Start from 1st day of this calendar month (client local time)
     start.setUTCDate(1);
