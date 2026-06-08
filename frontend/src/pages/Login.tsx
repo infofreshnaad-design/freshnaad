@@ -227,16 +227,7 @@ const LoginPage = () => {
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-white/10 text-center">
-            <button
-              type="button"
-              onClick={handleEmergencyRecovery}
-              className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold py-3 px-4 rounded-xl transition-all active:scale-95 text-xs flex items-center justify-center gap-2"
-            >
-              <AlertCircle size={16} />
-              <span>⚠️ BYJUS TABLET RECOVERY SYNC</span>
-            </button>
-          </div>
+
 
           <p className="mt-8 text-center text-slate-500 text-xs font-bold uppercase tracking-[0.2em]">
             Fresh Naad POS v1.0.4 • Cloud Sync Active

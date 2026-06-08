@@ -230,17 +230,33 @@ export const useBluetoothPrinter = () => {
       const CHUNK_SIZE = 20;
       for (let i = 0; i < data.length; i += CHUNK_SIZE) {
         const chunk = data.slice(i, i + CHUNK_SIZE);
-        try {
-          if (characteristic.properties.writeWithoutResponse) {
-            await characteristic.writeValueWithoutResponse(chunk);
-          } else {
-            await characteristic.writeValue(chunk);
+        
+        // Retry logic per chunk to handle temporary GATT failures
+        let chunkWritten = false;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (!chunkWritten && attempts < maxAttempts) {
+          try {
+            if (characteristic.properties.writeWithoutResponse) {
+              await characteristic.writeValueWithoutResponse(chunk);
+            } else {
+              await characteristic.writeValue(chunk);
+            }
+            chunkWritten = true;
+          } catch (e) {
+            attempts++;
+            console.warn(`Chunk write failed (attempt ${attempts}):`, e);
+            if (attempts >= maxAttempts) {
+              throw e; // Give up after max attempts
+            }
+            // Wait longer before retrying (100ms backoff)
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-        } catch (e) {
-          await characteristic.writeValue(chunk);
         }
-        // Increased delay to 60ms for B-POS stability on weak tablets
-        await new Promise(resolve => setTimeout(resolve, 60));
+
+        // Increased delay to 100ms for B-POS stability on weak tablets/noisy environments
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (err: any) {
       console.error('Print Error:', err);
