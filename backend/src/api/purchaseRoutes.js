@@ -46,11 +46,16 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     const amountPaid = Number(req.body.amountPaid) || 0;
     const balanceDue = Number(req.body.balanceDue) || 0;
 
-    // Generate Simple Sequential Purchase Invoice Number
-    const purchaseCount = await prisma.purchase.count();
-    const invoiceNo = `${1001 + purchaseCount}`;
-
     const purchase = await prisma.$transaction(async (tx) => {
+      // Generate Simple Sequential Purchase Invoice Number safely
+      const result = await tx.$queryRaw`
+        SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
+        FROM "Purchase" 
+        WHERE "invoiceNo" ~ '^[0-9]+$'
+      `;
+      const maxNum = result[0]?.maxNum || 1000;
+      const invoiceNo = (maxNum + 1).toString();
+
       // 1. Create the purchase record
       const newPurchase = await tx.purchase.create({
         data: {

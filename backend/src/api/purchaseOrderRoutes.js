@@ -48,34 +48,41 @@ router.post('/', async (req, res) => {
       poItems 
     } = req.body;
 
-    // Generate PO Number
-    const count = await prisma.purchaseOrder.count() + 1;
-    const poNumber = `${1000 + count}`;
+    const newPO = await prisma.$transaction(async (tx) => {
+      // Generate PO Number safely
+      const result = await tx.$queryRaw`
+        SELECT MAX(CAST("poNumber" AS INTEGER)) as "maxNum" 
+        FROM "PurchaseOrder" 
+        WHERE "poNumber" ~ '^[0-9]+$'
+      `;
+      const maxNum = result[0]?.maxNum || 1000;
+      const poNumber = (maxNum + 1).toString();
 
-    const newPO = await prisma.purchaseOrder.create({
-      data: {
-        poNumber,
-        supplierId,
-        supplierName,
-        subtotal,
-        taxTotal,
-        totalDiscount,
-        grandTotal,
-        expectedDate: expectedDate ? new Date(expectedDate) : null,
-        status: 'PENDING',
-        poItems: {
-          create: poItems.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            discount: item.discount || 0,
-            discountPercent: item.discountPercent || 0,
-            taxAmount: item.taxAmount || 0,
-            total: item.total
-          }))
-        }
-      },
-      include: { poItems: true, supplier: true }
+      return await tx.purchaseOrder.create({
+        data: {
+          poNumber,
+          supplierId,
+          supplierName,
+          subtotal,
+          taxTotal,
+          totalDiscount,
+          grandTotal,
+          expectedDate: expectedDate ? new Date(expectedDate) : null,
+          status: 'PENDING',
+          poItems: {
+            create: poItems.map(item => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              discount: item.discount || 0,
+              discountPercent: item.discountPercent || 0,
+              taxAmount: item.taxAmount || 0,
+              total: item.total
+            }))
+          }
+        },
+        include: { poItems: true, supplier: true }
+      });
     });
 
     res.status(201).json(newPO);

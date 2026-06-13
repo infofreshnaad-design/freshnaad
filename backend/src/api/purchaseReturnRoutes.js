@@ -17,11 +17,16 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       reason 
     } = req.body;
 
-    // Generate Simple Sequential Return Number
-    const returnCount = await prisma.purchaseReturn.count();
-    const returnNo = `${1001 + returnCount}`;
-
     const purchaseReturn = await prisma.$transaction(async (tx) => {
+      // Generate Simple Sequential Return Number safely
+      const result = await tx.$queryRaw`
+        SELECT MAX(CAST("returnNo" AS INTEGER)) as "maxNum" 
+        FROM "PurchaseReturn" 
+        WHERE "returnNo" ~ '^[0-9]+$'
+      `;
+      const maxNum = result[0]?.maxNum || 1000;
+      const returnNo = (maxNum + 1).toString();
+
       // 1. Create the Purchase Return with items
       const newReturn = await tx.purchaseReturn.create({
         data: {
