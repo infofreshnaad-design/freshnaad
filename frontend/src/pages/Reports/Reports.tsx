@@ -301,9 +301,10 @@ const Reports = () => {
             switch (activeReport) {
               case 'sales':
               case 'purchase':
-                headers = ['Date', 'Invoice', activeReport === 'sales' ? 'Customer' : 'Supplier', 'Amount'];
+                headers = ['Date', 'Time', 'Invoice', activeReport === 'sales' ? 'Customer' : 'Supplier', 'Amount'];
                 data = reportData.details.map((item: any) => [
                   new Date(item.createdAt || item.date).toLocaleDateString(),
+                  new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                   item.invoiceNo,
                   activeReport === 'sales' ? (item.customer?.name || 'Walk-in') : item.supplierName,
                   `Rs.${item.grandTotal.toFixed(2)}`
@@ -424,6 +425,7 @@ const Reports = () => {
                 <thead className="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider">
                   <tr>
                     <th className="p-4">Date</th>
+                    <th className="p-4">Time</th>
                     <th className="p-4">Invoice</th>
                     {activeReport === 'sales' && <th className="p-4 text-center">Print</th>}
                     {activeReport === 'sales' ? <th className="p-4">Customer</th> : <th className="p-4">Supplier</th>}
@@ -434,7 +436,8 @@ const Reports = () => {
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                   {reportData.details.map((item: any) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4">{new Date(item.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4">{new Date(item.createdAt || item.date).toLocaleDateString()}</td>
+                      <td className="p-4">{new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
                       <td className="p-4">
                         <button 
                           onClick={() => {
