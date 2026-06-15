@@ -156,6 +156,10 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
       const earnRate = 100;
       const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
+      const roundedVal = Number(roundedTotal || Math.floor(grandTotal));
+      const actualPaid = Math.min(Number(amountPaid) || 0, roundedVal);
+      const actualBalance = Math.max(0, roundedVal - actualPaid);
+
       const orderBaseData = {
         id: id || undefined, // Respect the Client's Optimistic ID
         invoiceNo,
@@ -164,10 +168,10 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         discount,
         taxTotal,
         grandTotal,
-        roundedTotal: roundedTotal || Math.floor(grandTotal),
+        roundedTotal: roundedVal,
         savings: savings || 0,
-        amountPaid: Number(amountPaid) || 0,
-        balance: Number(balance) || 0,
+        amountPaid: actualPaid,
+        balance: actualBalance,
         paymentMode,
         orderType: orderType || 'Walk-in',
         loyaltyPointsEarned,
@@ -196,7 +200,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         payments: {
           create: {
             method: paymentMode,
-            amount: Number(amountPaid) || 0,
+            amount: actualPaid,
             status: 'SUCCESS'
           }
         }
@@ -383,6 +387,10 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         });
       }
 
+      const roundedVal = Number(req.body.roundedTotal || Math.floor(grandTotal));
+      const actualPaid = Math.min(Number(amountPaid) || 0, roundedVal);
+      const actualBalance = Math.max(0, roundedVal - actualPaid);
+
       // 6. Final Record Update
       const finalOrder = await tx.order.update({
         where: { id },
@@ -392,8 +400,9 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           discount,
           taxTotal,
           grandTotal,
-          amountPaid: Number(amountPaid) || 0,
-          balance: Number(balance) || 0,
+          roundedTotal: roundedVal,
+          amountPaid: actualPaid,
+          balance: actualBalance,
           paymentMode,
           loyaltyPointsEarned: newLoyaltyPointsEarned,
           orderItems: {
@@ -415,7 +424,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           payments: {
             create: {
               method: paymentMode,
-              amount: Number(amountPaid) || 0,
+              amount: actualPaid,
               status: 'SUCCESS'
             }
           }
@@ -430,7 +439,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           data: {
             loyaltyPoints: { increment: newLoyaltyPointsEarned },
             totalSpent: { increment: Number(grandTotal) },
-            creditBalance: { increment: Number(balance) || 0 }
+            creditBalance: { increment: Number(actualBalance) || 0 }
           }
         });
       }

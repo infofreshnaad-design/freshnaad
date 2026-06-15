@@ -39,6 +39,10 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
           invoiceNo = (maxNum + 1).toString();
         }
 
+        const roundedVal = Number(orderData.roundedTotal || Math.floor(orderData.grandTotal));
+        const actualPaid = Math.min(Number(orderData.amountPaid) || 0, roundedVal);
+        const actualBalance = Math.max(0, roundedVal - actualPaid);
+
         const order = await tx.order.create({
           data: {
             invoiceNo: invoiceNo,
@@ -47,9 +51,9 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
             subtotal: orderData.subtotal,
             taxTotal: orderData.taxTotal,
             grandTotal: orderData.grandTotal,
-            roundedTotal: orderData.roundedTotal || Math.floor(orderData.grandTotal),
-            amountPaid: Number(orderData.amountPaid) || 0,
-            balance: Number(orderData.balance) || 0,
+            roundedTotal: roundedVal,
+            amountPaid: actualPaid,
+            balance: actualBalance,
             paymentMode: orderData.paymentMode,
             loyaltyPointsEarned,
             loyaltyPointsRedeemed,
@@ -69,7 +73,7 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
             payments: {
               create: {
                 method: orderData.paymentMode,
-                amount: Number(orderData.amountPaid) || 0,
+                amount: actualPaid,
                 status: 'SUCCESS'
               }
             }
@@ -107,7 +111,7 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
                 increment: orderData.grandTotal
               },
               creditBalance: {
-                increment: Number(orderData.balance) || 0
+                increment: Number(actualBalance) || 0
               },
               lastPurchaseDate: new Date(orderData.createdAt || Date.now())
             }

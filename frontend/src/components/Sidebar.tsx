@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     { icon: <ShoppingBag size={22} />, label: 'POS Billing', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'POS' },
     { icon: <LayoutDashboard size={22} />, label: 'Cloud Dashboard', path: '/admin/dashboard', roles: ['ADMIN'], permissionKey: 'DASHBOARD' },
     { icon: <Package size={22} />, label: 'Inventory Management', path: '/inventory', roles: ['ADMIN', 'MANAGER'], permissionKey: 'INVENTORY' },
-    { icon: <Package size={22} />, label: 'Stock Procurement', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'], permissionKey: 'PROCUREMENT' },
+    { icon: <Package size={22} />, label: 'Purchase Entry', path: '/stock-procurement', roles: ['ADMIN', 'MANAGER'], permissionKey: 'PROCUREMENT' },
     { icon: <BarChart3 size={22} />, label: 'Accounts Payable', path: '/accounts-payable', roles: ['ADMIN', 'MANAGER'], permissionKey: 'AP' },
     { icon: <TrendingDown size={22} />, label: 'Sales Return', path: '/sales-return', roles: ['ADMIN', 'MANAGER', 'CASHIER'], permissionKey: 'SALES_RETURN' },
     { icon: <Plus size={22} />, label: 'Purchase Return', path: '/purchase-return', roles: ['ADMIN', 'MANAGER'], permissionKey: 'PURCHASE_RETURN' },

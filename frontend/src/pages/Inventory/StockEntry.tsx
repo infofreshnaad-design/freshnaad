@@ -213,7 +213,7 @@ const StockEntry = () => {
         <div className="bg-white px-4 py-4 flex items-center justify-between border-b border-slate-50 sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500"><ArrowLeft size={22} /></button>
-            <h1 className="text-[17px] font-black tracking-tight text-slate-800">Stock Procurement</h1>
+            <h1 className="text-[17px] font-black tracking-tight text-slate-800">Purchase Entry</h1>
           </div>
           <div className="flex flex-col text-right">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Billing Date</span>

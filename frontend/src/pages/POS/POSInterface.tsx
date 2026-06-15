@@ -265,7 +265,7 @@ const POSInterface: React.FC = () => {
       savings,
       totalQty: cart.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0),
       itemsCount: cart.length,
-      amountPaid: parseFloat(amount) || 0,
+      amountPaid: Math.min(parseFloat(amount) || 0, roundedTotal),
       balance: Math.max(0, roundedTotal - (parseFloat(amount) || 0)),
       paymentMode: method,
       orderType: orderType, // Added Order Type
