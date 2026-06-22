@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, ArrowLeft, Check, Loader2, Package } from 'lucide-react';
+import { Plus, Search, Trash2, ArrowLeft, Loader2, Package, Calculator, Edit3 } from 'lucide-react';
 import api from '../../api/api';
 import { Product } from '../../types';
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +43,13 @@ const StockProcurement = () => {
     currentStock: 0
   });
 
+  // Pieces & Weight Calculation states
+  const [calcMode, setCalcMode] = useState<'direct' | 'calc'>('direct');
+  const [pieces, setPieces] = useState('');
+  const [weightPerPiece, setWeightPerPiece] = useState('');
+  const [weightUnit, setWeightUnit] = useState('Kg');
+  const [updateBy, setUpdateBy] = useState<'pieces' | 'weight'>('pieces');
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -56,6 +63,7 @@ const StockProcurement = () => {
   }, []);
 
   const handleSelectItem = (p: Product) => {
+    const isWeightProduct = ['kg', 'gm', 'ltr', 'ml'].includes((p.unit || '').toLowerCase());
     setWorkingItem({
       productId: p.id,
       name: p.name,
@@ -65,12 +73,84 @@ const StockProcurement = () => {
     });
     setSearch(p.name);
     setShowSuggestions(false);
+
+    // Reset calculation variables
+    setPieces('');
+    setWeightPerPiece('');
+    setWeightUnit(isWeightProduct ? p.unit : 'Kg');
+    setUpdateBy(isWeightProduct ? 'weight' : 'pieces');
+    setCalcMode('direct');
+  };
+
+  const getCalculatedWeightDisplay = () => {
+    const pcsCount = parseFloat(pieces) || 0;
+    const wtPerPce = parseFloat(weightPerPiece) || 0;
+    const totalWt = pcsCount * wtPerPce;
+    
+    // Check if we can convert it to the product's base unit for clarity
+    const prodUnit = (workingItem.unit || '').toLowerCase();
+    const inputUnit = weightUnit.toLowerCase();
+    
+    if (prodUnit === 'kg' && inputUnit === 'gm') {
+      return `${totalWt / 1000} Kg (from ${totalWt} Gm)`;
+    }
+    if (prodUnit === 'gm' && inputUnit === 'kg') {
+      return `${totalWt * 1000} Gm (from ${totalWt} Kg)`;
+    }
+    if (prodUnit === 'ltr' && inputUnit === 'ml') {
+      return `${totalWt / 1000} Ltr (from ${totalWt} Ml)`;
+    }
+    if (prodUnit === 'ml' && inputUnit === 'ltr') {
+      return `${totalWt * 1000} Ml (from ${totalWt} Ltr)`;
+    }
+    
+    return `${totalWt} ${weightUnit}`;
+  };
+
+  const getCalculatedQuantity = () => {
+    if (calcMode === 'direct') {
+      return parseFloat(workingItem.quantity) || 0;
+    }
+
+    const pcsCount = parseFloat(pieces) || 0;
+    const wtPerPce = parseFloat(weightPerPiece) || 0;
+    const totalWt = pcsCount * wtPerPce;
+
+    if (updateBy === 'pieces') {
+      return pcsCount;
+    }
+
+    // Convert weight unit to product's unit
+    const prodUnit = (workingItem.unit || '').toLowerCase();
+    const inputUnit = weightUnit.toLowerCase();
+
+    if (prodUnit === inputUnit) {
+      return totalWt;
+    }
+
+    // Kg <-> Gm conversion
+    if (prodUnit === 'kg' && inputUnit === 'gm') {
+      return totalWt / 1000;
+    }
+    if (prodUnit === 'gm' && inputUnit === 'kg') {
+      return totalWt * 1000;
+    }
+
+    // Ltr <-> Ml conversion
+    if (prodUnit === 'ltr' && inputUnit === 'ml') {
+      return totalWt / 1000;
+    }
+    if (prodUnit === 'ml' && inputUnit === 'ltr') {
+      return totalWt * 1000;
+    }
+
+    return totalWt;
   };
 
   const handleStaging = () => {
     if (!workingItem.productId) return alert('Please select a product first.');
-    const qty = parseFloat(workingItem.quantity);
-    if (isNaN(qty) || qty <= 0) return alert('Please enter a valid positive quantity.');
+    const qty = getCalculatedQuantity();
+    if (qty <= 0) return alert('Please enter a valid positive quantity.');
 
     // Check if product is already in cart
     const existingIdx = cart.findIndex(item => item.productId === workingItem.productId);
@@ -85,6 +165,9 @@ const StockProcurement = () => {
     // Reset buffer
     setWorkingItem({ productId: '', name: '', quantity: '', unit: 'Nos', currentStock: 0 });
     setSearch('');
+    setPieces('');
+    setWeightPerPiece('');
+    setCalcMode('direct');
     setStep('main');
   };
 
@@ -148,27 +231,125 @@ const StockProcurement = () => {
             )}
           </div>
 
-          {/* Quantity Input */}
+          {/* Configuration Inputs */}
           {workingItem.productId && (
             <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center mb-6">
+              
+              {/* Product Info Banner */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center mb-4">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Current Stock Level</p>
                   <p className="text-lg font-black text-slate-700">{workingItem.currentStock} {workingItem.unit}</p>
                 </div>
                 <div className="bg-brand-50 text-brand-600 px-3 py-1 rounded-full text-xs font-black uppercase">
-                  {workingItem.unit}
+                  Base unit: {workingItem.unit}
                 </div>
               </div>
 
-              <div className="relative">
-                <CustomInput 
-                  label={`Procured Qty / Weight (${workingItem.unit})`} 
-                  type="number" 
-                  value={workingItem.quantity} 
-                  onChange={(e: any) => setWorkingItem({ ...workingItem, quantity: e.target.value })} 
-                  placeholder="0.00" 
-                />
+              {/* Mode Toggle */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setCalcMode('direct')}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${calcMode === 'direct' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <Edit3 size={14} /> Direct Entry
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalcMode('calc')}
+                  className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${calcMode === 'calc' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  <Calculator size={14} /> Multiply Pieces & Weight
+                </button>
+              </div>
+
+              {/* Input rendering based on mode */}
+              {calcMode === 'direct' ? (
+                <div className="relative">
+                  <CustomInput 
+                    label={`Procured Qty / Weight (${workingItem.unit})`} 
+                    type="number" 
+                    value={workingItem.quantity} 
+                    onChange={(e: any) => setWorkingItem({ ...workingItem, quantity: e.target.value })} 
+                    placeholder="0.00" 
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomInput 
+                      label="Pieces Count" 
+                      type="number" 
+                      value={pieces} 
+                      onChange={(e: any) => setPieces(e.target.value)} 
+                      placeholder="0" 
+                    />
+                    <CustomInput 
+                      label="Weight / Vol per Piece" 
+                      type="number" 
+                      value={weightPerPiece} 
+                      onChange={(e: any) => setWeightPerPiece(e.target.value)} 
+                      placeholder="0.00" 
+                    />
+                  </div>
+
+                  {/* Weight Unit Dropdown */}
+                  <div className="relative group mb-6">
+                    <label className="absolute -top-2.5 left-3 px-1 bg-white text-[11px] font-black text-slate-400 uppercase tracking-widest z-10">Piece Weight Unit</label>
+                    <div className="flex items-center gap-3 w-full p-4 border-2 border-slate-100 rounded-2xl bg-white group-focus-within:border-brand-500 transition-all">
+                      <select 
+                        value={weightUnit} 
+                        onChange={(e) => setWeightUnit(e.target.value)}
+                        className="w-full bg-transparent border-none focus:ring-0 text-slate-800 font-bold p-0 text-lg cursor-pointer"
+                      >
+                        {['Kg', 'Gm', 'Ltr', 'Ml', 'Pcs', 'Nos'].map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Multi-option Choice selector */}
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6 space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Commit Selection</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Select which calculated value updates the inventory:</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setUpdateBy('pieces')}
+                        className={`flex-1 py-3 px-4 rounded-2xl border-2 text-xs font-black transition-all text-left ${updateBy === 'pieces' ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <p className="text-[9px] uppercase tracking-wider opacity-60">Total Pieces</p>
+                        <p className="text-sm font-black mt-0.5">{parseFloat(pieces) || 0} Pieces</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUpdateBy('weight')}
+                        className={`flex-1 py-3 px-4 rounded-2xl border-2 text-xs font-black transition-all text-left ${updateBy === 'weight' ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <p className="text-[9px] uppercase tracking-wider opacity-60">Calculated Volume/Weight</p>
+                        <p className="text-sm font-black mt-0.5">{getCalculatedWeightDisplay()}</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Output Preview */}
+              <div className="bg-brand-50 border border-brand-100 p-5 rounded-3xl flex justify-between items-center mb-6">
+                <div>
+                  <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Total Stock Addition</p>
+                  <p className="text-2xl font-black text-brand-800">
+                    +{getCalculatedQuantity()} {workingItem.unit}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-brand-400 uppercase tracking-widest mb-1">Stock After Update</p>
+                  <p className="text-lg font-black text-brand-700">
+                    {(workingItem.currentStock + getCalculatedQuantity())} {workingItem.unit}
+                  </p>
+                </div>
               </div>
 
               <button 
