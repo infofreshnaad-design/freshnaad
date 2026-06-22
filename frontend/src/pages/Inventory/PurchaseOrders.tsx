@@ -32,7 +32,7 @@ const PurchaseOrders = () => {
 
   const handleConvert = (po: any) => {
     // Navigate to stock entry with PO data
-    navigate('/stock-procurement', { state: { po } });
+    navigate('/purchase-entry', { state: { po } });
   };
 
   const getStatusColor = (status: string) => {
@@ -67,7 +67,7 @@ const PurchaseOrders = () => {
                 ))}
              </div>
              <button 
-                onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })} 
+                onClick={() => navigate('/purchase-entry', { state: { mode: 'PO' } })} 
                 className="bg-brand-600 text-white px-8 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-xl shadow-brand-500/20 active:scale-95"
              >
                 <Plus size={20} strokeWidth={3}/>
@@ -87,7 +87,7 @@ const PurchaseOrders = () => {
                     <p className="text-brand-100 font-medium">There are <span className="font-black text-white">{lowStockCount} items</span> below critical stock levels. Should we draft an order?</p>
                 </div>
                 <button 
-                    onClick={() => navigate('/stock-procurement', { state: { mode: 'PO' } })}
+                    onClick={() => navigate('/purchase-entry', { state: { mode: 'PO' } })}
                     className="bg-white text-brand-600 px-8 py-4 rounded-2xl font-black flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 z-10"
                 >
                     Create Urgent Order

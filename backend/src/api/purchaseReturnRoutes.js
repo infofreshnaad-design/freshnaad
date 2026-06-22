@@ -52,23 +52,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         include: { returnItems: true }
       });
 
-      // 2. Parallel Inventory Updates
-      const inventoryUpdates = returnItems.map(item => [
-        tx.product.update({
-          where: { id: item.productId },
-          data: { stockQuantity: { decrement: item.quantity } }
-        }),
-        tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason: `Purchase Return ${returnNo}`
-          }
-        })
-      ]).flat();
 
-      await Promise.all(inventoryUpdates);
 
       return newReturn;
     }, { timeout: 15000 });

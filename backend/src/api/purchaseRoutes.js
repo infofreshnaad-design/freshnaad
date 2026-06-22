@@ -93,32 +93,17 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         }
       });
 
-      // 2. Parallel Inventory Updates
-      const inventoryUpdates = purchaseItems.map(item => [
+      // 2. Update Product Purchase Price only (Inventory stock updates are bypassed)
+      const priceUpdates = purchaseItems.map(item => 
         tx.product.update({
           where: { id: item.productId },
           data: { 
-            stockQuantity: { increment: item.quantity },
             purchasePrice: item.price // Update master inventory price
           }
-        }),
-        tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'IN',
-            quantity: item.quantity,
-            reason: `Purchase ${invoiceNo}`
-          }
         })
-      ]).flat();
+      );
 
-      await Promise.all(inventoryUpdates);
-
-      // 3. Emit real-time events for other terminals
-      const io = req.app.get('io');
-      if (io) {
-          io.emit('INVENTORY_UPDATE', { items: purchaseItems.map(pi => ({ id: pi.productId, quantity: pi.quantity })) });
-      }
+      await Promise.all(priceUpdates);
 
       return newPurchase;
     });
@@ -223,39 +208,13 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       // 1. Validate and Filter items
       const validNewItems = newItems.filter(item => item.productId || item.id);
       
-      // 2. Perform Inventory Updates Sequentially for stability
-      // Reverse old items (Decrement)
-      for (const item of oldPurchase.purchaseItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stockQuantity: { decrement: item.quantity } }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: item.productId,
-            type: 'OUT',
-            quantity: item.quantity,
-            reason: `Edit Reverse: ${oldPurchase.invoiceNo}`
-          }
-        });
-      }
-
-      // Apply new items (Increment)
+      // 2. Update Product Purchase Price only on edit (Inventory stock updates are bypassed)
       for (const item of validNewItems) {
         const pid = item.productId || item.id;
         await tx.product.update({
           where: { id: pid },
           data: { 
-            stockQuantity: { increment: item.quantity },
             purchasePrice: item.price // Update master inventory price on edit
-          }
-        });
-        await tx.inventoryLog.create({
-          data: {
-            productId: pid,
-            type: 'IN',
-            quantity: item.quantity,
-            reason: `Edit Apply: ${oldPurchase.invoiceNo}`
           }
         });
       }

@@ -122,21 +122,8 @@ class APService {
             for (const item of data.items) {
                 await tx.product.update({
                     where: { id: item.productId },
-                    data: { stockQuantity: { increment: item.quantity } }
+                    data: { purchasePrice: item.price }
                 });
-
-                await tx.inventoryLog.create({
-                    data: {
-                        productId: item.productId,
-                        type: 'IN',
-                        quantity: item.quantity,
-                        reason: `AP Purchase: ${data.invoiceNo}`
-                    }
-                });
-            }
-
-            if (io) {
-                io.emit('INVENTORY_UPDATE', { items: data.items.map(i => ({ id: i.productId, quantity: i.quantity })) });
             }
 
             return purchase;
@@ -208,30 +195,10 @@ class APService {
 
             if (!purchase) throw new Error('Purchase not found');
 
-            for (const item of purchase.purchaseItems) {
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { stockQuantity: { decrement: item.quantity } }
-                });
-
-                await tx.inventoryLog.create({
-                    data: {
-                        productId: item.productId,
-                        type: 'OUT',
-                        quantity: item.quantity,
-                        reason: `AP DELETE Reverse: ${purchase.invoiceNo}`
-                    }
-                });
-            }
-
             await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
             await tx.purchasePayment.deleteMany({ where: { purchaseId: id } });
             
             const deleted = await tx.purchase.delete({ where: { id } });
-
-            if (io) {
-                io.emit('INVENTORY_UPDATE', { items: purchase.purchaseItems.map(i => ({ id: i.productId, quantity: i.quantity })) });
-            }
 
             return deleted;
         });
