@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Save, ShoppingBag, ArrowLeft, Calendar, Share2, Check, User, ChevronDown, Trash, Clock, Loader2 } from 'lucide-react';
+import { Plus, Search, Trash2, Save, ShoppingBag, ArrowLeft, Calendar, Share2, Check, User, ChevronDown, Trash, Clock, Loader2, X } from 'lucide-react';
 import api from '../../api/api';
 import { Product } from '../../types';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -41,6 +41,7 @@ const StockEntry = () => {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [billNo, setBillNo] = useState('');
   const [step, setStep] = useState<'main' | 'add-item' | 'finalize'>('main');
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
 
   // Payment State (For Finalize Page)
   const [isPaid, setIsPaid] = useState(true);
@@ -367,21 +368,10 @@ const StockEntry = () => {
             <div className="flex justify-end -mt-4 mb-4">
               <button
                 type="button"
-                onClick={() => {
-                  setWorkingItem({
-                    productId: '',
-                    name: itemSearch || 'Custom Product',
-                    quantity: workingItem.quantity,
-                    unit: workingItem.unit || 'Nos',
-                    price: workingItem.price,
-                    discountPercent: 0,
-                    total: 0
-                  });
-                  alert(`Set item to custom name: "${itemSearch || 'Custom Product'}"`);
-                }}
-                className="text-xs font-black text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-xl uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                onClick={() => setIsCustomModalOpen(true)}
+                className="text-xs font-black text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-xl uppercase tracking-wider flex items-center gap-1.5 transition-all"
               >
-                <Plus size={14} strokeWidth={3} /> Add Custom Item (Non-Inventory)
+                <Plus size={14} strokeWidth={3} /> Add new product
               </button>
             </div>
 
@@ -438,6 +428,66 @@ const StockEntry = () => {
               >Proceed</button>
            </div>
         </div>
+
+        {isCustomModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-bold text-slate-800 font-sans">Add Custom Product</h2>
+                <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const name = (e.target as any).customName.value;
+                const quantity = parseFloat((e.target as any).customQty.value) || 0;
+                const unit = (e.target as any).customUnit.value;
+                const price = parseFloat((e.target as any).customPrice.value) || 0;
+                if (!name.trim()) return alert("Please enter product name");
+                if (quantity <= 0) return alert("Please enter a valid quantity");
+                
+                const newItem = {
+                  productId: null,
+                  name,
+                  quantity,
+                  unit,
+                  price,
+                  discountPercent: 0,
+                  total: quantity * price
+                };
+                setCart([...cart, newItem]);
+                setIsCustomModalOpen(false);
+                setStep('main');
+              }} className="p-6 space-y-4 overflow-y-auto font-sans">
+                <div>
+                  <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Product Name *</label>
+                  <input required type="text" name="customName" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none" placeholder="e.g. Custom Item" defaultValue={itemSearch} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Quantity *</label>
+                    <input required type="number" step="any" name="customQty" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none" placeholder="0" defaultValue={workingItem.quantity} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Unit</label>
+                    <select name="customUnit" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none appearance-none cursor-pointer" defaultValue={workingItem.unit || 'Nos'}>
+                      {['Nos', 'Kg', 'Ltr', 'Pcs', 'Box', 'Pkt', 'Gm', 'Ml'].map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-black uppercase text-slate-400 tracking-widest mb-1 font-mono">Purchase Rate (₹) *</label>
+                  <input required type="number" step="any" name="customPrice" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-brand-500 font-bold text-slate-800 outline-none" placeholder="0.00" defaultValue={workingItem.price} />
+                </div>
+                <div className="pt-4 flex gap-3 justify-end border-t border-slate-100 mt-6">
+                  <button type="button" onClick={() => setIsCustomModalOpen(false)} className="px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">Cancel</button>
+                  <button type="submit" className="px-6 py-2.5 bg-brand-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-brand-700 transition-all shadow-xl shadow-brand-500/20 active:scale-95">Add Item</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
