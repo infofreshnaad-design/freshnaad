@@ -254,8 +254,9 @@ model PurchaseReturnItem {
   id               String         @id @default(uuid())
   purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id])
   purchaseReturnId String
-  product          Product        @relation(fields: [productId], references: [id])
-  productId        String
+  product          Product?       @relation(fields: [productId], references: [id])
+  productId        String?
+  productName      String         @default("")
   quantity         Float
   price            Float
   taxAmount        Float
@@ -334,17 +335,18 @@ model PurchasePayment {
 }
 
 model PurchaseItem {
-  id         String   @id @default(uuid())
-  purchase   Purchase @relation(fields: [purchaseId], references: [id])
-  purchaseId String
-  product    Product  @relation(fields: [productId], references: [id])
-  productId  String
-  quantity   Float
-  price      Float
-  discount   Float    @default(0)
-  discountPercent Float @default(0)
-  taxAmount  Float
-  total      Float
+  id              String   @id @default(uuid())
+  purchase        Purchase @relation(fields: [purchaseId], references: [id])
+  purchaseId      String
+  product         Product? @relation(fields: [productId], references: [id])
+  productId       String?
+  productName     String   @default("")
+  quantity        Float
+  price           Float
+  discount        Float    @default(0)
+  discountPercent Float    @default(0)
+  taxAmount       Float
+  total           Float
 }
 
 model ExpenseCategory {

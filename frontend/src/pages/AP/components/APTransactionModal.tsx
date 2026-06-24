@@ -80,7 +80,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
     setStep('MAIN');
   };
 
-  const handleSave = async () => {
+    const handleSave = async () => {
     if (!selectedSupplier) return alert('Please select a supplier');
     
     setLoading(true);
@@ -91,7 +91,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
             await api.post('/ap/purchase', {
                 supplierId: selectedSupplier.id,
                 supplierName: selectedSupplier.name,
-                items: cart.map(i => ({ productId: i.id, quantity: i.qty, price: i.rate })),
+                items: cart.map(i => ({ productId: i.id || null, productName: i.name, quantity: i.qty, price: i.rate })),
                 grandTotal: total,
                 subtotal: total,
                 date
@@ -276,27 +276,44 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                     <button onClick={() => setStep('MAIN')} className="p-3 bg-slate-50 text-slate-400 rounded-2xl"><ArrowLeft size={24}/></button>
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">Catalogue Lookup</h2>
                  </header>
-                 
                  <div className="space-y-8 flex-1">
-                    <div className="relative">
-                        <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Item Identification</label>
-                        <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-brand-500 transition-all">
-                            <Search size={20} className="text-slate-300 mr-4" />
-                            <input 
-                                type="text" placeholder="Search product or scan..." value={itemSearch} 
-                                onChange={(e) => { setItemSearch(e.target.value); setShowProductSuggestions(true); }}
-                                onFocus={() => setShowProductSuggestions(true)}
-                                onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
-                                className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
-                            />
-                        </div>
-                        {showProductSuggestions && itemSearch && itemSearch !== workingItem.name && (
-                            <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
-                                {products.filter(p => p.name.toLowerCase().includes(itemSearch.toLowerCase())).map(p => (
-                                    <button key={p.id} onClick={() => { setWorkingItem({ ...workingItem, id: p.id, name: p.name, rate: p.purchasePrice.toString(), unit: p.unit }); setItemSearch(p.name); setShowProductSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{p.name}</button>
-                                ))}
-                            </div>
-                        )}
+                     <div className="relative">
+                         <label className="absolute -top-2.5 left-4 px-1 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider z-10">Item Identification</label>
+                         <div className="w-full p-5 border-2 border-slate-100 rounded-[2rem] flex items-center bg-white group-focus-within:border-brand-500 transition-all mb-4">
+                             <Search size={20} className="text-slate-300 mr-4" />
+                             <input 
+                                 type="text" placeholder="Search product or scan..." value={itemSearch} 
+                                 onChange={(e) => { setItemSearch(e.target.value); setShowProductSuggestions(true); }}
+                                 onFocus={() => setShowProductSuggestions(true)}
+                                 onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
+                                 className="w-full bg-transparent border-none focus:ring-0 p-0 font-bold text-slate-700" 
+                             />
+                         </div>
+                         {showProductSuggestions && itemSearch && itemSearch !== workingItem.name && (
+                             <div className="absolute z-50 w-full mt-2 bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-48 overflow-y-auto">
+                                 {products.filter(p => p.name.toLowerCase().includes(itemSearch.toLowerCase())).map(p => (
+                                     <button key={p.id} onClick={() => { setWorkingItem({ ...workingItem, id: p.id, name: p.name, rate: p.purchasePrice.toString(), unit: p.unit }); setItemSearch(p.name); setShowProductSuggestions(false); }} className="w-full p-4 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 font-black text-slate-700">{p.name}</button>
+                                 ))}
+                             </div>
+                         )}
+                     </div>
+
+                     <div className="flex justify-end -mt-2">
+                       <button
+                         type="button"
+                         onClick={() => {
+                           setWorkingItem({
+                             ...workingItem,
+                             id: '',
+                             name: itemSearch || 'Custom Product',
+                             unit: 'Nos'
+                           });
+                           alert(`Set item to custom name: "${itemSearch || 'Custom Product'}"`);
+                         }}
+                         className="text-xs font-black text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-xl uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                       >
+                         <Plus size={14} strokeWidth={3} /> Use as Custom Item
+                       </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
@@ -310,7 +327,7 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex justify-between items-center">
+                    <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex justify-between items-center mt-6">
                         <div>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Item Appraisal</p>
                             <p className="text-4xl font-black">₹{(parseFloat(workingItem.qty || '0') * parseFloat(workingItem.rate || '0')).toLocaleString()}</p>
@@ -320,13 +337,21 @@ const APTransactionModal = ({ isOpen, onClose, onFinish, initialMode = 'PURCHASE
 
                  <button 
                     onClick={() => { 
-                        if (!workingItem.id || !workingItem.qty) return;
-                        setCart([...cart, { ...workingItem, qty: parseFloat(workingItem.qty), rate: parseFloat(workingItem.rate), total: parseFloat(workingItem.qty) * parseFloat(workingItem.rate) }]); 
+                        const finalName = workingItem.name || itemSearch;
+                        if (!finalName || !workingItem.qty) return;
+                        setCart([...cart, { 
+                            ...workingItem, 
+                            id: workingItem.id || null, 
+                            name: finalName, 
+                            qty: parseFloat(workingItem.qty), 
+                            rate: parseFloat(workingItem.rate) || 0, 
+                            total: parseFloat(workingItem.qty) * (parseFloat(workingItem.rate) || 0) 
+                        }]); 
                         setStep('MAIN'); 
                         setWorkingItem({ id: '', name: '', qty: '', rate: '', unit: '', total: 0 }); 
                         setItemSearch(''); 
                     }}
-                    disabled={!workingItem.id || !workingItem.qty || parseFloat(workingItem.qty) <= 0}
+                    disabled={(!workingItem.id && !itemSearch) || !workingItem.qty || parseFloat(workingItem.qty) <= 0}
                     className="w-full py-5 bg-brand-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
                  >
                     <Plus size={18} /> Add to Transaction

@@ -101,10 +101,11 @@ class APService {
                     paymentStatus: (data.amountPaid || 0) >= data.grandTotal ? 'PAID' : ((data.amountPaid || 0) > 0 ? 'PARTIAL' : 'PENDING'),
                     date: data.date ? new Date(data.date) : new Date(),
                     purchaseItems: {
-                        create: data.items.map(item => ({
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            price: item.price,
+                        create: (data.items || []).map(item => ({
+                            productId: item.productId || null,
+                            productName: item.name || item.productName || "",
+                            quantity: Number(item.quantity) || 0,
+                            price: Number(item.price) || 0,
                             taxAmount: 0,
                             total: (item.quantity * item.price)
                         }))
@@ -118,13 +119,6 @@ class APService {
                     } : undefined
                 }
             });
-
-            for (const item of data.items) {
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { purchasePrice: item.price }
-                });
-            }
 
             return purchase;
         });

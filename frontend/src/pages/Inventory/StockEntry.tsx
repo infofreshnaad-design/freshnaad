@@ -130,11 +130,21 @@ const StockEntry = () => {
   };
 
   const addToCartInternal = (shouldReset: boolean) => {
-    if (!workingItem.productId || !workingItem.quantity) return alert('Please select item and enter quantity');
+    const finalName = workingItem.name || itemSearch;
+    if (!finalName || !workingItem.quantity) {
+      return alert('Please select an item or enter a custom name, and enter quantity');
+    }
     
     const qty = parseFloat(workingItem.quantity);
-    const prc = parseFloat(workingItem.price);
-    const newItem = { ...workingItem, quantity: qty, price: prc, total: qty * prc };
+    const prc = parseFloat(workingItem.price) || 0;
+    const newItem = { 
+      ...workingItem, 
+      productId: workingItem.productId || '',
+      name: finalName,
+      quantity: qty, 
+      price: prc, 
+      total: qty * prc 
+    };
 
     setCart([...cart, newItem]);
 
@@ -352,6 +362,27 @@ const StockEntry = () => {
                    ))}
                 </div>
               )}
+            </div>
+
+            <div className="flex justify-end -mt-4 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setWorkingItem({
+                    productId: '',
+                    name: itemSearch || 'Custom Product',
+                    quantity: workingItem.quantity,
+                    unit: workingItem.unit || 'Nos',
+                    price: workingItem.price,
+                    discountPercent: 0,
+                    total: 0
+                  });
+                  alert(`Set item to custom name: "${itemSearch || 'Custom Product'}"`);
+                }}
+                className="text-xs font-black text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-4 py-2.5 rounded-xl uppercase tracking-wider flex items-center gap-1.5 transition-all"
+              >
+                <Plus size={14} strokeWidth={3} /> Add Custom Item (Non-Inventory)
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

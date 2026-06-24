@@ -73,10 +73,11 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           date: date ? new Date(date) : new Date(),
           status: 'COMPLETED',
           purchaseItems: {
-            create: purchaseItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
+            create: (purchaseItems || []).map((item) => ({
+              productId: item.productId || null,
+              productName: item.name || item.productName || "",
+              quantity: Number(item.quantity) || 0,
+              price: Number(item.price) || 0,
               discount: item.discount || 0,
               discountPercent: item.discountPercent || 0,
               taxAmount: item.taxAmount || 0,
@@ -92,18 +93,6 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           } : undefined
         }
       });
-
-      // 2. Update Product Purchase Price only (Inventory stock updates are bypassed)
-      const priceUpdates = purchaseItems.map(item => 
-        tx.product.update({
-          where: { id: item.productId },
-          data: { 
-            purchasePrice: item.price // Update master inventory price
-          }
-        })
-      );
-
-      await Promise.all(priceUpdates);
 
       return newPurchase;
     });
@@ -206,20 +195,9 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       if (!oldPurchase) throw new Error('Purchase not found');
 
       // 1. Validate and Filter items
-      const validNewItems = newItems.filter(item => item.productId || item.id);
-      
-      // 2. Update Product Purchase Price only on edit (Inventory stock updates are bypassed)
-      for (const item of validNewItems) {
-        const pid = item.productId || item.id;
-        await tx.product.update({
-          where: { id: pid },
-          data: { 
-            purchasePrice: item.price // Update master inventory price on edit
-          }
-        });
-      }
+      const validNewItems = (newItems || []).filter(item => item.productId || item.id || item.name || item.productName);
 
-      // 3. Delete old items and record the update
+      // 2. Delete old items and record the update
       await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
 
       return await tx.purchase.update({
@@ -237,10 +215,11 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           paymentStatus: paymentStatus || 'PAID',
           date: date ? new Date(date) : undefined,
           purchaseItems: {
-            create: newItems.map(item => ({
-              productId: item.productId || item.id,
-              quantity: item.quantity,
-              price: item.price,
+            create: validNewItems.map(item => ({
+              productId: item.productId || item.id || null,
+              productName: item.name || item.productName || "",
+              quantity: Number(item.quantity) || 0,
+              price: Number(item.price) || 0,
               discount: item.discount || 0,
               discountPercent: item.discountPercent || 0,
               taxAmount: item.taxAmount || 0,

@@ -175,11 +175,11 @@ const APLedgerView = () => {
                                     </div>
                                 </div>
 
-                                {tx.items && (
+                                {tx.items && tx.items.length > 0 && (
                                     <div className="bg-slate-50/50 rounded-2xl p-4 space-y-2">
                                         {tx.items.map((i: any, kidx: number) => (
                                             <div key={kidx} className="flex justify-between text-[11px] font-bold text-slate-500">
-                                                <span>{i.product.name} ({i.quantity} Nos)</span>
+                                                <span>{i.productName || i.product?.name || i.name} ({i.quantity} Nos)</span>
                                                 <span>₹{i.total.toLocaleString()}</span>
                                             </div>
                                         ))}

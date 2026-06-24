@@ -3,6 +3,7 @@ import { Plus, Search, Trash2, ArrowLeft, Loader2, Package, Calculator, Edit3 } 
 import api from '../../api/api';
 import { Product } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import ProductModal from '../../components/ProductModal';
 
 // Reusable Input Component with Floating-Style Label
 const CustomInput = ({ label, value, onChange, placeholder, type = "text", disabled = false, icon = null }: any) => (
@@ -33,6 +34,7 @@ const StockProcurement = () => {
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [step, setStep] = useState<'main' | 'add-item'>('main');
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   // Staged Item state
   const [workingItem, setWorkingItem] = useState({
@@ -229,6 +231,16 @@ const StockProcurement = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="flex justify-end -mt-2">
+             <button
+                type="button"
+                onClick={() => setIsProductModalOpen(true)}
+                className="text-xs font-black text-brand-600 bg-brand-50 hover:bg-brand-100 px-4 py-2.5 rounded-xl uppercase tracking-wider flex items-center gap-1.5 transition-all"
+             >
+                <Plus size={14} strokeWidth={3} /> Create New Product
+             </button>
           </div>
 
           {/* Configuration Inputs */}
@@ -432,6 +444,25 @@ const StockProcurement = () => {
           </div>
         )}
       </div>
+      {isProductModalOpen && (
+        <ProductModal 
+          onClose={() => setIsProductModalOpen(false)}
+          onSave={async () => {
+            try {
+              const res = await api.get('/products');
+              setProducts(res.data);
+              setIsProductModalOpen(false);
+              const sorted = [...res.data].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              if (sorted.length > 0) {
+                handleSelectItem(sorted[0]);
+              }
+            } catch (e) {
+              console.error(e);
+              setIsProductModalOpen(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

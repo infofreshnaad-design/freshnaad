@@ -40,10 +40,11 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
           reason,
           status: 'COMPLETED',
           returnItems: {
-            create: returnItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
+            create: (returnItems || []).map((item) => ({
+              productId: item.productId || null,
+              productName: item.name || item.productName || "",
+              quantity: Number(item.quantity) || 0,
+              price: Number(item.price) || 0,
               taxAmount: item.taxAmount || 0,
               total: item.total
             }))

@@ -82,23 +82,33 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   };
 
   const handleSave = async () => {
-    // Validation: Check for empty item lines (no product selected)
-    const invalidItems = items.filter(item => !item.productId);
+    // Validation: Check for empty item lines (no product selected / no name entered)
+    const invalidItems = items.filter(item => type === 'SALE' ? !item.productId : (!item.productId && !item.productName && !item.name));
     if (invalidItems.length > 0) {
-        alert("Please select a product for all item lines, or remove the empty rows before saving.");
+        alert(type === 'SALE' 
+          ? "Please select a product for all item lines, or remove the empty rows before saving." 
+          : "Please enter a name for all item lines, or remove the empty rows before saving.");
         return;
     }
 
     setSaving(true);
     try {
-      const subtotal = items.reduce((sum, i) => sum + ( (i.price || i.sellingPrice) * i.quantity), 0);
-      const taxTotal = items.reduce((sum, i) => sum + ( (i.price || i.sellingPrice) * ( (i.product?.gstRate || 0) / 100) * i.quantity), 0);
+      const mappedItems = items.map(i => ({
+        ...i,
+        productId: i.productId || null,
+        productName: i.productName || i.product?.name || i.name || "",
+        price: Number(i.price || i.sellingPrice || 0),
+        quantity: Number(i.quantity || 0)
+      }));
+
+      const subtotal = mappedItems.reduce((sum, i) => sum + ( i.price * i.quantity), 0);
+      const taxTotal = mappedItems.reduce((sum, i) => sum + ( i.price * ( (i.product?.gstRate || 0) / 100) * i.quantity), 0);
       const grandTotal = subtotal + taxTotal;
 
       const payload = {
         ...bill,
-        orderItems: items,
-        purchaseItems: items, // reuse for both
+        orderItems: type === 'SALE' ? mappedItems : undefined,
+        purchaseItems: type === 'PURCHASE' ? mappedItems : undefined,
         subtotal,
         taxTotal,
         grandTotal
@@ -155,17 +165,31 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                                 {idx + 1}
                             </div>
                             <div>
-                                {isEditing && !item.productId ? (
-                                    <select 
-                                        className="w-full px-2 py-1 bg-white border border-brand-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-brand-primary mb-2 truncate max-w-[200px]"
-                                        value={item.productId || ''}
-                                        onChange={e => handleProductSelect(idx, e.target.value)}
-                                    >
-                                        <option value="">Select a product...</option>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                {isEditing ? (
+                                    type === 'PURCHASE' ? (
+                                        <input 
+                                            type="text" 
+                                            value={item.productName || item.product?.name || item.name || ''}
+                                            onChange={e => handleUpdateItem(idx, 'productName', e.target.value)}
+                                            placeholder="Item name..."
+                                            className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-brand-primary mb-2 truncate max-w-[200px]"
+                                        />
+                                    ) : (
+                                        !item.productId ? (
+                                            <select 
+                                                className="w-full px-2 py-1 bg-white border border-brand-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-brand-primary mb-2 truncate max-w-[200px]"
+                                                value={item.productId || ''}
+                                                onChange={e => handleProductSelect(idx, e.target.value)}
+                                            >
+                                                <option value="">Select a product...</option>
+                                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        ) : (
+                                            <p className="font-bold text-slate-900">{item.productName || item.product?.name || item.name || 'Product'}</p>
+                                        )
+                                    )
                                 ) : (
-                                    <p className="font-bold text-slate-900">{item.product?.name || 'Product'}</p>
+                                    <p className="font-bold text-slate-900">{item.productName || item.product?.name || item.name || 'Product'}</p>
                                 )}
                                 <div className="flex items-center gap-2 mt-1">
                                     {isEditing ? (
@@ -192,7 +216,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                                         </div>
                                     ) : (
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            {item.quantity} {item.product?.unit || 'pcs'} × ₹{item.price?.toFixed(2)}
+                                            {item.quantity} {item.unit || item.product?.unit || 'pcs'} × ₹{item.price?.toFixed(2)}
                                         </p>
                                     )}
                                 </div>
