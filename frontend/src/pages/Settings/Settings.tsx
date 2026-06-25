@@ -21,9 +21,9 @@ const Settings = () => {
     // Permission Modules Definition
     const ACCESS_MODULES = [
         { key: 'POS', label: 'POS Billing' },
-        { key: 'DASHBOARD', label: 'Cloud Dashboard' },
         { key: 'INVENTORY', label: 'Inventory' },
-        { key: 'PROCUREMENT', label: 'Stock-In' },
+        { key: 'PURCHASE_ENTRY', label: 'Purchase Entry' },
+        { key: 'STOCK_PROCUREMENT', label: 'Stock Procurement' },
         { key: 'AP', label: 'Accounts Payable' },
         { key: 'SALES_RETURN', label: 'Sales Return' },
         { key: 'PURCHASE_RETURN', label: 'Purchase Return' },
@@ -31,8 +31,6 @@ const Settings = () => {
         { key: 'CUSTOMERS', label: 'Customers' },
         { key: 'REPORTS', label: 'Reports' },
         { key: 'EXPENSES', label: 'Expenses' },
-        { key: 'LICENSES', label: 'License Desk' },
-        { key: 'DEVICES', label: 'Staff Activity' },
         { key: 'SETTINGS', label: 'Settings' },
     ];
 
