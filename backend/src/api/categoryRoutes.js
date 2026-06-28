@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create category (Admin/Manager only)
-router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -31,7 +31,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Update category (Admin/Manager only)
-router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.put('/:id', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;

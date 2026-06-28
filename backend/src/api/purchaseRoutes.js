@@ -28,7 +28,7 @@ router.get('/suppliers/suggestions', auth(['ADMIN', 'MANAGER', 'CASHIER']), asyn
 });
 
 // Create new purchase (Stock In)
-router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) => {
   try {
     const { 
       supplierId,
@@ -104,7 +104,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   }
 });
 // Add payment to an existing purchase
-router.post('/:id/payments', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/:id/payments', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) => {
   try {
     const { id } = req.params;
     const amount = Number(req.body.amount);
@@ -154,7 +154,7 @@ router.post('/:id/payments', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Get purchase by ID
-router.get('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) => {
   try {
     const purchase = await prisma.purchase.findUnique({
       where: { id: req.params.id },
@@ -168,7 +168,7 @@ router.get('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Update purchase bill (with inventory reconciliation)
-router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.put('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) => {
   try {
     const { id } = req.params;
     const { 

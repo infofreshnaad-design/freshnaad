@@ -175,7 +175,7 @@ router.get('/sales', async (req, res) => {
 });
 
 // 1.05 Credit Sales Report (Outstanding Payments)
-router.get('/credit-sales', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/credit-sales', auth(['ADMIN', 'MANAGER'], 'REPORTS'), async (req, res) => {
   try {
     const { filter, startDate, endDate, timezoneOffset } = req.query;
     const dateRange = getDateRange(filter, startDate, endDate, parseInt(timezoneOffset || 0));

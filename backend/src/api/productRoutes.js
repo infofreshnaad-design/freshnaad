@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create product
-router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const {
       name, barcode, categoryId, brand, purchasePrice, 
@@ -70,7 +70,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Update product
-router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.put('/:id', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -110,7 +110,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Delete product (Smart Delete: Soft-delete if history exists)
-router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.delete('/:id', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -137,7 +137,7 @@ router.delete('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Toggle product active status
-router.put('/inactive/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.put('/inactive/:id', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const { id } = req.params;
     const { is_active } = req.body;
@@ -154,7 +154,7 @@ router.put('/inactive/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Generate Barcode
-router.post('/generate-barcode', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/generate-barcode', auth(['ADMIN', 'MANAGER'], 'INVENTORY'), async (req, res) => {
   try {
     const uniqueBarcode = 'PRD-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     res.json({ barcode: uniqueBarcode });

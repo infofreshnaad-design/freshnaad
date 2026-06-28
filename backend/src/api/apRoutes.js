@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const apService = require('../services/apService');
 
 // Get Summary of all payables
-router.get('/summary', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/summary', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const suppliers = await prisma.supplier.findMany({
             where: { is_active: true },
@@ -64,7 +64,7 @@ router.get('/summary', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Get Ledger for a specific supplier
-router.get('/ledger/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/ledger/:id', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const ledger = await apService.getSupplierLedger(req.params.id);
         res.json(ledger);
@@ -74,7 +74,7 @@ router.get('/ledger/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Create PURCHASE transaction
-router.post('/purchase', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/purchase', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const io = req.app.get('io');
         const purchase = await apService.processPurchase(req.body, io);
@@ -85,7 +85,7 @@ router.post('/purchase', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Create PAYMENT_OUT transaction (General Settlement)
-router.post('/payment-out', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/payment-out', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const result = await apService.processPaymentOut(req.body);
         res.json(result);
@@ -95,7 +95,7 @@ router.post('/payment-out', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Delete PURCHASE transaction
-router.delete('/purchase/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.delete('/purchase/:id', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const io = req.app.get('io');
         const deleted = await apService.deletePurchase(req.params.id, io);
@@ -106,7 +106,7 @@ router.delete('/purchase/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Delete PAYMENT_OUT transaction
-router.delete('/payment/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.delete('/payment/:id', auth(['ADMIN', 'MANAGER'], 'AP'), async (req, res) => {
     try {
         const deleted = await apService.deletePaymentOut(req.params.id);
         res.json(deleted);

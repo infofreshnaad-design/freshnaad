@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 
 // List devices for a user/admin
-router.get('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/', auth(['ADMIN', 'MANAGER'], 'DEVICES'), async (req, res) => {
     try {
         const where = req.user.role === 'ADMIN' ? {} : { licenseId: req.user.licenseId };
         const devices = await prisma.device.findMany({ 

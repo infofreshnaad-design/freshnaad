@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const auth = require('../middleware/auth');
 
 // Create new purchase return (Debit Note)
-router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_RETURN'), async (req, res) => {
   try {
     const { 
       purchaseId, 
@@ -66,7 +66,7 @@ router.post('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Get all purchase returns with filtering
-router.get('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_RETURN'), async (req, res) => {
   try {
     const { startDate, endDate, filter } = req.query;
     let where = {};
@@ -110,7 +110,7 @@ router.get('/', auth(['ADMIN', 'MANAGER']), async (req, res) => {
 });
 
 // Get single return details
-router.get('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.get('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_RETURN'), async (req, res) => {
   try {
     const { id } = req.params;
     const purchaseReturn = await prisma.purchaseReturn.findUnique({
