@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
  * Separates JWT verification from database-dependent license checks
  * to prevent transient DB errors from triggering 401 (and thus logging out users).
  */
-const auth = (allowedRoles = []) => {
+const auth = (allowedRoles = [], permissionKey = null) => {
     return async (req, res, next) => {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
@@ -40,7 +40,19 @@ const auth = (allowedRoles = []) => {
                 }
             }
 
+            // Super Admin always has full access
+            if (decoded.role === 'ADMIN') {
+                return next();
+            }
+
             if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
+                if (permissionKey) {
+                    const prisma = require('../config/prisma');
+                    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+                    if (user && user.permissions && typeof user.permissions === 'object' && user.permissions[permissionKey] === true) {
+                        return next();
+                    }
+                }
                 return res.status(403).json({ message: 'Access denied: insufficient permissions' });
             }
 

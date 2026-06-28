@@ -31,7 +31,7 @@ router.post('/unlock/:productId', (req, res) => {
     res.json({ status: 'unlocked' });
 });
 
-router.post('/procure', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+router.post('/procure', auth(['ADMIN', 'MANAGER'], 'STOCK_PROCUREMENT'), async (req, res) => {
     try {
         const { items } = req.body; // array of { productId, quantity }
         
