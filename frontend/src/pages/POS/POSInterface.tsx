@@ -41,6 +41,8 @@ const POSInterface: React.FC = () => {
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [showRecentBills, setShowRecentBills] = useState(false);
+  const [recentBills, setRecentBills] = useState<any[]>([]);
 
   const isOnline = useNetworkStatus();
   const { isConnected, isConnecting, disconnect, connect } = useBluetoothPrinter();
@@ -55,6 +57,20 @@ const POSInterface: React.FC = () => {
   const isFractionalUnit = (unit: string | undefined) => {
     const u = unit?.toLowerCase() || '';
     return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm', 'loose'].includes(u);
+  };
+
+  const fetchRecentBills = async () => {
+    try {
+      const orders = await offlineDB.getAll('orders');
+      const sorted = [...orders].sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date).getTime();
+        const dateB = new Date(b.createdAt || b.date).getTime();
+        return dateB - dateA;
+      });
+      setRecentBills(sorted.slice(0, 15));
+    } catch (error) {
+      console.error('Error fetching recent bills:', error);
+    }
   };
 
   const fetchCategories = async () => {
@@ -127,6 +143,7 @@ const POSInterface: React.FC = () => {
   useEffect(() => {
     fetchCategories();
     fetchProducts();
+    fetchRecentBills();
     
     // Initialize last invoice number from DB once
     const initInvoiceNo = async () => {
@@ -287,6 +304,7 @@ const POSInterface: React.FC = () => {
       // 1. LOCAL PERSISTENCE & STOCK GUARD (Fast, 0ms latency)
       try {
         await offlineDB.put('orders', finalOrderData);
+        await fetchRecentBills();
         
         // Update stock in-memory and in-database simultaneously
         const updatedAllProducts = [...allProducts];
@@ -401,6 +419,19 @@ const POSInterface: React.FC = () => {
             </span>
           </button>
 
+          <button 
+            onClick={() => setShowRecentBills(prev => !prev)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${
+              showRecentBills 
+                ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/30' 
+                : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+            }`}
+            title="Recent Bills"
+          >
+            <Clock size={14} />
+            <span className="hidden xs:block tracking-[0.15em]">RECENT BILLS</span>
+          </button>
+
           <div className="h-6 w-px bg-white/10 hidden sm:block mx-1"></div>
 
           <button 
@@ -426,6 +457,50 @@ const POSInterface: React.FC = () => {
       </header>
 
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        {/* Recent Bills Sidebar Panel */}
+        {showRecentBills && (
+          <aside className="w-full lg:w-48 bg-white border-b lg:border-r border-slate-200 flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-left duration-200">
+            <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-2 text-slate-700">
+                <Clock size={16} className="text-brand-primary animate-pulse" />
+                <h3 className="font-bold text-sm">Recent Bills</h3>
+              </div>
+              <button 
+                onClick={() => setShowRecentBills(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-1.5">
+              {recentBills.length > 0 ? (
+                recentBills.map((bill) => (
+                  <button
+                    key={bill.id}
+                    onClick={() => {
+                      setRecentOrder(bill);
+                      setIsPreviewOpen(true);
+                    }}
+                    className="w-full text-left p-2.5 bg-slate-50 hover:bg-brand-50 border border-slate-100 hover:border-brand-200 rounded-xl transition-all flex items-center justify-between group"
+                  >
+                    <span className="font-bold text-xs text-slate-700 group-hover:text-brand-primary transition-colors">
+                      #{bill.invoiceNo}
+                    </span>
+                    <span className="text-[10px] text-slate-400 group-hover:text-brand-primary transition-colors font-bold uppercase tracking-wider">
+                      View
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="text-center py-6 text-slate-400 text-xs font-semibold">
+                  No recent bills.
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
         {/* Left Side - Product Selection */}
         <section className="flex-1 lg:w-3/5 flex flex-col p-3 md:p-4 gap-3 md:gap-4 overflow-hidden border-b lg:border-r border-slate-200">
           <div className="relative group flex gap-2">
