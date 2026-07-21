@@ -181,45 +181,53 @@ class APService {
     }
 
     async deletePurchase(id, io) {
-        return await prisma.$transaction(async (tx) => {
-            const purchase = await tx.purchase.findUnique({
-                where: { id },
-                include: { purchaseItems: true }
-            });
-
-            if (!purchase) throw new Error('Purchase not found');
-
-            await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
-            await tx.purchasePayment.deleteMany({ where: { purchaseId: id } });
-            
-            const deleted = await tx.purchase.delete({ where: { id } });
-
-            return deleted;
+        const purchase = await prisma.purchase.findUnique({
+            where: { id },
+            include: { purchaseItems: true }
         });
+
+        if (!purchase) throw new Error('Purchase not found');
+
+        const [deleted] = await prisma.$transaction([
+            prisma.purchaseItem.deleteMany({ where: { purchaseId: id } }),
+            prisma.purchasePayment.deleteMany({ where: { purchaseId: id } }),
+            prisma.purchase.delete({ where: { id } })
+        ]);
+
+        return deleted;
     }
 
     async deletePaymentOut(id) {
-        return await prisma.$transaction(async (tx) => {
-            const payment = await tx.purchasePayment.findUnique({
-                where: { id },
-                include: { purchase: true }
-            });
+        const payment = await prisma.purchasePayment.findUnique({
+            where: { id },
+            include: { purchase: true }
+        });
 
-            if (!payment) throw new Error('Payment not found');
+        if (!payment) throw new Error('Payment not found');
 
-            if (payment.purchaseId) {
-                await tx.purchase.update({
+        let operations = [];
+        if (payment.purchaseId && payment.purchase) {
+            const newAmountPaid = Math.max(0, payment.purchase.amountPaid - payment.amount);
+            const newStatus = newAmountPaid <= 0 ? 'PENDING' : newAmountPaid >= payment.purchase.grandTotal ? 'PAID' : 'PARTIAL';
+
+            operations.push(
+                prisma.purchase.update({
                     where: { id: payment.purchaseId },
                     data: {
                         amountPaid: { decrement: payment.amount },
                         balanceDue: { increment: payment.amount },
-                        paymentStatus: 'PARTIAL'
+                        paymentStatus: newStatus
                     }
-                });
-            }
+                })
+            );
+        }
 
-            return await tx.purchasePayment.delete({ where: { id } });
-        });
+        operations.push(
+            prisma.purchasePayment.delete({ where: { id } })
+        );
+
+        const results = await prisma.$transaction(operations);
+        return results[results.length - 1];
     }
 }
 

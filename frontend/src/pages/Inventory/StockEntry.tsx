@@ -197,7 +197,7 @@ const StockEntry = () => {
       };
 
       await api.post('/purchases', purchaseData);
-      alert('Stock Updated Successfully!');
+      alert('Purchase Entry Filed Successfully!');
       
       if (shouldReset) {
         setCart([]);
