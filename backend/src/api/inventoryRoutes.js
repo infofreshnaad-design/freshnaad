@@ -47,28 +47,33 @@ router.post('/procure', auth(['ADMIN', 'MANAGER'], 'STOCK_PROCUREMENT'), async (
                     throw new Error(`Invalid quantity for product ${item.productId}`);
                 }
 
-                // Inventory stock updates are bypassed to keep procurement disconnected from stock levels
-                const prod = await tx.product.findUnique({
-                    where: { id: item.productId }
+                const prod = await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stockQuantity: { increment: qty } }
                 });
 
-                if (prod) {
-                    await tx.inventoryLog.create({
-                        data: {
-                            productId: item.productId,
-                            type: 'IN',
-                            quantity: qty,
-                            reason: 'Stock Procurement Entry'
-                        }
-                    });
-                    results.push(prod);
-                }
+                await tx.inventoryLog.create({
+                    data: {
+                        productId: item.productId,
+                        type: 'IN',
+                        quantity: qty,
+                        reason: 'Stock Procurement'
+                    }
+                });
+
+                results.push(prod);
+            }
+
+            // Emit real-time events for other terminals
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('INVENTORY_UPDATE', { items: items.map(i => ({ id: i.productId, quantity: parseFloat(i.quantity) })) });
             }
 
             return results;
         });
 
-        res.json({ message: 'Stock procurement entry processed successfully', products: updatedProducts });
+        res.json({ message: 'Stock updated successfully', products: updatedProducts });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
