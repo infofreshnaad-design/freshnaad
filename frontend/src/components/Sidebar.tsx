@@ -32,6 +32,12 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) 
     // 2. If granular permissions exist (even if it's an empty object {}), 
     // it becomes the ABSOLUTE source of truth.
     if (user?.permissions !== undefined && user?.permissions !== null && typeof user.permissions === 'object') {
+        if (item.permissionKey === 'STOCK_PROCUREMENT') {
+            return user.permissions['STOCK_PROCUREMENT'] === true || user.permissions['PROCUREMENT'] === true || user.permissions['PURCHASE_ENTRY'] === true;
+        }
+        if (item.permissionKey === 'PURCHASE_ENTRY') {
+            return user.permissions['PURCHASE_ENTRY'] === true || user.permissions['PROCUREMENT'] === true;
+        }
         return user.permissions[item.permissionKey] === true;
     }
 
