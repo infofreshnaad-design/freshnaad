@@ -16,6 +16,7 @@ import PrivateRoute from './components/PrivateRoute';
 import useAuthStore from './store/authStore';
 
 import StockEntry from './pages/Inventory/StockEntry';
+import StockProcurement from './pages/Inventory/StockProcurement';
 import SalesReturn from './pages/Inventory/SalesReturn';
 import PurchaseReturn from './pages/Inventory/PurchaseReturn';
 import SupplierManagement from './pages/Inventory/SupplierManagement';
@@ -53,6 +54,7 @@ function App() {
             <Route path="/" element={<POSInterface />} />
             <Route path="/inventory" element={<ProductManagement />} />
             <Route path="/purchase-entry" element={<StockEntry />} />
+            <Route path="/stock-procurement" element={<StockProcurement />} />
             <Route path="/sales-return" element={<SalesReturn />} />
             <Route path="/purchase-return" element={<PurchaseReturn />} />
             <Route path="/suppliers" element={<SupplierManagement />} />
