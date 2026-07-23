@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff, RefreshCw } from 'lucide-react';
+import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff, RefreshCw, Usb } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
@@ -11,6 +11,7 @@ import { offlineDB } from '../../utils/offlineDB';
 import { addToSyncQueue } from '../../utils/syncQueue';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
 import { useBluetoothPrinter } from '../../hooks/useBluetoothPrinter';
+import { useWiredPrinter } from '../../hooks/useWiredPrinter';
 import InstallPrompt from '../../components/InstallPrompt';
 import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 import RedeemPointsModal from '../../components/RedeemPointsModal';
@@ -46,6 +47,7 @@ const POSInterface: React.FC = () => {
 
   const isOnline = useNetworkStatus();
   const { isConnected, isConnecting, disconnect, connect } = useBluetoothPrinter();
+  const { isWiredConnected, wiredDeviceName, connectWiredPrinter, disconnectWiredPrinter } = useWiredPrinter();
   
   const customer = usePOSStore(state => state.customer);
   const setCustomer = usePOSStore(state => state.setCustomer);
@@ -415,7 +417,18 @@ const POSInterface: React.FC = () => {
               <BluetoothOff size={14} />
             )}
             <span className="hidden xs:block tracking-[0.15em]">
-              {isConnected ? 'BT PRINTER: READY' : isConnecting ? 'RECONNECTING...' : 'CONNECT PRINTER'}
+              {isConnected ? 'BT PRINTER: READY' : isConnecting ? 'RECONNECTING...' : 'BT PRINTER'}
+            </span>
+          </button>
+
+          <button 
+            onClick={() => isWiredConnected ? disconnectWiredPrinter() : connectWiredPrinter()}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black border transition-all ${isWiredConnected ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10'}`}
+            title={isWiredConnected ? `USB Printer Connected: ${wiredDeviceName}` : "Click to connect USB/Wired Thermal Printer"}
+          >
+            <Usb size={14} className={isWiredConnected ? "animate-pulse" : ""} />
+            <span className="hidden xs:block tracking-[0.15em]">
+              {isWiredConnected ? 'USB: READY' : 'USB PRINTER'}
             </span>
           </button>
 

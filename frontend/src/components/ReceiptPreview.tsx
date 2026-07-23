@@ -4,6 +4,7 @@ import WhatsAppShareModal from './WhatsAppShareModal';
 import api from '../api/api';
 import { Bluetooth, Printer, Share2, X } from 'lucide-react';
 import { useBluetoothPrinter } from '../hooks/useBluetoothPrinter';
+import { useWiredPrinter } from '../hooks/useWiredPrinter';
 import { EscPosBuilder } from '../utils/escPosUtil';
 
 interface ReceiptPreviewProps {
@@ -17,191 +18,234 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
   const [waStatus, setWaStatus] = React.useState<any>(order?.whatsappStatus || null);
   const [isSending, setIsSending] = React.useState(false);
   const [isPrinting, setIsPrinting] = React.useState(false);
-  const { print, isConnected, ensureConnected } = useBluetoothPrinter();
+  const { print: printBluetooth, isConnected: isBtConnected, ensureConnected: ensureBtConnected } = useBluetoothPrinter();
+  const { printWired, isWiredConnected } = useWiredPrinter();
 
   if (!order) return null;
 
-    const handleUnifiedPrint = async () => {
-      setIsPrinting(true);
-      try {
-        const connected = await ensureConnected();
-        if (connected) {
-          await handleBluetoothPrint();
-          onClose();
-        } else {
-          handleSystemPrint();
-          onClose();
-        }
-      } catch (error) {
-        console.error('Print logic error:', error);
-        handleSystemPrint();
-        onClose();
-      } finally {
-        setIsPrinting(false);
-      }
-    };
+  const businessInfo = {
+    name: 'FRESH NAAD FOODS INDIA',
+    address: 'Kodassery, Pandikkad (po), Malappuram, Kerala',
+    phone: '8606391315, 75608 57580'
+  };
 
-    const handleSystemPrint = () => {
-      const printWindow = window.open('', '_blank');
-      generateSystemPrintHtml(printWindow);
-    };
-
-    const generateSystemPrintHtml = (printWindow: Window | null) => {
-      if (!printWindow) return;
-      
-      const itemsHtml = (order.orderItems || []).map((item: any, index: number) => {
-        const itemName = item.product?.name || item.name || 'Product';
-        return `
-        <tr>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; vertical-align: top;">${item.slNo || index + 1}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-weight: bold; text-transform: uppercase; word-break: break-word; max-width: 120px; vertical-align: top;">${itemName}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; vertical-align: top;">${(Number(item.quantity) || 0).toFixed(0)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px; vertical-align: top;">${(Number(item.price) || 0).toFixed(2)}</td>
-          <td style="font-size: 11px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; text-align: right; padding-right: 8px; vertical-align: top;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
-          <td style="font-size: 11px; padding: 4px 0; text-align: right; font-weight: bold; border-bottom: 1px solid #f0f0f0; vertical-align: top;">${(Number(item.total) || 0).toFixed(2)}</td>
-        </tr>
-        `;
-      }).join('');
-
-      const balance = (parseFloat(order.amountPaid) || 0) - (parseFloat(order.roundedTotal) || 0);
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Print Bill - ${order.invoiceNo}</title>
-            <style>
-              @page { margin: 0; size: 80mm auto; }
-              body { 
-                width: 70mm; 
-                margin: 0 auto; 
-                padding: 5mm; 
-                font-family: 'Courier New', Courier, monospace; 
-                font-size: 11px;
-                color: #000;
-                background: #fff;
-              }
-              .text-center { text-align: center; }
-              .text-right { text-align: right; }
-              .bold { font-weight: bold; }
-              .dashed-border { border-top: 1px dashed #000; margin: 8px 0; }
-              table { width: 100%; border-collapse: collapse; margin: 5px 0; }
-              th { text-align: left; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; font-size: 9px; }
-              .total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-              .savings { font-size: 14px; font-weight: bold; margin: 15px 0; text-align: center; }
-              .short-id { font-size: 40px; font-weight: 900; margin: 10px 0; text-align: center; }
-              .footer-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 9px; border-top: 1px dashed #000; padding-top: 5px; }
-            </style>
-          </head>
-          <body>
-            <div class="text-center">
-              <h1 style="margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase;">FRESH NAAD FOODS INDIA</h1>
-              <p style="margin: 2px 0; font-size: 10px; line-height: 1.2;">Kodassery, Pandikkad (po),<br>Malappuram, Kerala</p>
-              <div style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 5px; font-weight: bold; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0;">
-                <span>FSSAI NO: 21326222000253</span>
-                <span>Mob: 8606391315, 75608 57580</span>
-              </div>
-              <p style="margin: 4px 0; font-size: 10px; opacity: 0.8;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
-            </div>
-            <div class="dashed-border"></div>
-            <div style="margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
-              <div class="total-row"><span>Cust : ${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
-              <div class="total-row"><span>Type : ${order.orderType || 'Walk-in'}</span></div>
-              <div class="total-row"><span>Invoice : ${order.invoiceNo}</span></div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 5%; text-align: left;">#</th>
-                  <th style="width: 30%; text-align: left;">Description</th>
-                  <th style="width: 12%; text-align: right; padding-right: 5px;">Qty</th>
-                  <th style="width: 15%; text-align: right; padding-right: 5px;">FRP</th>
-                  <th style="width: 15%; text-align: right; padding-right: 5px;">MRP</th>
-                  <th style="width: 23%; text-align: right;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${itemsHtml}
-              </tbody>
-            </table>
-
-            <div style="margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px;">
-              <div class="total-row">
-                <span>Total Items : ${order.itemsCount || 1}</span>
-                <span>Total :</span>
-                <span class="bold">${(Number(order.subtotal) || 0).toFixed(2)}</span>
-              </div>
-              <div class="total-row">
-                <span>Total Qty : ${(Number(order.totalQty) || 0).toFixed(0)}</span>
-                <span>Discount :</span>
-                <span>${(Number(order.discount) || 0).toFixed(2)}</span>
-              </div>
-              <div class="total-row">
-                <span></span>
-                <span>Return :</span>
-                <span>0.00</span>
-              </div>
-              <div class="total-row" style="margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px;">
-                <span></span>
-                <span class="bold" style="font-size: 13px;">Net Total :</span>
-                <span class="bold" style="font-size: 13px;">${(Number(order.roundedTotal) || 0).toFixed(2)}</span>
-              </div>
-              <div class="total-row">
-                <span></span>
-                <span>Tender :</span>
-                <span>${(Number(order.amountPaid) || 0).toFixed(2)}</span>
-              </div>
-              <div class="total-row">
-                <span></span>
-                <span class="bold">Balance :</span>
-                <span class="bold">${(Number(order.balance) || 0).toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div class="savings" style="font-size: 11px; margin: 5px 0;">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(2)}</div>
-
-            <div class="footer-grid">
-              <div>Cash :${order.paymentMode === 'CASH' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
-              <div>Counter : 001</div>
-              <div>Card :${order.paymentMode === 'CARD' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
-              <div>User ID :${order.userName || 'Staff'}</div>
-              <div>Card Number : 0</div>
-              <div>Bill Point :0</div>
-              <div>Total Point :0</div>
-            </div>
-
-            <div style="margin-top: 5px; text-align: center; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; font-size: 10px;">
-               THANK YOU VISIT AGAIN
-            </div>
-
-            <script>
-              window.onload = () => {
-                setTimeout(() => {
-                  window.print();
-                  window.close();
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    };
-
-    const handleBluetoothPrint = async () => {
-      try {
-        const businessInfo = {
-          name: 'FRESH NAAD FOODS INDIA',
-          address: 'Kodassery, Pandikkad (po), Malappuram, Kerala',
-          phone: '8606391315, 75608 57580'
-        };
+  const handleUnifiedPrint = async () => {
+    setIsPrinting(true);
+    try {
+      // 1. Try Wired USB / Serial Direct Printer first
+      if (isWiredConnected) {
         const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
-        await print(bytes);
-      } catch (error: any) {
-        console.error('Bluetooth Print Error:', error);
-        alert('Bluetooth Print Failed: ' + error.message);
-        handleSystemPrint();
+        const ok = await printWired(bytes);
+        if (ok) {
+          onClose();
+          return;
+        }
       }
-    };
+
+      // 2. Try Bluetooth Printer
+      const btConnected = await ensureBtConnected();
+      if (btConnected) {
+        await handleBluetoothPrint();
+        onClose();
+        return;
+      }
+
+      // 3. Fallback to High-Clarity Iframe System Print
+      handleSystemPrint();
+      onClose();
+    } catch (error) {
+      console.error('Print logic error:', error);
+      handleSystemPrint();
+      onClose();
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handleSystemPrint = () => {
+    let iframe = document.getElementById('silent-thermal-print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'silent-thermal-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (!doc) return;
+
+    const htmlContent = generateSystemPrintHtml();
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }, 300);
+  };
+
+  const generateSystemPrintHtml = () => {
+    const itemsHtml = (order.orderItems || []).map((item: any, index: number) => {
+      const itemName = item.product?.name || item.name || 'Product';
+      return `
+      <tr>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; vertical-align: top; font-weight: 800;">${item.slNo || index + 1}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; font-weight: 800; text-transform: uppercase; word-break: break-word; max-width: 120px; vertical-align: top;">${itemName}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; vertical-align: top; font-weight: 800;">${(Number(item.quantity) || 0).toFixed(0)}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.price) || 0).toFixed(2)}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
+        <td style="font-size: 11px; padding: 3px 0; text-align: right; font-weight: 900; border-bottom: 1px solid #000000; vertical-align: top;">${(Number(item.total) || 0).toFixed(2)}</td>
+      </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Bill - ${order.invoiceNo}</title>
+          <style>
+            @page { 
+              size: 80mm auto; 
+              margin: 0; 
+            }
+            @media print {
+              html, body {
+                width: 78mm;
+                margin: 0 auto;
+                padding: 2mm 3mm;
+                box-sizing: border-box;
+              }
+            }
+            body { 
+              width: 78mm; 
+              margin: 0 auto; 
+              padding: 2mm 3mm; 
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif, monospace; 
+              font-size: 12px;
+              line-height: 1.25;
+              font-weight: 800;
+              color: #000000;
+              background: #ffffff;
+              box-sizing: border-box;
+              -webkit-font-smoothing: none;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              text-rendering: geometricPrecision;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .bold { font-weight: 900; }
+            .divider { border-top: 1.5px solid #000000; margin: 6px 0; }
+            table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+            th { text-align: left; border-top: 1.5px solid #000000; border-bottom: 1.5px solid #000000; padding: 4px 0; font-size: 10px; font-weight: 900; text-transform: uppercase; color: #000000; }
+            .total-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: 800; }
+            .savings { font-size: 12px; font-weight: 900; margin: 8px 0; text-align: center; }
+            .footer-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 9px; font-weight: 800; border-top: 1.5px solid #000000; padding-top: 4px; margin-top: 6px; }
+          </style>
+        </head>
+        <body>
+          <div class="text-center">
+            <h1 style="margin: 0; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; color: #000000;">FRESH NAAD FOODS INDIA</h1>
+            <p style="margin: 2px 0; font-size: 10px; font-weight: 800; line-height: 1.2;">Kodassery, Pandikkad (po),<br>Malappuram, Kerala</p>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 4px; font-weight: 900; border-top: 1.5px solid #000000; border-bottom: 1.5px solid #000000; padding: 3px 0;">
+              <span>FSSAI NO: 21326222000253</span>
+              <span>Mob: 8606391315, 75608 57580</span>
+            </div>
+            <p style="margin: 3px 0; font-size: 10px; font-weight: 800;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
+          </div>
+          <div class="divider"></div>
+          <div style="margin-bottom: 4px; border-bottom: 1.5px solid #000000; padding-bottom: 4px; font-size: 11px;">
+            <div class="total-row"><span>Cust : ${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
+            <div class="total-row"><span>Type : ${order.orderType || 'Walk-in'}</span></div>
+            <div class="total-row"><span>Invoice : ${order.invoiceNo}</span></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 5%; text-align: left;">#</th>
+                <th style="width: 30%; text-align: left;">Description</th>
+                <th style="width: 12%; text-align: right; padding-right: 4px;">Qty</th>
+                <th style="width: 15%; text-align: right; padding-right: 4px;">FRP</th>
+                <th style="width: 15%; text-align: right; padding-right: 4px;">MRP</th>
+                <th style="width: 23%; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 4px; border-top: 1.5px solid #000000; padding-top: 4px; font-size: 11px;">
+            <div class="total-row">
+              <span>Total Items : ${order.itemsCount || 1}</span>
+              <span>Total :</span>
+              <span class="bold">${(Number(order.subtotal) || 0).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span>Total Qty : ${(Number(order.totalQty) || 0).toFixed(0)}</span>
+              <span>Discount :</span>
+              <span>${(Number(order.discount) || 0).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span></span>
+              <span>Return :</span>
+              <span>0.00</span>
+            </div>
+            <div class="total-row" style="margin-top: 4px; border-top: 1.5px solid #000000; padding-top: 4px;">
+              <span></span>
+              <span class="bold" style="font-size: 14px;">Net Total :</span>
+              <span class="bold" style="font-size: 14px;">Rs.${(Number(order.roundedTotal) || 0).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span></span>
+              <span>Tender :</span>
+              <span>Rs.${(Number(order.amountPaid) || 0).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span></span>
+              <span class="bold">Balance :</span>
+              <span class="bold">Rs.${(Number(order.balance) || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="savings">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(2)}</div>
+
+          <div class="footer-grid">
+            <div>Cash :${order.paymentMode === 'CASH' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
+            <div>Counter : 001</div>
+            <div>Card :${order.paymentMode === 'CARD' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
+            <div>User ID :${order.userName || 'Staff'}</div>
+            <div>Card Number : 0</div>
+            <div>Bill Point :0</div>
+            <div>Total Point :0</div>
+          </div>
+
+          <div style="margin-top: 6px; text-align: center; font-weight: 900; border-top: 1.5px solid #000000; padding-top: 4px; font-size: 11px; text-transform: uppercase;">
+             THANK YOU VISIT AGAIN
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handleBluetoothPrint = async () => {
+    try {
+      const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
+      await printBluetooth(bytes);
+    } catch (error: any) {
+      console.error('Bluetooth Print Error:', error);
+      alert('Bluetooth Print Failed: ' + error.message);
+      handleSystemPrint();
+    }
+  };
 
     const handleWhatsAppProceed = async (phone: string) => {
       // Close modal immediately to avoid perceived lag
