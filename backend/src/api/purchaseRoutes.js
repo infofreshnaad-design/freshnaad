@@ -94,20 +94,18 @@ router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) 
         }
       });
 
-      // 2. Parallel Inventory Updates for Purchase Items
+      // 2. Update Product Purchase Price & Log Purchase (Stock quantity increment is bypassed)
       const validItems = (purchaseItems || []).filter(item => item.productId);
       for (const item of validItems) {
         const qty = Number(item.quantity) || 0;
         const price = Number(item.price) || 0;
-        if (qty > 0) {
+        if (price > 0) {
           await tx.product.update({
             where: { id: item.productId },
-            data: {
-              stockQuantity: { increment: qty },
-              purchasePrice: price > 0 ? price : undefined
-            }
+            data: { purchasePrice: price }
           });
-
+        }
+        if (qty > 0) {
           await tx.inventoryLog.create({
             data: {
               productId: item.productId,
@@ -117,12 +115,6 @@ router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) 
             }
           });
         }
-      }
-
-      // Emit real-time events for other terminals
-      const io = req.app.get('io');
-      if (io && validItems.length > 0) {
-        io.emit('INVENTORY_UPDATE', { items: validItems.map(i => ({ id: i.productId, quantity: Number(i.quantity) || 0 })) });
       }
 
       return newPurchase;

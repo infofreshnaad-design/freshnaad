@@ -186,7 +186,7 @@ const StockProcurement = () => {
       };
 
       await api.post('/inventory/procure', payload);
-      alert('Stock Procurement Completed & Inventory Stock Updated Successfully!');
+      alert('Stock Procurement Entry Filed Successfully!');
       setCart([]);
       navigate('/inventory');
     } catch (error: any) {
