@@ -45,17 +45,31 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, phone, email, creditBalance, loyaltyPoints } = req.body;
+    const formattedPhone = phone ? phone.trim() : null;
+
+    if (formattedPhone) {
+      const existing = await prisma.customer.findFirst({
+        where: { phone: formattedPhone }
+      });
+      if (existing) {
+        return res.status(400).json({ error: `Customer with phone number '${formattedPhone}' already exists (${existing.name}).` });
+      }
+    }
+
     const customer = await prisma.customer.create({
       data: {
         name,
-        phone: phone || null,
-        email: email || null,
+        phone: formattedPhone || null,
+        email: email ? email.trim() : null,
         creditBalance: Number(creditBalance) || 0,
         loyaltyPoints: Number(loyaltyPoints) || 0
       }
     });
     res.json(customer);
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A customer with this phone number already exists.' });
+    }
     res.status(500).json({ error: error.message });
   }
 });
@@ -65,12 +79,26 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, phone, email, creditBalance, loyaltyPoints, is_active } = req.body;
+    const formattedPhone = phone ? phone.trim() : null;
+
+    if (formattedPhone) {
+      const existing = await prisma.customer.findFirst({
+        where: {
+          phone: formattedPhone,
+          NOT: { id }
+        }
+      });
+      if (existing) {
+        return res.status(400).json({ error: `Another customer with phone number '${formattedPhone}' already exists (${existing.name}).` });
+      }
+    }
+
     const customer = await prisma.customer.update({
       where: { id },
       data: {
         name,
-        phone: phone || null,
-        email: email || null,
+        phone: formattedPhone || null,
+        email: email ? email.trim() : null,
         creditBalance: Number(creditBalance) || 0,
         loyaltyPoints: Number(loyaltyPoints) || 0,
         is_active
@@ -78,6 +106,9 @@ router.put('/:id', async (req, res) => {
     });
     res.json(customer);
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A customer with this phone number already exists.' });
+    }
     res.status(500).json({ error: error.message });
   }
 });

@@ -58,10 +58,31 @@ const CustomerSelectionModal = ({ onClose, onSelect }: { onClose: () => void, on
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/customers', newCustomer);
-      onSelect(res.data);
-    } catch (error) {
-      alert('Error creating customer');
+      let createdCust: Customer;
+      if (navigator.onLine) {
+        const res = await api.post('/customers', newCustomer);
+        createdCust = res.data;
+        try {
+          await offlineDB.put('customers', createdCust);
+        } catch (dbErr) {
+          console.error('Failed caching new customer offline', dbErr);
+        }
+      } else {
+        createdCust = {
+          id: `off_cust_${Date.now()}`,
+          name: newCustomer.name,
+          phone: newCustomer.phone || '',
+          email: newCustomer.email || '',
+          loyaltyPoints: 0,
+          creditBalance: 0
+        };
+        await offlineDB.put('customers', createdCust);
+      }
+      onSelect(createdCust);
+    } catch (error: any) {
+      console.error('Customer creation error:', error);
+      const serverMsg = error.response?.data?.error || error.response?.data?.message;
+      alert(serverMsg || 'Error creating customer. Please check if the phone number is already registered.');
     }
   };
 

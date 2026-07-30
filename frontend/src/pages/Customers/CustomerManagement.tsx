@@ -87,10 +87,12 @@ const CustomerManagement = () => {
       }
       setIsModalOpen(false);
       fetchCustomers();
-    } catch (error) {
-       alert('Error saving customer');
+    } catch (error: any) {
+      console.error('Error saving customer:', error);
+      const serverMsg = error.response?.data?.error || error.response?.data?.message;
+      alert(serverMsg || 'Error saving customer. Please check if the phone number is already registered.');
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
 
