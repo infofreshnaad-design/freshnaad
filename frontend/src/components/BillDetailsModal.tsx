@@ -25,7 +25,19 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
       setBill(res.data);
       setItems(type === 'SALE' ? res.data.orderItems : res.data.purchaseItems);
     } catch (err) {
-      console.error('Error fetching bill:', err);
+      console.error('Error fetching bill from server:', err);
+      if (type === 'SALE') {
+        try {
+          const { offlineDB } = await import('../utils/offlineDB');
+          const localOrder = await offlineDB.get('orders', billId);
+          if (localOrder) {
+            setBill(localOrder);
+            setItems(localOrder.orderItems || []);
+          }
+        } catch (localErr) {
+          console.error('Error fetching offline bill:', localErr);
+        }
+      }
     } finally {
       setLoading(false);
     }

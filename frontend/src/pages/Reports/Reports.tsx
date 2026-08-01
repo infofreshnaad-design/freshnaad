@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2 } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2, RefreshCw } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
@@ -9,6 +9,7 @@ import CreditSettlementModal from '../../components/CreditSettlementModal';
 import { Coins } from 'lucide-react';
 import { offlineDB } from '../../utils/offlineDB';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
+import { processSyncQueue } from '../../utils/syncQueue';
 
 const reportCategories = [
   {
@@ -71,6 +72,8 @@ const Reports = () => {
   const [selectedReturn, setSelectedReturn] = useState<any>(null); // For Credit Note Detailed View
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [selectedBill, setSelectedBill] = useState<{id: string, type: 'SALE' | 'PURCHASE'} | null>(null);
+  const [syncingOffline, setSyncingOffline] = useState(false);
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
   
   // Payment recording state
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
@@ -192,9 +195,11 @@ const Reports = () => {
                  return d >= start && d <= end;
                });
             }
+             
+             setUnsyncedCount(unsynced.length);
 
-            if (unsynced.length > 0) {
-              // Merge into the correct array
+             if (unsynced.length > 0) {
+               // Merge into the correct array
               if (activeReport === 'daybook' || activeReport === 'transactions' || activeReport === 'cashflow') {
                 const formattedOffline = unsynced.map(s => ({ 
                    id: s.id, 
@@ -1399,7 +1404,27 @@ const Reports = () => {
             </div>
 
             {reportData && (
-              <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex flex-wrap gap-2">
+                {unsyncedCount > 0 && (
+                  <button
+                    onClick={async () => {
+                      setSyncingOffline(true);
+                      try {
+                        await processSyncQueue();
+                        await fetchReport();
+                      } catch (err) {
+                        console.error('Manual sync failed:', err);
+                      } finally {
+                        setSyncingOffline(false);
+                      }
+                    }}
+                    disabled={syncingOffline || !isOnline}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs hover:bg-blue-100 transition-all border border-blue-100 disabled:opacity-50"
+                  >
+                    {syncingOffline ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} 
+                    {syncingOffline ? 'SYNCING...' : `SYNC OFFLINE (${unsyncedCount})`}
+                  </button>
+                )}
                 <button 
                   onClick={() => handleExport('CSV')}
                   disabled={isExporting !== null}

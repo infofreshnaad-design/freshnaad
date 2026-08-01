@@ -153,7 +153,7 @@ const POSInterface: React.FC = () => {
       if (orders.length > 0) {
         const numericInvoices = orders
           .map(o => parseInt(o.invoiceNo))
-          .filter(n => !isNaN(n) && n < 9000);
+          .filter(n => !isNaN(n) && n < 900000);
         if (numericInvoices.length > 0) {
           const max = Math.max(...numericInvoices);
           localStorage.setItem('last_invoice_no', max.toString());
