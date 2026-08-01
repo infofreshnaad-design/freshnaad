@@ -165,6 +165,9 @@ const Reports = () => {
               return !o.isSynced && isNotOnServer;
             });
 
+            // Set the global unsynced count BEFORE date filtering so the sync button is always visible
+            setUnsyncedCount(unsynced.length);
+
             // 2.b Filter unsynced orders by dateFilter
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -195,8 +198,6 @@ const Reports = () => {
                  return d >= start && d <= end;
                });
             }
-             
-             setUnsyncedCount(unsynced.length);
 
              if (unsynced.length > 0) {
                // Merge into the correct array
