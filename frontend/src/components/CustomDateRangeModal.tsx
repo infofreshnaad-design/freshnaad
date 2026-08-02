@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Check } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X, Check, ArrowRight } from 'lucide-react';
 
 interface CustomDateRangeModalProps {
   isOpen: boolean;
@@ -29,22 +29,24 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
   endDate,
   onApply,
 }) => {
-  const [tempStart, setTempStart] = useState<string>(startDate || formatDateStr(new Date()));
-  const [tempEnd, setTempEnd] = useState<string>(endDate || startDate || formatDateStr(new Date()));
+  const [tempStart, setTempStart] = useState<string | null>(startDate || null);
+  const [tempEnd, setTempEnd] = useState<string | null>(endDate || null);
+  const [isSelectingEnd, setIsSelectingEnd] = useState<boolean>(false);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
 
   // Month navigation view
-  const initialViewDate = tempStart ? parseDateStr(tempStart) : new Date();
+  const initialViewDate = startDate ? parseDateStr(startDate) : new Date();
   const [viewYear, setViewYear] = useState<number>(initialViewDate.getFullYear());
   const [viewMonth, setViewMonth] = useState<number>(initialViewDate.getMonth());
 
   useEffect(() => {
     if (isOpen) {
-      const start = startDate || formatDateStr(new Date());
-      const end = endDate || start;
-      setTempStart(start);
-      setTempEnd(end);
-      const vDate = parseDateStr(start);
+      const s = startDate || formatDateStr(new Date());
+      const e = endDate || s;
+      setTempStart(s);
+      setTempEnd(e);
+      setIsSelectingEnd(false);
+      const vDate = parseDateStr(s);
       setViewYear(vDate.getFullYear());
       setViewMonth(vDate.getMonth());
     }
@@ -71,16 +73,20 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
   };
 
   const handleDateClick = (dateStr: string) => {
-    if (!tempStart || (tempStart && tempEnd)) {
-      // Start a new selection range
+    if (!tempStart || !isSelectingEnd) {
+      // Step 1: First click sets Start Date
       setTempStart(dateStr);
-      setTempEnd(dateStr); // Default to single day selection unless extended
-    } else if (tempStart && !tempEnd) {
+      setTempEnd(null);
+      setIsSelectingEnd(true);
+    } else {
+      // Step 2: Second click sets End Date (if >= start)
       if (dateStr < tempStart) {
         setTempStart(dateStr);
-        setTempEnd(dateStr);
+        setTempEnd(null);
+        setIsSelectingEnd(true);
       } else {
         setTempEnd(dateStr);
+        setIsSelectingEnd(false);
       }
     }
   };
@@ -113,6 +119,7 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
     const endStr = formatDateStr(e);
     setTempStart(startStr);
     setTempEnd(endStr);
+    setIsSelectingEnd(false);
     setViewYear(s.getFullYear());
     setViewMonth(s.getMonth());
   };
@@ -137,14 +144,23 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
     daysArray.push(formatDateStr(dateObj));
   }
 
-  const activeEnd = tempEnd || hoverDate || tempStart;
-  const effectiveMin = tempStart < activeEnd ? tempStart : activeEnd;
-  const effectiveMax = tempStart < activeEnd ? activeEnd : tempStart;
+  // Active hover/selection range calculation
+  const activeStart = tempStart;
+  const activeEnd = tempEnd || (isSelectingEnd ? hoverDate : tempStart);
+  
+  let effectiveMin = activeStart;
+  let effectiveMax = activeEnd;
+  if (activeStart && activeEnd && activeStart > activeEnd) {
+    effectiveMin = activeEnd;
+    effectiveMax = activeStart;
+  }
 
   const handleApply = () => {
     const finalStart = tempStart || formatDateStr(new Date());
     const finalEnd = tempEnd || tempStart || finalStart;
-    onApply(finalStart < finalEnd ? finalStart : finalEnd, finalStart < finalEnd ? finalEnd : finalStart);
+    const sortedStart = finalStart < finalEnd ? finalStart : finalEnd;
+    const sortedEnd = finalStart < finalEnd ? finalEnd : finalStart;
+    onApply(sortedStart, sortedEnd);
     onClose();
   };
 
@@ -190,18 +206,27 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
         {/* Main Content Area */}
         <div className="flex-1 p-5 flex flex-col">
           {/* Header */}
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-2 text-brand-primary">
               <CalendarIcon size={18} />
-              <h3 className="font-black text-slate-800 text-base">Select Date Range</h3>
+              <h3 className="font-black text-slate-800 text-base">Select Custom Dates</h3>
             </div>
             <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-all">
               <X size={18} />
             </button>
           </div>
 
+          {/* Interactive Hint Badge */}
+          <div className="mb-3 px-3 py-1.5 bg-brand-50 border border-brand-100 rounded-xl text-xs font-bold text-brand-700 flex items-center justify-between">
+            <span>
+              {isSelectingEnd 
+                ? '👉 Step 2: Now click your END date' 
+                : '👉 Step 1: Click START date (or double-click one date for single day)'}
+            </span>
+          </div>
+
           {/* Month Header Nav */}
-          <div className="flex justify-between items-center mb-4 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
+          <div className="flex justify-between items-center mb-3 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
             <button onClick={handlePrevMonth} className="p-1 text-slate-600 hover:bg-white rounded-lg shadow-sm transition-all">
               <ChevronLeft size={16} />
             </button>
@@ -213,7 +238,7 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
             </button>
           </div>
 
-          {/* Days of Week */}
+          {/* Days of Week Header */}
           <div className="grid grid-cols-7 gap-1 text-center mb-1">
             {daysOfWeek.map((day, i) => (
               <span key={i} className="text-[11px] font-black text-slate-400 uppercase">
@@ -231,19 +256,19 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
 
               const isStart = dateStr === tempStart;
               const isEnd = dateStr === tempEnd;
-              const isSingle = isStart && isEnd;
-              const inRange = dateStr >= effectiveMin && dateStr <= effectiveMax;
+              const isSingle = isStart && (isEnd || (!tempEnd && !isSelectingEnd));
+              const inRange = effectiveMin && effectiveMax && dateStr >= effectiveMin && dateStr <= effectiveMax;
               const dayNum = parseInt(dateStr.split('-')[2], 10);
 
-              let bgClass = "hover:bg-slate-100 text-slate-700 font-bold";
+              let bgClass = "hover:bg-slate-100 text-slate-700 font-bold rounded-lg";
               if (isSingle) {
-                bgClass = "bg-brand-primary text-white font-black rounded-xl shadow-md shadow-brand-primary/30";
+                bgClass = "bg-brand-primary text-white font-black rounded-xl shadow-md shadow-brand-primary/30 scale-105 z-10";
               } else if (isStart) {
-                bgClass = "bg-brand-primary text-white font-black rounded-l-xl shadow-sm";
+                bgClass = "bg-brand-primary text-white font-black rounded-l-xl shadow-sm z-10";
               } else if (isEnd) {
-                bgClass = "bg-brand-primary text-white font-black rounded-r-xl shadow-sm";
+                bgClass = "bg-brand-primary text-white font-black rounded-r-xl shadow-sm z-10";
               } else if (inRange) {
-                bgClass = "bg-brand-50 text-brand-800 font-bold";
+                bgClass = "bg-brand-50 text-brand-800 font-bold rounded-none";
               }
 
               return (
@@ -251,10 +276,10 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
                   key={dateStr}
                   onClick={() => handleDateClick(dateStr)}
                   onMouseEnter={() => {
-                    if (tempStart && !tempEnd) setHoverDate(dateStr);
+                    if (isSelectingEnd) setHoverDate(dateStr);
                   }}
                   onMouseLeave={() => setHoverDate(null)}
-                  className={`h-9 w-full flex items-center justify-center text-xs transition-all ${bgClass}`}
+                  className={`h-9 w-full flex items-center justify-center text-xs transition-all relative ${bgClass}`}
                 >
                   {dayNum}
                 </button>
@@ -264,16 +289,21 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
 
           {/* Footer Info & Action */}
           <div className="mt-auto pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="text-xs font-bold text-slate-500">
+            <div className="text-xs font-bold text-slate-600 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
               {tempStart ? (
-                <span>
-                  <strong className="text-slate-800">{tempStart}</strong>
-                  {tempEnd && tempEnd !== tempStart && (
-                    <> to <strong className="text-slate-800">{tempEnd}</strong></>
+                <>
+                  <span className="text-brand-700 font-black">{tempStart}</span>
+                  {tempEnd && tempEnd !== tempStart ? (
+                    <>
+                      <ArrowRight size={12} className="text-slate-400" />
+                      <span className="text-brand-700 font-black">{tempEnd}</span>
+                    </>
+                  ) : (
+                    <span className="text-slate-400 font-normal">(Single Day)</span>
                   )}
-                </span>
+                </>
               ) : (
-                <span className="text-slate-400">Click a date to select</span>
+                <span className="text-slate-400">Click a date to begin</span>
               )}
             </div>
 
@@ -286,9 +316,10 @@ const CustomDateRangeModal: React.FC<CustomDateRangeModalProps> = ({
               </button>
               <button
                 onClick={handleApply}
-                className="flex-1 sm:flex-none px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-1.5"
+                disabled={!tempStart}
+                className="flex-1 sm:flex-none px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                <Check size={14} /> Apply
+                <Check size={14} /> Apply Range
               </button>
             </div>
           </div>
