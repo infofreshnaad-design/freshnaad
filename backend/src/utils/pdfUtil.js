@@ -1,5 +1,10 @@
 const PDFDocument = require('pdfkit');
 
+const formatQty = (qty) => {
+  const n = Number(qty) || 0;
+  return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace(/\.?0+$/, '');
+};
+
 /**
  * PDF Utility to generate professional invoices
  */
@@ -74,7 +79,7 @@ const pdfUtil = {
          .fillColor('#000000')
          .text((index + 1).toString(), 50, y)
          .text(itemName.toUpperCase(), 80, y, { width: 210 })
-         .text((Number(item.quantity) || 0).toFixed(0), 300, y)
+         .text(formatQty(item.quantity), 300, y)
          .text((Number(item.price) || 0).toFixed(2), 360, y)
          .text((Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0), 420, y)
          .font('Helvetica-Bold')
@@ -108,7 +113,7 @@ const pdfUtil = {
     };
 
     drawRow('Total Items :', (order.itemsCount || items.length).toString(), false);
-    drawRow('Total Qty :', (Number(order.totalQty) || items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)).toFixed(0), false);
+    drawRow('Total Qty :', formatQty(order.totalQty || items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)), false);
     drawRow('Total :', (Number(order.subtotal) || 0).toFixed(2), false);
     drawRow('Discount :', (Number(order.discount) || 0).toFixed(2), false);
     
@@ -175,7 +180,7 @@ const pdfUtil = {
     let y = tableTop + 20;
     salesReturn.returnItems?.forEach(item => {
       doc.text(item.product?.name || 'Product', 60, y)
-         .text(item.quantity.toString(), 280, y)
+         .text(formatQty(item.quantity), 280, y)
          .text(`Rs.${item.price.toFixed(2)}`, 350, y)
          .text(`Rs.${item.total.toFixed(2)}`, 500, y);
       y += 20;

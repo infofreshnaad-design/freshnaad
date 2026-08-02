@@ -65,7 +65,7 @@ const StockProcurement = () => {
   }, []);
 
   const handleSelectItem = (p: Product) => {
-    const isWeightProduct = ['kg', 'gm', 'ltr', 'ml'].includes((p.unit || '').toLowerCase());
+    const isWeightProduct = ['kg', 'kgs', 'g', 'gm', 'gms', 'gram', 'grams', 'ltr', 'ltrs', 'ml', 'mls'].includes((p.unit || '').toLowerCase());
     setWorkingItem({
       productId: p.id,
       name: p.name,
@@ -92,11 +92,13 @@ const StockProcurement = () => {
     // Check if we can convert it to the product's base unit for clarity
     const prodUnit = (workingItem.unit || '').toLowerCase();
     const inputUnit = weightUnit.toLowerCase();
+    const isProdGram = ['g', 'gm', 'gms', 'gram', 'grams'].includes(prodUnit);
+    const isInputGram = ['g', 'gm', 'gms', 'gram', 'grams'].includes(inputUnit);
     
-    if (prodUnit === 'kg' && inputUnit === 'gm') {
+    if (prodUnit === 'kg' && isInputGram) {
       return `${totalWt / 1000} Kg (from ${totalWt} Gm)`;
     }
-    if (prodUnit === 'gm' && inputUnit === 'kg') {
+    if (isProdGram && inputUnit === 'kg') {
       return `${totalWt * 1000} Gm (from ${totalWt} Kg)`;
     }
     if (prodUnit === 'ltr' && inputUnit === 'ml') {
@@ -125,16 +127,18 @@ const StockProcurement = () => {
     // Convert weight unit to product's unit
     const prodUnit = (workingItem.unit || '').toLowerCase();
     const inputUnit = weightUnit.toLowerCase();
+    const isProdGram = ['g', 'gm', 'gms', 'gram', 'grams'].includes(prodUnit);
+    const isInputGram = ['g', 'gm', 'gms', 'gram', 'grams'].includes(inputUnit);
 
     if (prodUnit === inputUnit) {
       return totalWt;
     }
 
     // Kg <-> Gm conversion
-    if (prodUnit === 'kg' && inputUnit === 'gm') {
+    if (prodUnit === 'kg' && isInputGram) {
       return totalWt / 1000;
     }
-    if (prodUnit === 'gm' && inputUnit === 'kg') {
+    if (isProdGram && inputUnit === 'kg') {
       return totalWt * 1000;
     }
 

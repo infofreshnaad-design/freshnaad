@@ -187,7 +187,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onSave })
                     >
                       <option value="pcs">Pieces (pcs)</option>
                       <option value="kg">Kilograms (kg)</option>
+                      <option value="gm">Grams (gm)</option>
+                      <option value="g">Grams (g)</option>
                       <option value="ltr">Liters (ltr)</option>
+                      <option value="ml">Milliliters (ml)</option>
                       <option value="box">Boxes (box)</option>
                       <option value="LOOSE">LOOSE</option>
                     </select>

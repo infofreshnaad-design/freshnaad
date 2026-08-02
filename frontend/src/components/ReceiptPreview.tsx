@@ -23,6 +23,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
   if (!order) return null;
 
+  const formatQty = (qty: any) => {
+    const n = Number(qty) || 0;
+    return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace(/\.?0+$/, '');
+  };
+
   const businessInfo = {
     name: 'FRESH NAAD FOODS INDIA',
     address: 'Kodassery, Pandikkad (po), Malappuram, Kerala',
@@ -98,7 +103,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
       <tr>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; vertical-align: top; font-weight: 800;">${item.slNo || index + 1}</td>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; font-weight: 800; text-transform: uppercase; word-break: break-word; max-width: 120px; vertical-align: top;">${itemName}</td>
-        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; vertical-align: top; font-weight: 800;">${(Number(item.quantity) || 0).toFixed(0)}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; vertical-align: top; font-weight: 800;">${formatQty(item.quantity)}</td>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.price) || 0).toFixed(2)}</td>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
         <td style="font-size: 11px; padding: 3px 0; text-align: right; font-weight: 900; border-bottom: 1px solid #000000; vertical-align: top;">${(Number(item.total) || 0).toFixed(2)}</td>
@@ -190,7 +195,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <span class="bold">${(Number(order.subtotal) || 0).toFixed(2)}</span>
             </div>
             <div class="total-row">
-              <span>Total Qty : ${(Number(order.totalQty) || 0).toFixed(0)}</span>
+              <span>Total Qty : ${formatQty(order.totalQty)}</span>
               <span>Discount :</span>
               <span>${(Number(order.discount) || 0).toFixed(2)}</span>
             </div>
@@ -325,7 +330,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                   <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
                     <td className="py-2 align-top">{item.slNo || idx + 1}</td>
                     <td className="py-2 font-bold uppercase break-words whitespace-normal max-w-[120px] align-top">{item.product?.name || item.name}</td>
-                    <td className="py-2 text-right align-top">{(Number(item.quantity) || 0).toFixed(0)}</td>
+                    <td className="py-2 text-right align-top">{formatQty(item.quantity)}</td>
                     <td className="py-2 text-right pr-2 align-top">{(Number(item.price) || 0).toFixed(2)}</td>
                     <td className="py-2 text-right pr-2 align-top">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
                     <td className="py-2 text-right font-black align-top">{(Number(item.total) || 0).toFixed(2)}</td>
@@ -338,7 +343,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <div className="flex justify-between">
                  <div className="flex flex-col gap-1">
                    <span>Total Items : {order.itemsCount || 1}</span>
-                   <span>Total Qty : {(Number(order.totalQty) || 0).toFixed(0)}</span>
+                   <span>Total Qty : {formatQty(order.totalQty)}</span>
                  </div>
                  <div className="flex gap-4 text-right">
                     <div className="flex flex-col gap-1">

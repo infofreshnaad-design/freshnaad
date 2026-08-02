@@ -58,7 +58,45 @@ const POSInterface: React.FC = () => {
   // Helper to determine if a unit allows fractional quantities
   const isFractionalUnit = (unit: string | undefined) => {
     const u = unit?.toLowerCase() || '';
-    return ['kg', 'ltr', 'g', 'ml', 'mtr', 'cm', 'loose'].includes(u);
+    return ['kg', 'kgs', 'kilogram', 'kilograms', 'g', 'gm', 'gms', 'gram', 'grams', 'ltr', 'ltrs', 'liter', 'liters', 'ml', 'mls', 'milliliter', 'milliliters', 'mtr', 'meter', 'meters', 'cm', 'loose'].includes(u);
+  };
+
+  const handleDecreaseQuantity = (item: CartItem) => {
+    if (isFractionalUnit(item.unit)) {
+      let newQty = item.quantity;
+      if (newQty > 1) {
+        newQty = Math.round((newQty - 1) * 1000) / 1000;
+      } else if (newQty > 0.1) {
+        newQty = Math.round((newQty - 0.1) * 1000) / 1000;
+      } else if (newQty > 0.01) {
+        newQty = Math.round((newQty - 0.01) * 1000) / 1000;
+      } else {
+        newQty = 0;
+      }
+      if (newQty <= 0) {
+        removeFromCart(item.id);
+      } else {
+        updateQuantity(item.id, newQty);
+      }
+    } else {
+      if (item.quantity <= 1) {
+        removeFromCart(item.id);
+      } else {
+        updateQuantity(item.id, item.quantity - 1);
+      }
+    }
+  };
+
+  const handleIncreaseQuantity = (item: CartItem) => {
+    if (isFractionalUnit(item.unit)) {
+      let step = 1;
+      if (item.quantity < 0.1) step = 0.01;
+      else if (item.quantity < 1) step = 0.1;
+      const newQty = Math.round((item.quantity + step) * 1000) / 1000;
+      updateQuantity(item.id, newQty);
+    } else {
+      updateQuantity(item.id, item.quantity + 1);
+    }
   };
 
   const fetchRecentBills = async () => {
@@ -671,9 +709,7 @@ const POSInterface: React.FC = () => {
                     <div className="flex flex-col items-end gap-1.5">
                       <div className="flex items-center bg-slate-100 rounded-lg p-0.5 md:p-1">
                         <button 
-                          onClick={() => {
-                            updateQuantity(item.id, Math.max(1, item.quantity - 1));
-                          }}
+                          onClick={() => handleDecreaseQuantity(item)}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-500"
                         >
                           <Minus size={12} strokeWidth={3} />
@@ -701,9 +737,7 @@ const POSInterface: React.FC = () => {
                           className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-base text-slate-700 focus:ring-0 p-0"
                         />
                         <button 
-                          onClick={() => {
-                            updateQuantity(item.id, item.quantity + 1);
-                          }}
+                          onClick={() => handleIncreaseQuantity(item)}
                           className="w-6 md:w-8 h-6 md:h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm text-slate-600"
                         >
                           <Plus size={12} strokeWidth={3} />
