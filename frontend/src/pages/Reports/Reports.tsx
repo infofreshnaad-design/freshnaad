@@ -1406,26 +1406,25 @@ const Reports = () => {
 
             {reportData && (
               <div className="flex flex-wrap gap-2">
-                {unsyncedCount > 0 && (
-                  <button
-                    onClick={async () => {
-                      setSyncingOffline(true);
-                      try {
-                        await processSyncQueue();
-                        await fetchReport();
-                      } catch (err) {
-                        console.error('Manual sync failed:', err);
-                      } finally {
-                        setSyncingOffline(false);
-                      }
-                    }}
-                    disabled={syncingOffline || !isOnline}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs hover:bg-blue-100 transition-all border border-blue-100 disabled:opacity-50"
-                  >
-                    {syncingOffline ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} 
-                    {syncingOffline ? 'SYNCING...' : `SYNC OFFLINE (${unsyncedCount})`}
-                  </button>
-                )}
+                <button
+                  onClick={async () => {
+                    setSyncingOffline(true);
+                    try {
+                      await processSyncQueue();
+                      await fetchReport();
+                    } catch (err) {
+                      console.error('Manual sync failed:', err);
+                    } finally {
+                      setSyncingOffline(false);
+                    }
+                  }}
+                  disabled={syncingOffline || !isOnline}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs hover:bg-blue-100 transition-all border border-blue-100 disabled:opacity-50"
+                  title="Synchronize offline bills to online server"
+                >
+                  {syncingOffline ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} 
+                  {syncingOffline ? 'SYNCING...' : unsyncedCount > 0 ? `SYNC OFFLINE (${unsyncedCount})` : 'SYNC DATA'}
+                </button>
                 <button 
                   onClick={() => handleExport('CSV')}
                   disabled={isExporting !== null}
