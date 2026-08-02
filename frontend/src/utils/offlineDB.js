@@ -27,6 +27,10 @@ export const initDB = async () => {
 
 export const offlineDB = {
   initDB,
+  async get(storeName, id) {
+    const db = await initDB();
+    return db.get(storeName, id);
+  },
   async getAll(storeName) {
     const db = await initDB();
     return db.getAll(storeName);

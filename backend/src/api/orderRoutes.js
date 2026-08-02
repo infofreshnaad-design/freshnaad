@@ -139,7 +139,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
           const rawMax = await tx.$queryRaw`
             SELECT MAX(CAST("invoiceNo" AS INTEGER)) as "maxNum" 
             FROM "Order" 
-            WHERE "invoiceNo" ~ '^[0-9]+$' AND "invoiceNo" NOT LIKE '999999%'
+            WHERE "invoiceNo" ~ '^[0-9]+$'
           `;
           const maxNum = Number(rawMax[0]?.maxNum) || 99;
           invoiceNo = (maxNum + 1).toString();

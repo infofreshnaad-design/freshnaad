@@ -29,7 +29,11 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
       if (type === 'SALE') {
         try {
           const { offlineDB } = await import('../utils/offlineDB');
-          const localOrder = await offlineDB.get('orders', billId);
+          let localOrder = await offlineDB.get('orders', billId);
+          if (!localOrder) {
+            const allLocal = await offlineDB.getAll('orders');
+            localOrder = allLocal.find((o: any) => o.id === billId || o.invoiceNo === billId || o.serverId === billId);
+          }
           if (localOrder) {
             setBill(localOrder);
             setItems(localOrder.orderItems || []);
