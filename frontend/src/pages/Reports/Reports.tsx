@@ -6,6 +6,7 @@ import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
 import ReceiptPreview from '../../components/ReceiptPreview';
 import CreditSettlementModal from '../../components/CreditSettlementModal';
+import CustomDateRangeModal from '../../components/CustomDateRangeModal';
 import { Coins } from 'lucide-react';
 import { offlineDB } from '../../utils/offlineDB';
 import useNetworkStatus from '../../hooks/useNetworkStatus';
@@ -74,6 +75,7 @@ const Reports = () => {
   const [selectedBill, setSelectedBill] = useState<{id: string, type: 'SALE' | 'PURCHASE'} | null>(null);
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [unsyncedCount, setUnsyncedCount] = useState(0);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   
   // Payment recording state
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
@@ -1474,9 +1476,15 @@ const Reports = () => {
               <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
                 <Calendar className="w-5 h-5 ml-2 text-slate-400" />
                 <select 
-                  className="bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 mr-2 py-1.5"
+                  className="bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 mr-2 py-1.5 cursor-pointer"
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDateFilter(val);
+                    if (val === 'Custom') {
+                      setIsCalendarModalOpen(true);
+                    }
+                  }}
                 >
                   <option value="Today">Today</option>
                   <option value="Week">This Week</option>
@@ -1489,12 +1497,22 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Custom Date Inputs */}
+        {/* Custom Date Selection Banner */}
         {dateFilter === 'Custom' && ['parties', 'stock-summary', 'balance-sheet'].indexOf(activeReport) === -1 && (
-          <div className="flex gap-4 mb-6">
-            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="p-2 border rounded-xl text-sm font-medium" />
-            <span className="self-center font-bold text-slate-400">To</span>
-            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="p-2 border rounded-xl text-sm font-medium" />
+          <div className="flex items-center gap-3 mb-6 bg-slate-50 p-3 rounded-2xl border border-slate-200/80 w-fit">
+            <span className="text-xs font-bold text-slate-500">Selected Period:</span>
+            <span className="text-xs font-black text-brand-primary bg-white px-3 py-1.5 rounded-xl border border-brand-100 shadow-sm flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-brand-primary" />
+              {customStart && customEnd 
+                ? (customStart === customEnd ? customStart : `${customStart} → ${customEnd}`) 
+                : 'Select Range...'}
+            </span>
+            <button 
+              onClick={() => setIsCalendarModalOpen(true)}
+              className="px-3.5 py-1.5 bg-brand-primary text-white text-xs font-black rounded-xl hover:bg-brand-secondary transition-all shadow-md shadow-brand-primary/20"
+            >
+              Open Calendar Picker
+            </button>
           </div>
         )}
 
@@ -1644,6 +1662,19 @@ const Reports = () => {
           onClose={() => setPrintPreviewOrder(null)}
         />
       )}
+
+      {/* Interactive Calendar Date Picker Modal */}
+      <CustomDateRangeModal
+        isOpen={isCalendarModalOpen}
+        onClose={() => setIsCalendarModalOpen(false)}
+        startDate={customStart}
+        endDate={customEnd}
+        onApply={(start, end) => {
+          setCustomStart(start);
+          setCustomEnd(end);
+          setDateFilter('Custom');
+        }}
+      />
     </div>
   );
 };
