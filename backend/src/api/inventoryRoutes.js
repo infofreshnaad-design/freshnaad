@@ -39,37 +39,46 @@ router.post('/procure', auth(['ADMIN', 'MANAGER'], 'STOCK_PROCUREMENT'), async (
             return res.status(400).json({ error: 'Items list required' });
         }
 
-        const updatedProducts = await prisma.$transaction(async (tx) => {
-            const results = [];
-            for (const item of items) {
-                const qty = parseFloat(item.quantity);
-                if (isNaN(qty) || qty <= 0) {
-                    throw new Error(`Invalid quantity for product ${item.productId}`);
-                }
+        const validItems = items
+            .map(item => ({
+                productId: item.productId,
+                quantity: parseFloat(item.quantity)
+            }))
+            .filter(item => item.productId && !isNaN(item.quantity) && item.quantity > 0);
 
-                // Inventory stock updates are bypassed to keep procurement disconnected from stock levels
-                const prod = await tx.product.findUnique({
-                    where: { id: item.productId }
-                });
+        if (validItems.length === 0) {
+            return res.status(400).json({ error: 'No valid items with positive quantity provided' });
+        }
 
-                if (prod) {
-                    await tx.inventoryLog.create({
-                        data: {
-                            productId: item.productId,
-                            type: 'IN',
-                            quantity: qty,
-                            reason: 'Stock Procurement Entry'
-                        }
-                    });
-                    results.push(prod);
-                }
-            }
+        const productIds = [...new Set(validItems.map(i => i.productId))];
 
-            return results;
+        // 1. Bulk pre-fetch all products in a single database round-trip
+        const existingProducts = await prisma.product.findMany({
+            where: { id: { in: productIds } }
+        });
+        const existingProductIds = new Set(existingProducts.map(p => p.id));
+
+        const logsToInsert = validItems
+            .filter(i => existingProductIds.has(i.productId))
+            .map(i => ({
+                productId: i.productId,
+                type: 'IN',
+                quantity: i.quantity,
+                reason: 'Stock Procurement Entry'
+            }));
+
+        if (logsToInsert.length === 0) {
+            return res.status(404).json({ error: 'Specified products do not exist' });
+        }
+
+        // 2. Insert all inventory log records in a single batch write (0 interactive session timeout risk)
+        await prisma.inventoryLog.createMany({
+            data: logsToInsert
         });
 
-        res.json({ message: 'Stock procurement entry processed successfully', products: updatedProducts });
+        res.json({ message: 'Stock procurement entry processed successfully', products: existingProducts });
     } catch (error) {
+        console.error('[Procurement API Error]', error);
         res.status(500).json({ error: error.message });
     }
 });

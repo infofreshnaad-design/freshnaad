@@ -118,7 +118,7 @@ router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) 
       }
 
       return newPurchase;
-    });
+    }, { timeout: 15000, maxWait: 5000 });
 
     res.json(purchase);
   } catch (error) {
