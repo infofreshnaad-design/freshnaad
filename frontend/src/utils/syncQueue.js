@@ -61,6 +61,14 @@ export const processSyncQueue = async () => {
           localOrder.isSyncing = false;
           await offlineDB.put('orders', localOrder);
         }
+
+        if (targetInvoice) {
+          const invNum = parseInt(targetInvoice);
+          if (!isNaN(invNum)) {
+            const currentLast = parseInt(localStorage.getItem('last_invoice_no') || '0');
+            localStorage.setItem('last_invoice_no', Math.max(invNum, currentLast).toString());
+          }
+        }
       }
       
       console.log('Bulk sync completed:', syncedItems.length, 'orders');

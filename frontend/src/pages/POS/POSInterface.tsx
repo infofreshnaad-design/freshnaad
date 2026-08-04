@@ -194,14 +194,17 @@ const POSInterface: React.FC = () => {
       if (isOnline) {
         const response = await api.get('/products?activeOnly=true');
         productList = response.data;
-        // Batch cache full list
-        const tx = (await offlineDB.initDB()).transaction('products', 'readwrite');
-        const store = tx.objectStore('products');
-        await store.clear();
-        for (const product of productList) {
-          await store.put(product);
+        // Batch cache full list safely in IndexedDB
+        try {
+          const db = await offlineDB.initDB();
+          const tx = db.transaction('products', 'readwrite');
+          const store = tx.objectStore('products');
+          await store.clear();
+          await Promise.all(productList.map(product => store.put(product)));
+          await tx.done;
+        } catch (dbErr) {
+          console.warn('Error caching products in IndexedDB:', dbErr);
         }
-        await tx.done;
       } else {
         productList = await offlineDB.getAll('products');
       }
@@ -242,15 +245,39 @@ const POSInterface: React.FC = () => {
     
     // Initialize last invoice number from DB once
     const initInvoiceNo = async () => {
-      const orders = await offlineDB.getAll('orders');
-      if (orders.length > 0) {
-        const numericInvoices = orders
-          .map(o => parseInt(o.invoiceNo))
-          .filter(n => !isNaN(n) && n < 900000);
-        if (numericInvoices.length > 0) {
-          const max = Math.max(...numericInvoices);
-          localStorage.setItem('last_invoice_no', max.toString());
+      try {
+        let maxInvoice = 0;
+        const orders = await offlineDB.getAll('orders');
+        if (orders.length > 0) {
+          const numericInvoices = orders
+            .map(o => parseInt(o.invoiceNo))
+            .filter(n => !isNaN(n) && n < 900000);
+          if (numericInvoices.length > 0) {
+            maxInvoice = Math.max(...numericInvoices);
+          }
         }
+
+        if (isOnline) {
+          try {
+            const response = await api.get('/orders?limit=10');
+            if (response.data && Array.isArray(response.data)) {
+              const serverInvoices = response.data
+                .map((o: any) => parseInt(o.invoiceNo))
+                .filter((n: number) => !isNaN(n) && n < 900000);
+              if (serverInvoices.length > 0) {
+                maxInvoice = Math.max(maxInvoice, ...serverInvoices);
+              }
+            }
+          } catch (serverErr) {
+            console.warn('Could not fetch server max invoice:', serverErr);
+          }
+        }
+
+        if (maxInvoice > 0) {
+          localStorage.setItem('last_invoice_no', maxInvoice.toString());
+        }
+      } catch (err) {
+        console.error('Error initializing invoice number:', err);
       }
     };
     initInvoiceNo();
@@ -341,21 +368,13 @@ const POSInterface: React.FC = () => {
 
     const { subtotal, taxTotal, grandTotal, roundedTotal, savings } = getTotals();
 
-    // DETECT NEXT SEQUENTIAL INVOICE NO - Optimized to avoid reading all orders
-    let nextInvoiceNo = localStorage.getItem('last_invoice_no') || '100';
-    try {
-      const db = await offlineDB.initDB();
-      const tx = db.transaction('orders', 'readonly');
-      const store = tx.objectStore('orders');
-      // Get the last record by index or by key if IDs are sequential/sortable
-      // Since we use UUIDs for keys, we might need a dedicated way.
-      // For now, let's use the local orders cache if small, or just increment last known.
-      const lastInvoice = parseInt(nextInvoiceNo);
-      nextInvoiceNo = (lastInvoice + 1).toString();
-      localStorage.setItem('last_invoice_no', nextInvoiceNo);
-    } catch (e) {
-      nextInvoiceNo = (Date.now() % 10000).toString();
+    // DETECT NEXT SEQUENTIAL INVOICE NO
+    let lastInvoice = parseInt(localStorage.getItem('last_invoice_no') || '100');
+    if (isNaN(lastInvoice) || lastInvoice < 100) {
+      lastInvoice = 100;
     }
+    const nextInvoiceNo = (lastInvoice + 1).toString();
+    localStorage.setItem('last_invoice_no', nextInvoiceNo);
     
     const orderData = {
       id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -366,7 +385,9 @@ const POSInterface: React.FC = () => {
       orderItems: cart.map((item: any, index: number) => ({
         ...item,
         slNo: index + 1,
-        price: item.sellingPrice,
+        price: item.sellingPrice ?? item.price ?? 0,
+        sellingPrice: item.sellingPrice ?? item.price ?? 0,
+        mrp: item.mrp || item.sellingPrice || 0,
         gstRate: item.gstRate ?? 0,
         total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * ((item.gstRate ?? 0) / 100)) * item.quantity)
       })),
@@ -407,6 +428,7 @@ const POSInterface: React.FC = () => {
         const tx = db.transaction('products', 'readwrite');
         const store = tx.objectStore('products');
 
+        const putPromises: Promise<any>[] = [];
         for (const cartItem of cart) {
           const idx = updatedAllProducts.findIndex(p => p.id === cartItem.id);
           if (idx !== -1) {
@@ -415,10 +437,12 @@ const POSInterface: React.FC = () => {
               ...updatedAllProducts[idx],
               stockQuantity: newStock
             };
-            await store.put(updatedAllProducts[idx]);
+            putPromises.push(store.put(updatedAllProducts[idx]));
           }
         }
+        await Promise.all(putPromises);
         await tx.done;
+
         setAllProducts(updatedAllProducts);
         applyFilters(search, selectedCategoryId, updatedAllProducts);
       } catch (err) {
@@ -437,14 +461,43 @@ const POSInterface: React.FC = () => {
           headers: { 'x-terminal-id': 'T1' },
           skipAuthRedirect: true
         } as any).then(response => {
-          const syncedData = { ...orderData, ...response.data, isSyncing: false, isSynced: true };
+          // Normalize server items to preserve top-level properties
+          const normalizedServerItems = (response.data?.orderItems || []).map((sItem: any, idx: number) => {
+            const orig = orderData.orderItems[idx] || {};
+            return {
+              ...sItem,
+              name: orig.name || sItem.product?.name || 'Product',
+              sellingPrice: orig.sellingPrice ?? sItem.price ?? sItem.product?.sellingPrice ?? 0,
+              price: sItem.price ?? orig.sellingPrice ?? 0,
+              mrp: orig.mrp || sItem.mrp || sItem.product?.mrp || orig.sellingPrice || 0,
+              gstRate: orig.gstRate ?? sItem.product?.gstRate ?? 0,
+              slNo: orig.slNo || idx + 1,
+              total: sItem.total ?? orig.total ?? 0
+            };
+          });
+
+          const syncedData = {
+            ...orderData,
+            ...response.data,
+            orderItems: normalizedServerItems.length > 0 ? normalizedServerItems : orderData.orderItems,
+            isSyncing: false,
+            isSynced: true
+          };
+
+          if (response.data?.invoiceNo) {
+            const respInvNum = parseInt(response.data.invoiceNo);
+            if (!isNaN(respInvNum)) {
+              const currentLast = parseInt(localStorage.getItem('last_invoice_no') || '0');
+              localStorage.setItem('last_invoice_no', Math.max(respInvNum, currentLast).toString());
+            }
+          }
+
           offlineDB.put('orders', syncedData).catch(() => {});
           
           // Silently update live receipt state if it's still open
           setRecentOrder(prev => prev?.id === finalOrderData.id ? syncedData : prev);
           
           // Fire WhatsApp ONLY after successful sync completion
-          // Silent WhatsApp dispatch
           if (syncedData.customer?.phone) {
              api.post('/orders/share-whatsapp', { 
                  orderId: syncedData.id || syncedData.invoiceNo, 

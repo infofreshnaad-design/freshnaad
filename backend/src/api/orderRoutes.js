@@ -51,8 +51,13 @@ router.post('/share-whatsapp', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req
     const { orderId, phone } = req.body;
     console.log(`[WhatsApp Share Request] Order: ${orderId}, Phone: ${phone}`);
     
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = await prisma.order.findFirst({
+      where: { 
+        OR: [
+          { id: String(orderId) },
+          { invoiceNo: String(orderId) }
+        ]
+      },
       include: {
         orderItems: {
           include: { product: true }
@@ -162,6 +167,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
 
       const orderBaseData = {
         id: id || undefined, // Respect the Client's Optimistic ID
+        serverId: id || undefined,
         invoiceNo,
         customerId,
         subtotal,

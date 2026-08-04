@@ -99,14 +99,21 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
   const generateSystemPrintHtml = () => {
     const itemsHtml = (order.orderItems || []).map((item: any, index: number) => {
       const itemName = item.product?.name || item.name || 'Product';
+      const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
+      const itemQty = Number(item.quantity) || 0;
+      const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
+      const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
+      const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice ?? 0);
+      const itemTotal = Number(item.total) || calcTotal || 0;
+
       return `
       <tr>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; vertical-align: top; font-weight: 800;">${item.slNo || index + 1}</td>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; font-weight: 800; text-transform: uppercase; word-break: break-word; max-width: 120px; vertical-align: top;">${itemName}</td>
         <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; vertical-align: top; font-weight: 800;">${formatQty(item.quantity)}</td>
-        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.price) || 0).toFixed(2)}</td>
-        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
-        <td style="font-size: 11px; padding: 3px 0; text-align: right; font-weight: 900; border-bottom: 1px solid #000000; vertical-align: top;">${(Number(item.total) || 0).toFixed(2)}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${itemPrice.toFixed(2)}</td>
+        <td style="font-size: 11px; padding: 3px 0; border-bottom: 1px solid #000000; text-align: right; padding-right: 4px; vertical-align: top; font-weight: 800;">${itemMrp.toFixed(0)}</td>
+        <td style="font-size: 11px; padding: 3px 0; text-align: right; font-weight: 900; border-bottom: 1px solid #000000; vertical-align: top;">${itemTotal.toFixed(2)}</td>
       </tr>
       `;
     }).join('');
@@ -326,16 +333,26 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 </tr>
               </thead>
               <tbody>
-                {order.orderItems?.map((item: any, idx: number) => (
-                  <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
-                    <td className="py-2 align-top">{item.slNo || idx + 1}</td>
-                    <td className="py-2 font-bold uppercase break-words whitespace-normal max-w-[120px] align-top">{item.product?.name || item.name}</td>
-                    <td className="py-2 text-right align-top">{formatQty(item.quantity)}</td>
-                    <td className="py-2 text-right pr-2 align-top">{(Number(item.price) || 0).toFixed(2)}</td>
-                    <td className="py-2 text-right pr-2 align-top">{(Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(0)}</td>
-                    <td className="py-2 text-right font-black align-top">{(Number(item.total) || 0).toFixed(2)}</td>
-                  </tr>
-                ))}
+                {order.orderItems?.map((item: any, idx: number) => {
+                  const itemName = item.product?.name || item.name || 'Product';
+                  const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
+                  const itemQty = Number(item.quantity) || 0;
+                  const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
+                  const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
+                  const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice ?? 0);
+                  const itemTotal = Number(item.total) || calcTotal || 0;
+
+                  return (
+                    <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
+                      <td className="py-2 align-top">{item.slNo || idx + 1}</td>
+                      <td className="py-2 font-bold uppercase break-words whitespace-normal max-w-[120px] align-top">{itemName}</td>
+                      <td className="py-2 text-right align-top">{formatQty(item.quantity)}</td>
+                      <td className="py-2 text-right pr-2 align-top">{itemPrice.toFixed(2)}</td>
+                      <td className="py-2 text-right pr-2 align-top">{itemMrp.toFixed(0)}</td>
+                      <td className="py-2 text-right font-black align-top">{itemTotal.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

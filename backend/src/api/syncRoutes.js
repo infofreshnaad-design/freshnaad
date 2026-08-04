@@ -10,13 +10,18 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
 
   for (const orderData of orders) {
     try {
-      // Idempotency check using serverId (client-side UUID)
-      const existing = await prisma.order.findUnique({
-        where: { serverId: orderData.id }
+      // Idempotency check using serverId, id, or invoiceNo
+      const existing = await prisma.order.findFirst({
+        where: {
+          OR: [
+            ...(orderData.id ? [{ serverId: orderData.id }, { id: orderData.id }] : []),
+            ...(orderData.invoiceNo ? [{ invoiceNo: String(orderData.invoiceNo) }] : [])
+          ]
+        }
       });
 
       if (existing) {
-        results.synced.push({ id: orderData.id, invoiceNo: existing.invoiceNo });
+        results.synced.push({ id: orderData.id || existing.id, invoiceNo: existing.invoiceNo });
         continue;
       }
 

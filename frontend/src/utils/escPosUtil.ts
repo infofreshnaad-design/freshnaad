@@ -113,9 +113,13 @@ export class EscPosBuilder {
       const fullName = item.product?.name || item.name || 'Item';
       const name = fullName.substring(0, 14).padEnd(14);
       const qty = formatQty(item.quantity).padStart(5);
-      const frp = (Number(item.price) || 0).toFixed(2).padStart(7);
-      const mrp = (Number(item.mrp || item.product?.mrp || item.price || 0)).toFixed(2).padStart(7);
-      const total = (Number(item.total) || 0).toFixed(2).padStart(8);
+      const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
+      const itemQty = Number(item.quantity) || 0;
+      const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
+      const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
+      const frp = itemPrice.toFixed(2).padStart(7);
+      const mrp = (Number(item.mrp || item.product?.mrp || itemPrice || 0)).toFixed(2).padStart(7);
+      const total = (Number(item.total) || calcTotal || 0).toFixed(2).padStart(8);
       builder.line(`${slNo} ${name} ${qty} ${frp} ${mrp} ${total}`);
       if (fullName.length > 14) {
         const remainingName = fullName.substring(14, 44);
@@ -125,16 +129,18 @@ export class EscPosBuilder {
 
     builder.line('------------------------------------------------');
 
+    const netTotalVal = Number(order.roundedTotal ?? order.grandTotal ?? 0);
+
     // Totals
     builder.alignRight()
-           .line(`Total Items : ${order.itemsCount || 1}`)
+           .line(`Total Items : ${order.itemsCount || (order.orderItems?.length || 1)}`)
            .line(`Total Qty : ${formatQty(order.totalQty)}`)
            .line(`Total : ${(Number(order.subtotal) || 0).toFixed(2)}`)
            .line(`Discount : ${(Number(order.discount) || 0).toFixed(2)}`)
            .bold(true)
            .line('----------------')
            .doubleSize(true)
-           .line(`NET TOTAL: ${order.grandTotal.toFixed(2)}`)
+           .line(`NET TOTAL: ${netTotalVal.toFixed(2)}`)
            .doubleSize(false)
            .line('----------------')
            .bold(false)
