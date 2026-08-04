@@ -13,6 +13,7 @@
     "build": "npx prisma generate --schema prisma/schema.prisma && cd frontend && npm run build -- --outDir ../dist",
     "start": "node api/index.js",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "check-health": "node scripts/check-system-health.js",
     "postinstall": "npx prisma generate --schema prisma/schema.prisma"
   },
   "dependencies": {
