@@ -292,7 +292,25 @@ const Reports = () => {
 
   useEffect(() => {
     fetchReport();
-  }, [activeReport, dateFilter, customStart, customEnd, selectedEntityId]);
+    processSyncQueue();
+
+    const handleSyncComplete = () => {
+      fetchReport();
+    };
+    window.addEventListener('app_data_synced', handleSyncComplete);
+
+    const autoRefreshInterval = setInterval(() => {
+      if (isOnline) {
+        fetchReport();
+      }
+    }, 15000);
+
+    return () => {
+      window.removeEventListener('app_data_synced', handleSyncComplete);
+      clearInterval(autoRefreshInterval);
+    };
+  }, [activeReport, dateFilter, customStart, customEnd, selectedEntityId, isOnline]);
+
 
   const handleExport = (format: 'PDF' | 'CSV') => {
     if (!reportData) return;

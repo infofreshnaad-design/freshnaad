@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
+import { processSyncQueue } from './utils/syncQueue';
 import Sidebar from './components/Sidebar';
 import POSInterface from './pages/POS/POSInterface';
 import ProductManagement from './pages/Inventory/ProductManagement';
@@ -27,6 +28,13 @@ import APLedgerView from './pages/AP/components/APLedgerView';
 function App() {
   const token = useAuthStore((state) => state.token);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      processSyncQueue();
+    }
+  }, [token]);
+
 
   return (
     <div className="flex h-full bg-brand-50 overflow-hidden relative">
