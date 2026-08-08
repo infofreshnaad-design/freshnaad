@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff, RefreshCw, Usb } from 'lucide-react';
+import { Search, ShoppingCart, User, CreditCard, Trash2, Plus, Minus, Scan, Maximize, Minimize, Camera, Wifi, WifiOff, X, LayoutGrid, Printer, CheckCircle, Smartphone, Battery, ChevronRight, Clock, Star, Users, HandCoins, Bluetooth, BluetoothOff, RefreshCw, Usb, Pin } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../../api/api';
 import usePOSStore from '../../store/posStore';
@@ -16,6 +16,7 @@ import InstallPrompt from '../../components/InstallPrompt';
 import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 import RedeemPointsModal from '../../components/RedeemPointsModal';
 import ProductCard from '../../components/ProductCard';
+import PinProductsModal from '../../components/PinProductsModal';
 
 interface QuantityInputProps {
   item: CartItem;
@@ -99,6 +100,17 @@ const POSInterface: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showRecentBills, setShowRecentBills] = useState(false);
   const [recentBills, setRecentBills] = useState<any[]>([]);
+
+  // Pinned Products state
+  const [pinnedProductIds, setPinnedProductIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_pinned_product_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   const isOnline = useNetworkStatus();
   const { isConnected, isConnecting, disconnect, connect } = useBluetoothPrinter();
@@ -220,7 +232,22 @@ const POSInterface: React.FC = () => {
     }
   };
 
-  const applyFilters = (query: string, catId: string | null, list: Product[] = allProducts) => {
+  const handleTogglePin = (productId: string) => {
+    setPinnedProductIds(prev => {
+      const updated = prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId];
+      localStorage.setItem('pos_pinned_product_ids', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleClearAllPinned = () => {
+    setPinnedProductIds([]);
+    localStorage.setItem('pos_pinned_product_ids', JSON.stringify([]));
+  };
+
+  const applyFilters = (query: string, catId: string | null, list: Product[] = allProducts, pinnedIds: string[] = pinnedProductIds) => {
     let filtered = [...list];
     
     if (query) {
@@ -231,12 +258,27 @@ const POSInterface: React.FC = () => {
       );
     }
     
-    if (catId) {
+    if (catId === 'pinned') {
+      const pinnedSet = new Set(pinnedIds);
+      filtered = filtered.filter(p => pinnedSet.has(p.id));
+    } else if (catId) {
       filtered = filtered.filter(p => p.categoryId === catId);
     }
+
+    // Always sort pinned products to top
+    const pinnedSet = new Set(pinnedIds);
+    filtered.sort((a, b) => {
+      const aPinned = pinnedSet.has(a.id) ? 1 : 0;
+      const bPinned = pinnedSet.has(b.id) ? 1 : 0;
+      return bPinned - aPinned;
+    });
     
     setFilteredProducts(filtered);
   };
+
+  useEffect(() => {
+    applyFilters(search, selectedCategoryId, allProducts, pinnedProductIds);
+  }, [pinnedProductIds]);
 
   useEffect(() => {
     fetchCategories();
@@ -660,7 +702,7 @@ const POSInterface: React.FC = () => {
           </aside>
         )}
 
-        {/* Left Side - Product Selection */}
+          {/* Left Side - Product Selection */}
         <section className="flex-1 lg:w-3/5 flex flex-col p-3 md:p-4 gap-3 md:gap-4 overflow-hidden border-b lg:border-r border-slate-200">
           <div className="relative group flex gap-2">
             <div className="relative flex-1">
@@ -673,6 +715,23 @@ const POSInterface: React.FC = () => {
                 onChange={handleSearch}
               />
             </div>
+            <button 
+              onClick={() => setIsPinModalOpen(true)}
+              className={`px-3 md:px-4 rounded-xl shadow-sm border transition-all flex items-center gap-1.5 font-bold text-xs ${
+                pinnedProductIds.length > 0
+                  ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'
+              }`}
+              title="Pin Fast-Moving Items"
+            >
+              <Pin size={18} className="rotate-45 fill-amber-500 text-amber-500" />
+              <span className="hidden sm:inline">Pin Items</span>
+              {pinnedProductIds.length > 0 && (
+                <span className="bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-black ml-0.5">
+                  {pinnedProductIds.length}
+                </span>
+              )}
+            </button>
             <button 
               onClick={() => setShowScanner(!showScanner)}
               className={`px-3 md:px-4 rounded-xl shadow-sm border transition-all flex items-center justify-center ${showScanner ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-600 hover:border-brand-400'}`}
@@ -705,6 +764,17 @@ const POSInterface: React.FC = () => {
             >
               All Items
             </button>
+            <button
+              onClick={() => handleCategorySelect('pinned')}
+              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                selectedCategoryId === 'pinned'
+                  ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                  : 'bg-white text-amber-600 hover:bg-amber-50 border border-amber-200'
+              }`}
+            >
+              <Pin size={14} className="rotate-45 fill-current" />
+              Pinned ({pinnedProductIds.length})
+            </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -731,6 +801,8 @@ const POSInterface: React.FC = () => {
                     key={product.id}
                     product={product}
                     onSelect={addToCart}
+                    isPinned={pinnedProductIds.includes(product.id)}
+                    onTogglePin={handleTogglePin}
                   />
                 ))
               ) : (
@@ -939,6 +1011,15 @@ const POSInterface: React.FC = () => {
       {isRedeemModalOpen && (
         <RedeemPointsModal onClose={() => setIsRedeemModalOpen(false)} />
       )}
+
+      <PinProductsModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        products={allProducts}
+        pinnedProductIds={pinnedProductIds}
+        onTogglePin={handleTogglePin}
+        onClearAllPinned={handleClearAllPinned}
+      />
 
       <InstallPrompt />
     </div>

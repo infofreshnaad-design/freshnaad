@@ -99,14 +99,14 @@ const Reports = () => {
     }
   }, [activeReport]);
 
-  const fetchReport = async () => {
+  const fetchReport = async (isSilent = false) => {
     // Only block specific reports if ID is missing
     if ((activeReport === 'party-statement' || activeReport === 'stock-detail') && !selectedEntityId) {
       setReportData(null);
       return;
     }
 
-    setLoading(true);
+    if (!isSilent) setLoading(true);
     const offset = new Date().getTimezoneOffset();
     let url = `/reports/${activeReport}?filter=${dateFilter}&timezoneOffset=${offset}`;
     if (dateFilter === 'Custom') url += `&startDate=${customStart}&endDate=${customEnd}`;
@@ -295,19 +295,12 @@ const Reports = () => {
     processSyncQueue();
 
     const handleSyncComplete = () => {
-      fetchReport();
+      fetchReport(true);
     };
     window.addEventListener('app_data_synced', handleSyncComplete);
 
-    const autoRefreshInterval = setInterval(() => {
-      if (isOnline) {
-        fetchReport();
-      }
-    }, 15000);
-
     return () => {
       window.removeEventListener('app_data_synced', handleSyncComplete);
-      clearInterval(autoRefreshInterval);
     };
   }, [activeReport, dateFilter, customStart, customEnd, selectedEntityId, isOnline]);
 
