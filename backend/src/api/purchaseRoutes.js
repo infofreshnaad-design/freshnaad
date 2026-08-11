@@ -94,15 +94,20 @@ router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) 
         }
       });
 
-      // 2. Update Product Purchase Price & Log Purchase (Stock quantity increment is bypassed)
+      // 2. Update Product Purchase Price & Stock Quantity & Log Purchase
       const validItems = (purchaseItems || []).filter(item => item.productId);
       for (const item of validItems) {
         const qty = Number(item.quantity) || 0;
         const price = Number(item.price) || 0;
-        if (price > 0) {
+        
+        if (price > 0 || qty > 0) {
+          const updateData = {};
+          if (price > 0) updateData.purchasePrice = price;
+          if (qty > 0) updateData.stockQuantity = { increment: qty };
+
           await tx.product.update({
             where: { id: item.productId },
-            data: { purchasePrice: price }
+            data: updateData
           });
         }
         if (qty > 0) {

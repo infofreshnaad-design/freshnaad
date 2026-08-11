@@ -55,6 +55,24 @@ router.post('/', auth(['ADMIN', 'MANAGER'], 'PURCHASE_RETURN'), async (req, res)
 
 
 
+      // 2. Decrement Product Stock Quantity & Log Return
+      const validReturnItems = (returnItems || []).filter(item => item.productId && Number(item.quantity) > 0);
+      for (const item of validReturnItems) {
+        const qty = Number(item.quantity);
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stockQuantity: { decrement: qty } }
+        });
+        await tx.inventoryLog.create({
+          data: {
+            productId: item.productId,
+            type: 'OUT',
+            quantity: qty,
+            reason: `Purchase Return ${returnNo}`
+          }
+        });
+      }
+
       return newReturn;
     }, { timeout: 15000 });
 

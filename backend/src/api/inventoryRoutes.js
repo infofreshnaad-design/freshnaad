@@ -71,12 +71,38 @@ router.post('/procure', auth(['ADMIN', 'MANAGER'], 'STOCK_PROCUREMENT'), async (
             return res.status(404).json({ error: 'Specified products do not exist' });
         }
 
-        // 2. Insert all inventory log records in a single batch write (0 interactive session timeout risk)
-        await prisma.inventoryLog.createMany({
-            data: logsToInsert
-        });
+        // Aggregate quantities per product for clean atomic updates
+        const qtyByProduct = {};
+        for (const item of validItems) {
+            if (existingProductIds.has(item.productId)) {
+                qtyByProduct[item.productId] = (qtyByProduct[item.productId] || 0) + item.quantity;
+            }
+        }
 
-        res.json({ message: 'Stock procurement entry processed successfully', products: existingProducts });
+        // 2. Perform atomic database updates inside transaction
+        const updatedProducts = await prisma.$transaction(async (tx) => {
+            // A. Create inventory log entries
+            await tx.inventoryLog.createMany({
+                data: logsToInsert
+            });
+
+            // B. Increment stockQuantity for each product in DB
+            for (const [productId, quantity] of Object.entries(qtyByProduct)) {
+                await tx.product.update({
+                    where: { id: productId },
+                    data: {
+                        stockQuantity: { increment: quantity }
+                    }
+                });
+            }
+
+            // C. Return updated products
+            return await tx.product.findMany({
+                where: { id: { in: productIds } }
+            });
+        }, { timeout: 15000 });
+
+        res.json({ message: 'Stock procurement entry processed successfully', products: updatedProducts });
     } catch (error) {
         console.error('[Procurement API Error]', error);
         res.status(500).json({ error: error.message });
