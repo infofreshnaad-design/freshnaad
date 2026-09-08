@@ -131,6 +131,43 @@ const ExpenseManagement = () => {
     }
   };
 
+  const renderFormattedDescription = (desc: string) => {
+    if (!desc || !desc.trim()) return <span className="text-slate-400 font-normal">-</span>;
+    
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    if (urlRegex.test(desc)) {
+      const parts = desc.split(urlRegex);
+      return (
+        <span className="break-all max-w-xs md:max-w-md inline-block align-middle">
+          {parts.map((part, index) => {
+            if (part.match(urlRegex)) {
+              let label = part;
+              try {
+                const urlObj = new URL(part);
+                label = urlObj.hostname + (urlObj.pathname.length > 15 ? urlObj.pathname.slice(0, 15) + '...' : urlObj.pathname);
+              } catch (e) {}
+              return (
+                <a 
+                  key={index}
+                  href={part} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-600 hover:text-blue-800 underline font-semibold break-all inline-flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors text-xs my-0.5"
+                  title={part}
+                >
+                  <span>🔗 {label}</span>
+                </a>
+              );
+            }
+            return <span key={index}>{part}</span>;
+          })}
+        </span>
+      );
+    }
+
+    return <span className="break-words max-w-xs md:max-w-md inline-block align-middle">{desc}</span>;
+  };
+
   return (
     <div className="p-8 bg-slate-50 min-h-screen font-sans">
       <div className="max-w-7xl mx-auto">
@@ -173,15 +210,15 @@ const ExpenseManagement = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em]">
-                <th className="px-8 py-4">Date</th>
-                <th className="px-8 py-4">Category</th>
-                <th className="px-8 py-4">Description</th>
-                <th className="px-8 py-4 text-right">Amount</th>
-                <th className="px-8 py-4 text-right">Actions</th>
+                <th className="px-8 py-4 min-w-[130px]">Date</th>
+                <th className="px-8 py-4 min-w-[130px]">Category</th>
+                <th className="px-8 py-4 min-w-[220px]">Description</th>
+                <th className="px-8 py-4 text-right min-w-[130px]">Amount</th>
+                <th className="px-8 py-4 text-right min-w-[110px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -190,28 +227,34 @@ const ExpenseManagement = () => {
               ) : expenses.length > 0 ? (
                 expenses.map((expense) => (
                   <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-8 py-4 flex items-center gap-3 text-slate-600">
-                      <Calendar size={16} className="text-slate-300" />
+                    <td className="px-8 py-4 flex items-center gap-3 text-slate-600 whitespace-nowrap">
+                      <Calendar size={16} className="text-slate-300 shrink-0" />
                       {new Date(expense.date).toLocaleDateString()}
                     </td>
-                    <td className="px-8 py-4">
+                    <td className="px-8 py-4 whitespace-nowrap">
                       <span className="bg-slate-100 px-3 py-1 rounded-full text-[10px] font-black uppercase text-slate-500">
                         {expense.type}
                       </span>
                     </td>
-                    <td className="px-8 py-4 text-slate-800 font-medium">{expense.description}</td>
-                    <td className="px-8 py-4 text-right font-black text-red-500">₹{expense.amount.toFixed(2)}</td>
-                    <td className="px-8 py-4 text-right">
+                    <td className="px-8 py-4 text-slate-800 font-medium">
+                      {renderFormattedDescription(expense.description)}
+                    </td>
+                    <td className="px-8 py-4 text-right font-black text-red-500 whitespace-nowrap">
+                      ₹{(Number(expense.amount) || 0).toFixed(2)}
+                    </td>
+                    <td className="px-8 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleEditClick(expense)}
                           className="p-2 text-slate-400 hover:text-brand-600 transition-colors"
+                          title="Edit Expense"
                         >
                           <Edit size={16} />
                         </button>
                         <button 
                           onClick={() => handleDeleteExpense(expense.id)}
                           className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                          title="Delete Expense"
                         >
                           <Trash2 size={16} />
                         </button>
