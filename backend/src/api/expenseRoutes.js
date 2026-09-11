@@ -26,6 +26,31 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Create bulk expenses
+router.post('/bulk', async (req, res) => {
+  try {
+    const expensesList = Array.isArray(req.body) ? req.body : req.body?.expenses;
+    if (!Array.isArray(expensesList) || expensesList.length === 0) {
+      return res.status(400).json({ error: 'Expenses array is required' });
+    }
+    
+    const validExpenses = expensesList.map(exp => ({
+      type: exp.type || 'GENERAL',
+      amount: parseFloat(exp.amount) || 0,
+      description: exp.description || null,
+      date: exp.date ? new Date(exp.date) : new Date()
+    }));
+
+    await prisma.expense.createMany({
+      data: validExpenses
+    });
+
+    res.json({ message: 'Expenses created successfully', count: validExpenses.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update expense
 router.put('/:id', async (req, res) => {
   try {
