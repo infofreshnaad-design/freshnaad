@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2, RefreshCw } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2, RefreshCw, Search } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
@@ -76,6 +76,12 @@ const Reports = () => {
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [unsyncedCount, setUnsyncedCount] = useState(0);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Reset search term when report tab changes
+  useEffect(() => {
+    setSearchTerm('');
+  }, [activeReport]);
   
   // Payment recording state
   const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
@@ -317,11 +323,20 @@ const Reports = () => {
             const filename = `${activeReport}_${new Date().toISOString().split('T')[0]}`;
 
             // 1. Format Data Based on Active Report
+            const filterBySearch = (items: any[], fields: string[]) => {
+              if (!searchTerm.trim()) return items;
+              const term = searchTerm.toLowerCase();
+              return items.filter(item => fields.some(f => {
+                const val = f.split('.').reduce((obj, key) => obj?.[key], item);
+                return String(val || '').toLowerCase().includes(term);
+              }));
+            };
+
             switch (activeReport) {
               case 'sales':
               case 'purchase':
                 headers = ['Date', 'Time', 'Invoice', activeReport === 'sales' ? 'Customer' : 'Supplier', 'Amount'];
-                data = reportData.details.map((item: any) => [
+                data = filterBySearch(reportData.details || [], ['invoiceNo', 'customer.name', 'supplierName']).map((item: any) => [
                   new Date(item.createdAt || item.date).toLocaleDateString(),
                   new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                   item.invoiceNo,
@@ -332,7 +347,7 @@ const Reports = () => {
 
               case 'credit-sales':
                 headers = ['Date', 'Invoice', 'Customer', 'Billed', 'Paid', 'Balance'];
-                data = reportData.details.map((item: any) => [
+                data = filterBySearch(reportData.details || [], ['invoiceNo', 'customer.name', 'customer.phone']).map((item: any) => [
                   new Date(item.createdAt).toLocaleDateString(),
                   item.invoiceNo,
                   item.customer?.name || 'Walk-in',
@@ -344,8 +359,8 @@ const Reports = () => {
 
               case 'stock-summary':
                 headers = ['ID', 'Name', 'Category', 'Stock', 'Price'];
-                data = reportData.map((item: any) => [
-                  item.id.slice(0, 8),
+                data = filterBySearch(Array.isArray(reportData) ? reportData : reportData.details || [], ['name', 'barcode', 'category.name']).map((item: any) => [
+                  item.id?.slice(0, 8) || '',
                   item.name,
                   item.category?.name || 'N/A',
                   item.stockQuantity,
@@ -353,11 +368,22 @@ const Reports = () => {
                 ]);
                 break;
 
+              case 'item-profit':
+                headers = ['Item Name', 'Qty Sold', 'Sales Revenue', 'COGS / Cost', 'Net Profit'];
+                data = filterBySearch(Array.isArray(reportData) ? reportData : [], ['name']).map((item: any) => [
+                  item.name,
+                  item.qtySold,
+                  `Rs.${(item.totalSales || item.revenue || 0).toFixed(2)}`,
+                  `Rs.${(item.cogs || item.cost || 0).toFixed(2)}`,
+                  `Rs.${(item.profit || 0).toFixed(2)}`
+                ]);
+                break;
+
               case 'expenses':
                 headers = ['Date', 'Category', 'Amount', 'Description'];
-                data = reportData.details.map((item: any) => [
+                data = filterBySearch(reportData.details || [], ['type', 'description', 'category']).map((item: any) => [
                   new Date(item.date).toLocaleDateString(),
-                  item.category,
+                  item.category || item.type,
                   `Rs.${item.amount}`,
                   item.description || '-'
                 ]);
@@ -365,7 +391,7 @@ const Reports = () => {
 
               case 'supplier-ledger':
                 headers = ['Date', 'Invoice', 'Status', 'Bill Amt', 'Balance'];
-                data = (reportData.purchases || []).map((p: any) => [
+                data = filterBySearch(reportData.purchases || [], ['invoiceNo', 'paymentStatus']).map((p: any) => [
                   new Date(p.date || p.createdAt).toLocaleDateString(),
                   p.invoiceNo,
                   p.paymentStatus,
@@ -377,12 +403,11 @@ const Reports = () => {
 
               default:
                 // Generic fallback for any other list of objects
-                if (Array.isArray(reportData)) {
-                  headers = Object.keys(reportData[0] || {});
-                  data = reportData.map(row => Object.values(row));
-                } else if (reportData.details && Array.isArray(reportData.details)) {
-                  headers = Object.keys(reportData.details[0] || {});
-                  data = reportData.details.map((row: any) => Object.values(row));
+                const sourceArray = Array.isArray(reportData) ? reportData : (reportData.details || reportData.transactions || []);
+                const filteredSource = filterBySearch(sourceArray, ['name', 'invoiceNo', 'details', 'type', 'phone', 'returnNo']);
+                if (filteredSource.length > 0) {
+                  headers = Object.keys(filteredSource[0] || {});
+                  data = filteredSource.map(row => Object.values(row));
                 }
             }
 
@@ -423,6 +448,17 @@ const Reports = () => {
         if (Array.isArray(reportData) || !reportData.summary || !reportData.details) {
           return <div className="p-20 text-center animate-pulse text-brand-400">Preparing Transactions...</div>;
         }
+
+        const filteredDetails = (reportData.details || []).filter((item: any) => {
+          if (!searchTerm.trim()) return true;
+          const term = searchTerm.toLowerCase();
+          return (
+            item.invoiceNo?.toLowerCase().includes(term) ||
+            item.customer?.name?.toLowerCase().includes(term) ||
+            item.supplierName?.toLowerCase().includes(term)
+          );
+        });
+
         return (
           <div>
             <div className="grid grid-cols-3 gap-4 mb-6">
@@ -453,7 +489,7 @@ const Reports = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
-                  {reportData.details.map((item: any) => (
+                  {filteredDetails.map((item: any) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="p-4">{new Date(item.createdAt || item.date).toLocaleDateString()}</td>
                       <td className="p-4">{new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
@@ -548,7 +584,11 @@ const Reports = () => {
                   ))}
                 </tbody>
               </table>
-              {reportData.details.length === 0 && <div className="p-8 text-center text-slate-400">No records found.</div>}
+              {filteredDetails.length === 0 && (
+                <div className="p-8 text-center text-slate-400">
+                  {searchTerm ? `No records found matching "${searchTerm}".` : 'No records found.'}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -558,6 +598,17 @@ const Reports = () => {
         if (!reportData || !reportData.summary || !reportData.details) {
           return <div className="p-20 text-center animate-pulse text-brand-400">Loading Credits...</div>;
         }
+
+        const filteredDetails = (reportData.details || []).filter((item: any) => {
+          if (!searchTerm.trim()) return true;
+          const term = searchTerm.toLowerCase();
+          return (
+            item.invoiceNo?.toLowerCase().includes(term) ||
+            item.customer?.name?.toLowerCase().includes(term) ||
+            item.customer?.phone?.toLowerCase().includes(term)
+          );
+        });
+
         return (
           <div className="animate-in fade-in duration-500">
             <div className="flex justify-between items-end mb-6">
@@ -606,7 +657,7 @@ const Reports = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-600">
-                  {reportData.details.map((item: any) => (
+                  {filteredDetails.map((item: any) => (
                     <tr key={item.id} className="hover:bg-orange-50/20 transition-colors">
                       <td className="p-6">{new Date(item.createdAt).toLocaleDateString()}</td>
                       <td className="p-6">
@@ -644,7 +695,11 @@ const Reports = () => {
                   ))}
                 </tbody>
               </table>
-              {reportData.details.length === 0 && <div className="p-10 text-center text-slate-400">No outstanding credits for this period.</div>}
+              {filteredDetails.length === 0 && (
+                <div className="p-10 text-center text-slate-400">
+                  {searchTerm ? `No outstanding credits found matching "${searchTerm}".` : 'No outstanding credits for this period.'}
+                </div>
+              )}
             </div>
             {isSettleModalOpen && selectedSettleOrder && (
               <CreditSettlementModal 
@@ -869,6 +924,16 @@ const Reports = () => {
       case 'transactions':
       case 'cashflow': {
         if (Array.isArray(reportData)) return <div className="p-20 text-center animate-pulse text-brand-400">Streamlining logs...</div>;
+
+        const filteredTransactions = (reportData.transactions || []).filter((t: any) => {
+          if (!searchTerm.trim()) return true;
+          const term = searchTerm.toLowerCase();
+          return (
+            t.details?.toLowerCase().includes(term) ||
+            t.type?.toLowerCase().includes(term)
+          );
+        });
+
         return (
           <div>
             <div className="grid grid-cols-3 gap-4 mb-6">
@@ -897,7 +962,7 @@ const Reports = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium">
-                  {reportData.transactions?.map((t: any, i: number) => (
+                  {filteredTransactions.map((t: any, i: number) => (
                     <tr key={i} className="hover:bg-slate-50">
                       <td className="p-4 text-slate-600 font-bold">{new Date(t.date).toLocaleDateString()}</td>
                       <td className="p-4 text-slate-500 text-center">{new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
@@ -934,6 +999,11 @@ const Reports = () => {
                   ))}
                 </tbody>
               </table>
+              {filteredTransactions.length === 0 && (
+                <div className="p-8 text-center text-slate-400">
+                  {searchTerm ? `No transactions found matching "${searchTerm}".` : 'No transactions found.'}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -941,6 +1011,17 @@ const Reports = () => {
 
       case 'stock-summary': {
         if (Array.isArray(reportData)) return <div className="p-20 text-center animate-pulse text-brand-400">Counting Stock...</div>;
+
+        const filteredDetails = (reportData.details || []).filter((item: any) => {
+          if (!searchTerm.trim()) return true;
+          const term = searchTerm.toLowerCase();
+          return (
+            item.name?.toLowerCase().includes(term) ||
+            item.barcode?.toLowerCase().includes(term) ||
+            item.category?.name?.toLowerCase().includes(term)
+          );
+        });
+
         return (
           <div>
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -964,7 +1045,7 @@ const Reports = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {reportData.details?.map((item: any) => (
+                  {filteredDetails.map((item: any) => (
                     <tr key={item.id}>
                       <td className="p-4 font-bold text-slate-800">{item.name}</td>
                       <td className="p-4 text-center font-black text-brand-600">{item.stockQuantity}</td>
@@ -972,6 +1053,13 @@ const Reports = () => {
                       <td className="p-4 text-right font-bold text-slate-900">₹{item.sellingPrice?.toFixed(2)}</td>
                     </tr>
                   ))}
+                  {filteredDetails.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-slate-400">
+                        {searchTerm ? `No items found matching "${searchTerm}".` : 'No items found.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1024,7 +1112,15 @@ const Reports = () => {
         
         if (!Array.isArray(reportData)) return <div className="p-20 text-center animate-pulse text-brand-400">Switching Data Streams...</div>;
 
-        const totals = reportData.reduce((acc: any, curr: any) => ({
+        const filteredData = reportData.filter((item: any) => {
+          if (!searchTerm.trim()) return true;
+          const term = searchTerm.toLowerCase();
+          const nameMatch = item.name?.toLowerCase().includes(term);
+          const phoneMatch = item.phone?.toLowerCase().includes(term);
+          return nameMatch || phoneMatch;
+        });
+
+        const totals = filteredData.reduce((acc: any, curr: any) => ({
           qty: acc.qty + (curr.qtySold || 0),
           revenue: acc.revenue + (curr.totalSales || curr.revenue || 0),
           cost: acc.cost + (curr.cogs || curr.cost || 0),
@@ -1032,91 +1128,99 @@ const Reports = () => {
         }), { qty: 0, revenue: 0, cost: 0, profit: 0 });
 
         return (
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-xs text-slate-500 font-bold uppercase border-b">
-                <tr>
-                  <th className="p-4">{isItemProfit ? 'Item Name' : 'Party Name'}</th>
-                  {isParty ? (
-                    <>
-                      <th className="p-4 text-center">Phone</th>
-                      <th className="p-4 text-center">Loyalty Pts</th>
-                      <th className="p-4 text-right">Credit Bal</th>
-                      <th className="p-4 text-right">Total Spent</th>
-                    </>
-                  ) : (
-                    <>
-                      {isItemProfit && <th className="p-4 text-center">Qty Sold</th>}
-                      <th className="p-4 text-right">Sales Revenue</th>
-                      <th className="p-4 text-right">COGS / Cost</th>
-                      <th className="p-4 text-right">Net Profit</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y text-slate-700 font-medium">
-                {reportData.map((item: any, i: number) => (
-                  <tr key={i} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 font-bold text-slate-900 border-r border-slate-50">
-                      {isParty ? (
-                        <button 
-                          onClick={() => setSelectedPartyId(item.id)}
-                          className="text-brand-600 hover:text-brand-800 font-black hover:underline text-left"
-                        >
-                          {item.name}
-                        </button>
-                      ) : (
-                        item.name
-                      )}
-                    </td>
+          <div className="space-y-4">
+            {searchTerm && (
+              <div className="flex items-center justify-between bg-brand-50 px-4 py-2.5 rounded-xl border border-brand-100 text-xs font-bold text-brand-700">
+                <span>Showing search results for "<span className="font-black">{searchTerm}</span>" ({filteredData.length} items found)</span>
+                <button onClick={() => setSearchTerm('')} className="underline text-brand-600 hover:text-brand-800">Clear Search</button>
+              </div>
+            )}
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-xs text-slate-500 font-bold uppercase border-b">
+                  <tr>
+                    <th className="p-4">{isItemProfit ? 'Item Name' : 'Party Name'}</th>
                     {isParty ? (
                       <>
-                        <td className="p-4 text-center">{item.phone || '-'}</td>
-                        <td className="p-4 text-center text-brand-600 font-bold">{item.loyaltyPoints}</td>
-                        <td className="p-4 text-right font-bold text-slate-600">₹{item.creditBalance?.toFixed(2)}</td>
-                        <td className="p-4 text-right font-black text-slate-800">₹{item.totalSpent?.toFixed(2)}</td>
+                        <th className="p-4 text-center">Phone</th>
+                        <th className="p-4 text-center">Loyalty Pts</th>
+                        <th className="p-4 text-right">Credit Bal</th>
+                        <th className="p-4 text-right">Total Spent</th>
                       </>
                     ) : (
                       <>
-                        {isItemProfit && <td className="p-4 text-center font-black text-brand-600">{item.qtySold}</td>}
-                        <td className="p-4 text-right font-bold text-green-600">₹{(item.totalSales || item.revenue)?.toFixed(2)}</td>
-                        <td className="p-4 text-right text-red-500">₹{(item.cogs || item.cost)?.toFixed(2)}</td>
-                        <td className="p-4 text-right font-black text-emerald-600">
-                          {item.id ? (
-                            <button 
-                              onClick={() => setSelectedPartyId(item.id)}
-                              className="hover:underline text-left"
-                            >
-                              ₹{item.profit?.toFixed(2)}
-                            </button>
-                          ) : (
-                            `₹${item.profit?.toFixed(2)}`
-                          )}
-                        </td>
+                        {isItemProfit && <th className="p-4 text-center">Qty Sold</th>}
+                        <th className="p-4 text-right">Sales Revenue</th>
+                        <th className="p-4 text-right">COGS / Cost</th>
+                        <th className="p-4 text-right">Net Profit</th>
                       </>
                     )}
                   </tr>
-                ))}
-                {reportData.length === 0 && (
-                  <tr>
-                    <td colSpan={isParty ? 5 : (isItemProfit ? 5 : 4)} className="p-12 text-center text-slate-400">
-                      No matching records found for this period.
-                    </td>
-                  </tr>
+                </thead>
+                <tbody className="divide-y text-slate-700 font-medium">
+                  {filteredData.map((item: any, i: number) => (
+                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-4 font-bold text-slate-900 border-r border-slate-50">
+                        {isParty ? (
+                          <button 
+                            onClick={() => setSelectedPartyId(item.id)}
+                            className="text-brand-600 hover:text-brand-800 font-black hover:underline text-left"
+                          >
+                            {item.name}
+                          </button>
+                        ) : (
+                          item.name
+                        )}
+                      </td>
+                      {isParty ? (
+                        <>
+                          <td className="p-4 text-center">{item.phone || '-'}</td>
+                          <td className="p-4 text-center text-brand-600 font-bold">{item.loyaltyPoints}</td>
+                          <td className="p-4 text-right font-bold text-slate-600">₹{item.creditBalance?.toFixed(2)}</td>
+                          <td className="p-4 text-right font-black text-slate-800">₹{item.totalSpent?.toFixed(2)}</td>
+                        </>
+                      ) : (
+                        <>
+                          {isItemProfit && <td className="p-4 text-center font-black text-brand-600">{item.qtySold}</td>}
+                          <td className="p-4 text-right font-bold text-green-600">₹{(item.totalSales || item.revenue)?.toFixed(2)}</td>
+                          <td className="p-4 text-right text-red-500">₹{(item.cogs || item.cost)?.toFixed(2)}</td>
+                          <td className="p-4 text-right font-black text-emerald-600">
+                            {item.id ? (
+                              <button 
+                                onClick={() => setSelectedPartyId(item.id)}
+                                className="hover:underline text-left"
+                              >
+                                ₹{item.profit?.toFixed(2)}
+                              </button>
+                            ) : (
+                              `₹${item.profit?.toFixed(2)}`
+                            )}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                  {filteredData.length === 0 && (
+                    <tr>
+                      <td colSpan={isParty ? 5 : (isItemProfit ? 5 : 4)} className="p-12 text-center text-slate-400">
+                        {searchTerm ? `No matching items found for "${searchTerm}".` : 'No matching records found for this period.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {!isParty && filteredData.length > 0 && (
+                  <tfoot className="bg-slate-900 text-white font-black text-sm">
+                    <tr>
+                      <td className="p-4 uppercase tracking-widest text-xs">Grand Totals</td>
+                      {isItemProfit && <td className="p-4 text-center">{totals.qty}</td>}
+                      <td className="p-4 text-right">₹{totals.revenue.toFixed(2)}</td>
+                      <td className="p-4 text-right">₹{totals.cost.toFixed(2)}</td>
+                      <td className="p-4 text-right">₹{totals.profit.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
                 )}
-              </tbody>
-              {!isParty && reportData.length > 0 && (
-                <tfoot className="bg-slate-900 text-white font-black text-sm">
-                  <tr>
-                    <td className="p-4 uppercase tracking-widest text-xs">Grand Totals</td>
-                    {isItemProfit && <td className="p-4 text-center">{totals.qty}</td>}
-                    <td className="p-4 text-right">₹{totals.revenue.toFixed(2)}</td>
-                    <td className="p-4 text-right">₹{totals.cost.toFixed(2)}</td>
-                    <td className="p-4 text-right">₹{totals.profit.toFixed(2)}</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
+              </table>
+            </div>
           </div>
         );
       }
@@ -1458,7 +1562,34 @@ const Reports = () => {
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+            {/* Search Input Box */}
+            <div className="relative flex items-center bg-white rounded-xl shadow-sm border border-slate-200 px-3 py-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all w-full sm:w-auto">
+              <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder={
+                  activeReport === 'item-profit' || activeReport === 'stock-summary'
+                    ? "Search item or product..."
+                    : activeReport === 'parties' || activeReport === 'suppliers'
+                    ? "Search party name..."
+                    : "Search records..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent border-none text-sm font-bold text-slate-700 placeholder-slate-400 focus:outline-none w-36 sm:w-48"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="p-0.5 text-slate-400 hover:text-slate-600 rounded-full flex-shrink-0 ml-1"
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Entity Selectors (Only visible for certain reports) */}
             {(activeReport === 'party-statement') && (
               <select 
