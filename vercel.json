@@ -11,6 +11,12 @@
       "config": { "distDir": "dist" }
     }
   ],
+  "crons": [
+    {
+      "path": "/api/backup/trigger",
+      "schedule": "0 1 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

@@ -6,6 +6,7 @@ import { Bluetooth, Printer, Share2, X } from 'lucide-react';
 import { useBluetoothPrinter } from '../hooks/useBluetoothPrinter';
 import { useWiredPrinter } from '../hooks/useWiredPrinter';
 import { EscPosBuilder } from '../utils/escPosUtil';
+import { normalizeOrder } from '../utils/normalizer';
 
 interface ReceiptPreviewProps {
   order: any;
@@ -13,15 +14,16 @@ interface ReceiptPreviewProps {
 }
 
 const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
+  const normOrder = React.useMemo(() => normalizeOrder(order), [order]);
   const navigate = useNavigate();
   const [showWhatsAppModal, setShowWhatsAppModal] = React.useState(false);
-  const [waStatus, setWaStatus] = React.useState<any>(order?.whatsappStatus || null);
+  const [waStatus, setWaStatus] = React.useState<any>(normOrder?.whatsappStatus || null);
   const [isSending, setIsSending] = React.useState(false);
   const [isPrinting, setIsPrinting] = React.useState(false);
   const { print: printBluetooth, isConnected: isBtConnected, ensureConnected: ensureBtConnected } = useBluetoothPrinter();
   const { printWired, isWiredConnected } = useWiredPrinter();
 
-  if (!order) return null;
+  if (!normOrder) return null;
 
   const formatQty = (qty: any) => {
     const n = Number(qty) || 0;
@@ -39,7 +41,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
     try {
       // 1. Try Wired USB / Serial Direct Printer first
       if (isWiredConnected) {
-        const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
+        const bytes = EscPosBuilder.generateReceipt(normOrder, businessInfo);
         const ok = await printWired(bytes);
         if (ok) {
           onClose();
@@ -97,14 +99,12 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
   };
 
   const generateSystemPrintHtml = () => {
-    const itemsHtml = (order.orderItems || []).map((item: any, index: number) => {
+    const itemsHtml = (normOrder.orderItems || []).map((item: any, index: number) => {
       const itemName = item.product?.name || item.name || 'Product';
       const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
       const itemQty = Number(item.quantity) || 0;
-      const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
-      const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
       const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice ?? 0);
-      const itemTotal = Number(item.total) || calcTotal || 0;
+      const itemTotal = Number(item.total) || (itemPrice * itemQty) || 0;
 
       return `
       <tr>
@@ -122,7 +122,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Print Bill - ${order.invoiceNo}</title>
+          <title>Print Bill - ${normOrder.invoiceNo}</title>
           <style>
             @page { 
               size: 80mm auto; 
@@ -171,13 +171,13 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               <span>FSSAI NO: 21326222000253</span>
               <span>Mob: 8606391315, 75608 57580</span>
             </div>
-            <p style="margin: 3px 0; font-size: 10px; font-weight: 800;">Date : ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
+            <p style="margin: 3px 0; font-size: 10px; font-weight: 800;">Date : ${normOrder.createdAt ? new Date(normOrder.createdAt).toLocaleDateString() : new Date().toLocaleDateString()} ${normOrder.createdAt ? new Date(normOrder.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</p>
           </div>
           <div class="divider"></div>
           <div style="margin-bottom: 4px; border-bottom: 1.5px solid #000000; padding-bottom: 4px; font-size: 11px;">
-            <div class="total-row"><span>Cust : ${order.customer?.name || order.customerName || 'Walk-in'}</span></div>
-            <div class="total-row"><span>Type : ${order.orderType || 'Walk-in'}</span></div>
-            <div class="total-row"><span>Invoice : ${order.invoiceNo}</span></div>
+            <div class="total-row"><span>Cust : ${normOrder.customer?.name || normOrder.customerName || 'Walk-in'}</span></div>
+            <div class="total-row"><span>Type : ${normOrder.orderType || 'Walk-in'}</span></div>
+            <div class="total-row"><span>Invoice : ${normOrder.invoiceNo}</span></div>
           </div>
           <table>
             <thead>
@@ -197,14 +197,14 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
           <div style="margin-top: 4px; border-top: 1.5px solid #000000; padding-top: 4px; font-size: 11px;">
             <div class="total-row">
-              <span>Total Items : ${order.itemsCount || 1}</span>
+              <span>Total Items : ${normOrder.itemsCount || 1}</span>
               <span>Total :</span>
-              <span class="bold">${(Number(order.subtotal) || 0).toFixed(2)}</span>
+              <span class="bold">${normOrder.subtotal.toFixed(2)}</span>
             </div>
             <div class="total-row">
-              <span>Total Qty : ${formatQty(order.totalQty)}</span>
+              <span>Total Qty : ${formatQty(normOrder.totalQty)}</span>
               <span>Discount :</span>
-              <span>${(Number(order.discount) || 0).toFixed(2)}</span>
+              <span>${normOrder.discount.toFixed(2)}</span>
             </div>
             <div class="total-row">
               <span></span>
@@ -214,27 +214,27 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <div class="total-row" style="margin-top: 4px; border-top: 1.5px solid #000000; padding-top: 4px;">
               <span></span>
               <span class="bold" style="font-size: 14px;">Net Total :</span>
-              <span class="bold" style="font-size: 14px;">Rs.${(Number(order.roundedTotal) || 0).toFixed(2)}</span>
+              <span class="bold" style="font-size: 14px;">Rs.${normOrder.roundedTotal.toFixed(2)}</span>
             </div>
             <div class="total-row">
               <span></span>
               <span>Tender :</span>
-              <span>Rs.${(Number(order.amountPaid) || 0).toFixed(2)}</span>
+              <span>Rs.${normOrder.amountPaid.toFixed(2)}</span>
             </div>
             <div class="total-row">
               <span></span>
               <span class="bold">Balance :</span>
-              <span class="bold">Rs.${(Number(order.balance) || 0).toFixed(2)}</span>
+              <span class="bold">Rs.${normOrder.balance.toFixed(2)}</span>
             </div>
           </div>
 
-          <div class="savings">YOU SAVED RS.${(Number(order.savings) || 0).toFixed(2)}</div>
+          ${Number(normOrder.savings) > 0 ? `<div class="savings">YOU SAVED RS.${normOrder.savings.toFixed(2)}</div>` : ''}
 
           <div class="footer-grid">
-            <div>Cash :${order.paymentMode === 'CASH' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
+            <div>Cash :${normOrder.paymentMode === 'CASH' ? normOrder.amountPaid.toFixed(2) : '0.00'}</div>
             <div>Counter : 001</div>
-            <div>Card :${order.paymentMode === 'CARD' ? (Number(order.amountPaid) || 0).toFixed(2) : '0.00'}</div>
-            <div>User ID :${order.userName || 'Staff'}</div>
+            <div>Card :${normOrder.paymentMode === 'CARD' ? normOrder.amountPaid.toFixed(2) : '0.00'}</div>
+            <div>User ID :${normOrder.userName || 'Staff'}</div>
             <div>Card Number : 0</div>
             <div>Bill Point :0</div>
             <div>Total Point :0</div>
@@ -250,7 +250,7 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
   const handleBluetoothPrint = async () => {
     try {
-      const bytes = EscPosBuilder.generateReceipt(order, businessInfo);
+      const bytes = EscPosBuilder.generateReceipt(normOrder, businessInfo);
       await printBluetooth(bytes);
     } catch (error: any) {
       console.error('Bluetooth Print Error:', error);
@@ -259,29 +259,27 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
     }
   };
 
-    const handleWhatsAppProceed = async (phone: string) => {
-      // Close modal immediately to avoid perceived lag
-      setShowWhatsAppModal(false);
-      
-      try {
-        // Send request in background
-        api.post(`/orders/share-whatsapp`, {
-          orderId: order.id,
-          phone: phone
-        }).then(response => {
-           if (response.data.success) {
-             console.log('WhatsApp message sent successfully');
-           }
-        }).catch(err => {
-           console.error('WhatsApp Error:', err);
-        });
-      } catch (error) {
-        console.error('WhatsApp dispatch error:', error);
-      }
-    };
+  const handleWhatsAppProceed = async (phone: string) => {
+    setShowWhatsAppModal(false);
+    
+    try {
+      api.post(`/orders/share-whatsapp`, {
+        orderId: normOrder.id || normOrder.invoiceNo,
+        phone: phone
+      }).then(response => {
+         if (response.data.success) {
+           console.log('WhatsApp message sent successfully');
+         }
+      }).catch(err => {
+         console.error('WhatsApp Error:', err);
+      });
+    } catch (error) {
+      console.error('WhatsApp dispatch error:', error);
+    }
+  };
 
     return (
-      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 print:p-0 print:bg-white print:relative">
+      <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[250] p-4 print:p-0 print:bg-white print:relative">
         <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full max-h-[90vh] md:h-[700px] animate-in slide-in-from-bottom-8 print:shadow-none print:w-full print:h-auto print:rounded-none">
           <div className="p-4 border-b flex justify-between items-center bg-slate-50 print:hidden">
             <h2 className="font-bold text-slate-700">Tax Invoice Preview</h2>
@@ -301,23 +299,23 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
               </div>
 
               <div className="flex justify-center gap-2 text-[10px] mt-1 opacity-70">
-                <span>Date: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
-                <span>Time: {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
+                <span>Date: {normOrder.createdAt ? new Date(normOrder.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
+                <span>Time: {normOrder.createdAt ? new Date(normOrder.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</span>
               </div>
             </div>
 
             <div className="border-t border-b border-dashed border-slate-300 py-2 mb-4">
               <div className="flex justify-between">
                 <span>Cust :</span>
-                <span className="font-bold">{order.customer?.name || order.customerName || 'Walk-in'}</span>
+                <span className="font-bold">{normOrder.customer?.name || normOrder.customerName || 'Walk-in'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Type :</span>
-                <span className="font-bold text-orange-600 uppercase text-[9.5px] tracking-tight">{order.orderType || 'Walk-in'}</span>
+                <span className="font-bold text-orange-600 uppercase text-[9.5px] tracking-tight">{normOrder.orderType || 'Walk-in'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Invoice :</span>
-                <span className="font-bold">{order.invoiceNo}</span>
+                <span className="font-bold">{normOrder.invoiceNo}</span>
               </div>
             </div>
 
@@ -333,14 +331,11 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                 </tr>
               </thead>
               <tbody>
-                {order.orderItems?.map((item: any, idx: number) => {
+                {normOrder.orderItems?.map((item: any, idx: number) => {
                   const itemName = item.product?.name || item.name || 'Product';
                   const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
-                  const itemQty = Number(item.quantity) || 0;
-                  const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
-                  const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
                   const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice ?? 0);
-                  const itemTotal = Number(item.total) || calcTotal || 0;
+                  const itemTotal = Number(item.total) || (itemPrice * Number(item.quantity || 0)) || 0;
 
                   return (
                     <tr key={item.id || idx} className="text-[10px] border-b border-slate-50">
@@ -359,8 +354,8 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
             <div className="border-t border-dashed border-slate-300 pt-3 space-y-1">
               <div className="flex justify-between">
                  <div className="flex flex-col gap-1">
-                   <span>Total Items : {order.itemsCount || 1}</span>
-                   <span>Total Qty : {formatQty(order.totalQty)}</span>
+                   <span>Total Items : {normOrder.itemsCount || 1}</span>
+                   <span>Total Qty : {formatQty(normOrder.totalQty)}</span>
                  </div>
                  <div className="flex gap-4 text-right">
                     <div className="flex flex-col gap-1">
@@ -369,8 +364,8 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
                       <p>Return :</p>
                     </div>
                     <div className="flex flex-col gap-1 font-bold">
-                      <p>{(Number(order.subtotal) || 0).toFixed(2)}</p>
-                      <p>{(Number(order.discount) || 0).toFixed(2)}</p>
+                      <p>{normOrder.subtotal.toFixed(2)}</p>
+                      <p>{normOrder.discount.toFixed(2)}</p>
                       <p>0.00</p>
                     </div>
                  </div>
@@ -378,28 +373,30 @@ const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ order, onClose }) => {
 
               <div className="flex justify-between items-center py-2 border-y border-dashed border-slate-300 mt-2">
                  <span className="text-base font-black">Net Total :</span>
-                 <span className="text-base font-black">₹{(Number(order.roundedTotal) || 0).toFixed(2)}</span>
+                 <span className="text-base font-black">₹{normOrder.roundedTotal.toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between pt-1">
                  <span>Tender :</span>
-                 <span>₹{(Number(order.amountPaid) || 0).toFixed(2)}</span>
+                 <span>₹{normOrder.amountPaid.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold">
                  <span>Balance :</span>
-                 <span>₹{(Number(order.balance) || 0).toFixed(2)}</span>
+                 <span>₹{normOrder.balance.toFixed(2)}</span>
               </div>
             </div>
 
-            <div className="mt-4 text-center">
-               <p className="text-sm font-black">YOU SAVED RS.{(Number(order.savings) || 0).toFixed(2)}</p>
-            </div>
+            {Number(normOrder.savings) > 0 && (
+              <div className="mt-4 text-center">
+                 <p className="text-sm font-black">YOU SAVED RS.{normOrder.savings.toFixed(2)}</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 py-2 text-[9px] text-slate-600">
-              <div className="flex justify-between"><span>Cash:</span><span>{(order.paymentMode === 'CASH' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash:</span><span>{(normOrder.paymentMode === 'CASH' ? normOrder.amountPaid : 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Counter:</span><span>001</span></div>
-              <div className="flex justify-between"><span>Card:</span><span>{(order.paymentMode === 'CARD' ? Number(order.amountPaid) || 0 : 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>User ID:</span><span>{order.userName || 'Staff'}</span></div>
+              <div className="flex justify-between"><span>Card:</span><span>{(normOrder.paymentMode === 'CARD' ? normOrder.amountPaid : 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>User ID:</span><span>{normOrder.userName || 'Staff'}</span></div>
               <div className="flex justify-between"><span>Card No:</span><span>0</span></div>
               <div className="flex justify-between"><span>Bill Pt:</span><span>0</span></div>
               <div className="flex justify-between"><span>Total Pt:</span><span>0</span></div>

@@ -1,3 +1,5 @@
+import { normalizeOrder } from './normalizer';
+
 /**
  * Minimal ESC/POS Builder for Thermal Printers
  * Supports basic text, alignment, and formatting
@@ -75,6 +77,7 @@ export class EscPosBuilder {
    * Helper to format an Order object into a receipt
    */
   static generateReceipt(order: any, businessInfo: any): Uint8Array {
+    const norm = normalizeOrder(order) || order;
     const builder = new EscPosBuilder();
     
     // Header
@@ -91,10 +94,10 @@ export class EscPosBuilder {
 
     // Order Info
     builder.alignLeft()
-           .line(`Invoice : ${order.invoiceNo || 'N/A'}`)
-           .line(`Date    : ${new Date(order.createdAt || Date.now()).toLocaleString()}`)
-           .line(`Cust    : ${order.customer?.name || order.customerName || 'Walk-in'}`)
-           .line(`Type    : ${order.orderType || 'Walk-in'}`)
+           .line(`Invoice : ${norm.invoiceNo || 'N/A'}`)
+           .line(`Date    : ${new Date(norm.createdAt || Date.now()).toLocaleString()}`)
+           .line(`Cust    : ${norm.customer?.name || norm.customerName || 'Walk-in'}`)
+           .line(`Type    : ${norm.orderType || 'Walk-in'}`)
            .line('------------------------------------------------'); // 48 chars (80mm)
 
     // Items Header (6 cols: #, Desc, Qty, FRP, MRP, Total)
@@ -108,18 +111,15 @@ export class EscPosBuilder {
     };
 
     // Items
-    (order.orderItems || []).forEach((item: any, idx: number) => {
-      const slNo = (idx + 1).toString().padEnd(2);
+    (norm.orderItems || []).forEach((item: any, idx: number) => {
+      const slNo = (item.slNo || idx + 1).toString().padEnd(2);
       const fullName = item.product?.name || item.name || 'Item';
       const name = fullName.substring(0, 14).padEnd(14);
       const qty = formatQty(item.quantity).padStart(5);
       const itemPrice = Number(item.price ?? item.sellingPrice ?? item.product?.sellingPrice ?? 0);
-      const itemQty = Number(item.quantity) || 0;
-      const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
-      const calcTotal = (itemPrice * itemQty) + ((itemPrice * (itemGst / 100)) * itemQty);
       const frp = itemPrice.toFixed(2).padStart(7);
       const mrp = (Number(item.mrp || item.product?.mrp || itemPrice || 0)).toFixed(2).padStart(7);
-      const total = (Number(item.total) || calcTotal || 0).toFixed(2).padStart(8);
+      const total = (Number(item.total) || (itemPrice * Number(item.quantity || 0)) || 0).toFixed(2).padStart(8);
       builder.line(`${slNo} ${name} ${qty} ${frp} ${mrp} ${total}`);
       if (fullName.length > 14) {
         const remainingName = fullName.substring(14, 44);
@@ -129,29 +129,27 @@ export class EscPosBuilder {
 
     builder.line('------------------------------------------------');
 
-    const netTotalVal = Number(order.roundedTotal ?? order.grandTotal ?? 0);
-
     // Totals
     builder.alignRight()
-           .line(`Total Items : ${order.itemsCount || (order.orderItems?.length || 1)}`)
-           .line(`Total Qty : ${formatQty(order.totalQty)}`)
-           .line(`Total : ${(Number(order.subtotal) || 0).toFixed(2)}`)
-           .line(`Discount : ${(Number(order.discount) || 0).toFixed(2)}`)
+           .line(`Total Items : ${norm.itemsCount || 1}`)
+           .line(`Total Qty : ${formatQty(norm.totalQty)}`)
+           .line(`Total : ${norm.subtotal.toFixed(2)}`)
+           .line(`Discount : ${norm.discount.toFixed(2)}`)
            .bold(true)
            .line('----------------')
            .doubleSize(true)
-           .line(`NET TOTAL: ${netTotalVal.toFixed(2)}`)
+           .line(`NET TOTAL: ${norm.roundedTotal.toFixed(2)}`)
            .doubleSize(false)
            .line('----------------')
            .bold(false)
-           .line(`Tender : ${(Number(order.amountPaid) || 0).toFixed(2)}`)
-           .line(`Balance : ${(Number(order.balance) || 0).toFixed(2)}`);
+           .line(`Tender : ${norm.amountPaid.toFixed(2)}`)
+           .line(`Balance : ${norm.balance.toFixed(2)}`);
 
-    if (Number(order.savings) > 0) {
+    if (Number(norm.savings) > 0) {
       builder.feed(1)
              .alignCenter()
              .bold(true)
-             .line(`YOU SAVED RS.${Number(order.savings).toFixed(2)}`)
+             .line(`YOU SAVED RS.${Number(norm.savings).toFixed(2)}`)
              .bold(false);
     }
 

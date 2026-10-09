@@ -157,25 +157,61 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         if (!p) throw new Error(`Product ID ${pid} not found in database.`);
       }
 
-      // 4. Create Order + Items + Payment in ONE nested call
-      const earnRate = 100;
-      const loyaltyPointsEarned = Math.floor(grandTotal / earnRate);
+      // 4. Calculate authoritative totals and prepared items
+      let computedSubtotal = 0;
+      let computedTaxTotal = 0;
+      let computedSavings = 0;
 
-      const roundedVal = Number(roundedTotal || Math.floor(grandTotal));
-      const actualPaid = Math.min(Number(amountPaid) || 0, roundedVal);
-      const actualBalance = Math.max(0, roundedVal - actualPaid);
+      const preparedItems = orderItems.map((item) => {
+        const pid = item.productId || item.id;
+        const p = productMap.get(pid);
+        const price = Number(item.price ?? item.sellingPrice ?? p?.sellingPrice ?? 0);
+        const mrp = Number(item.mrp ?? p?.mrp ?? price);
+        const gst = parseFloat(item.gstRate ?? p?.gstRate ?? 0);
+        const qty = Number(item.quantity) || 0;
+        const taxAmount = (price * (gst / 100)) * qty;
+        const total = (price * qty) + taxAmount;
+
+        computedSubtotal += price * qty;
+        computedTaxTotal += taxAmount;
+        computedSavings += Math.max(0, mrp - price) * qty;
+
+        return {
+          productId: pid,
+          quantity: qty,
+          price: price,
+          mrp: mrp,
+          discount: Number(item.discount) || 0,
+          taxAmount: taxAmount,
+          total: total
+        };
+      });
+
+      const effectiveDiscount = Number(discount || 0);
+      const effectiveSubtotal = (Number(subtotal) > 0) ? Number(subtotal) : computedSubtotal;
+      const effectiveTaxTotal = (taxTotal !== undefined && !isNaN(Number(taxTotal))) ? Number(taxTotal) : computedTaxTotal;
+      const effectiveGrandTotal = Math.max(0, effectiveSubtotal + effectiveTaxTotal - effectiveDiscount);
+      const roundedVal = Math.floor(effectiveGrandTotal);
+      const totalSavings = Math.max(Number(savings || 0), computedSavings + effectiveDiscount);
+
+      const isCredit = paymentMode === 'CREDIT';
+      const actualPaid = isCredit ? Math.min(Number(amountPaid) || 0, roundedVal) : (Number(amountPaid) || roundedVal);
+      const actualBalance = isCredit ? Math.max(0, roundedVal - actualPaid) : 0;
+
+      const earnRate = 100;
+      const loyaltyPointsEarned = Math.floor(effectiveGrandTotal / earnRate);
 
       const orderBaseData = {
         id: id || undefined, // Respect the Client's Optimistic ID
         serverId: id || undefined,
         invoiceNo,
         customerId,
-        subtotal,
-        discount,
-        taxTotal,
-        grandTotal,
+        subtotal: effectiveSubtotal,
+        discount: effectiveDiscount,
+        taxTotal: effectiveTaxTotal,
+        grandTotal: effectiveGrandTotal,
         roundedTotal: roundedVal,
-        savings: savings || 0,
+        savings: totalSavings,
         amountPaid: actualPaid,
         balance: actualBalance,
         paymentMode,
@@ -185,23 +221,7 @@ router.post('/', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) => {
         status: 'COMPLETED',
         creatorId: req.user?.id || null,
         orderItems: {
-          create: orderItems.map((item) => {
-            const pid = item.productId || item.id;
-            const p = productMap.get(pid);
-            const price = item.price || item.sellingPrice || p.sellingPrice;
-            const mrp = item.mrp || p.mrp || price;
-            const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
-            
-            return {
-              productId: pid,
-              quantity: item.quantity,
-              price: price,
-              mrp: mrp,
-              discount: item.discount || 0,
-              taxAmount: (price * (gst / 100)) * item.quantity,
-              total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)
-            };
-          })
+          create: preparedItems
         },
         payments: {
           create: {
@@ -393,43 +413,70 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         });
       }
 
-      const roundedVal = Number(req.body.roundedTotal || Math.floor(grandTotal));
-      const actualPaid = Math.min(Number(amountPaid) || 0, roundedVal);
-      const actualBalance = Math.max(0, roundedVal - actualPaid);
+      // Calculate ground truth totals for updated items
+      let computedSubtotal = 0;
+      let computedTaxTotal = 0;
+      let computedSavings = 0;
+
+      const preparedNewItems = newItems.filter(i => (i.productId || i.id)).map((item) => {
+        const pid = item.productId || item.id;
+        const p = productMap.get(pid);
+        const price = Number(item.price ?? item.sellingPrice ?? p?.sellingPrice ?? 0);
+        const mrp = Number(item.mrp ?? p?.mrp ?? price);
+        const gst = parseFloat(item.gstRate ?? p?.gstRate ?? 0);
+        const qty = Number(item.quantity) || 0;
+        const taxAmount = (price * (gst / 100)) * qty;
+        const total = (price * qty) + taxAmount;
+
+        computedSubtotal += price * qty;
+        computedTaxTotal += taxAmount;
+        computedSavings += Math.max(0, mrp - price) * qty;
+
+        return {
+          productId: pid,
+          quantity: qty,
+          price: price,
+          mrp: mrp,
+          discount: Number(item.discount) || 0,
+          taxAmount: taxAmount,
+          total: total
+        };
+      });
+
+      const effectiveDiscount = Number(discount ?? oldOrder.discount ?? 0);
+      const effectiveSubtotal = (Number(subtotal) > 0) ? Number(subtotal) : computedSubtotal;
+      const effectiveTaxTotal = (taxTotal !== undefined && !isNaN(Number(taxTotal))) ? Number(taxTotal) : computedTaxTotal;
+      const computedGrandTotal = Math.max(0, effectiveSubtotal + effectiveTaxTotal - effectiveDiscount);
+      const roundedVal = Math.floor(computedGrandTotal);
+      const totalSavings = Math.max(Number(req.body.savings || 0), computedSavings + effectiveDiscount);
+
+      const isCredit = (paymentMode || oldOrder.paymentMode) === 'CREDIT';
+      const actualPaid = isCredit ? Math.min(Number(amountPaid ?? oldOrder.amountPaid ?? 0), roundedVal) : roundedVal;
+      const actualBalance = isCredit ? Math.max(0, roundedVal - actualPaid) : 0;
+
+      const newLoyaltyPointsEarned = Math.floor(computedGrandTotal / earnRate);
 
       // 6. Final Record Update
       const finalOrder = await tx.order.update({
         where: { id },
         data: {
-          customerId,
-          subtotal,
-          discount,
-          taxTotal,
-          grandTotal,
+          customerId: customerId !== undefined ? customerId : oldOrder.customerId,
+          subtotal: effectiveSubtotal,
+          discount: effectiveDiscount,
+          taxTotal: effectiveTaxTotal,
+          grandTotal: computedGrandTotal,
           roundedTotal: roundedVal,
+          savings: totalSavings,
           amountPaid: actualPaid,
           balance: actualBalance,
-          paymentMode,
+          paymentMode: paymentMode || oldOrder.paymentMode,
           loyaltyPointsEarned: newLoyaltyPointsEarned,
           orderItems: {
-            create: newItems.map((item) => {
-              const pid = item.productId || item.id;
-              const p = productMap.get(pid);
-              const price = item.price || item.sellingPrice || p.sellingPrice;
-              const gst = parseFloat(item.gstRate ?? p.gstRate ?? 18);
-              return {
-                productId: pid,
-                quantity: item.quantity,
-                price: price,
-                discount: item.discount || 0,
-                taxAmount: (price * (gst / 100)) * item.quantity,
-                total: (price * item.quantity) + ((price * (gst / 100)) * item.quantity)
-              };
-            })
+            create: preparedNewItems
           },
           payments: {
             create: {
-              method: paymentMode,
+              method: paymentMode || oldOrder.paymentMode,
               amount: actualPaid,
               status: 'SUCCESS'
             }

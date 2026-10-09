@@ -173,6 +173,50 @@ function manageRetention() {
   }
 }
 
+async function performPrismaBackup(filePath) {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+
+  try {
+    log('Fetching database tables via Prisma for cloud backup fallback...');
+    const [categories, products, customers, orders, orderItems, payments, expenses, purchases, salesReturns, suppliers] = await Promise.all([
+      prisma.category.findMany().catch(() => []),
+      prisma.product.findMany().catch(() => []),
+      prisma.customer.findMany().catch(() => []),
+      prisma.order.findMany().catch(() => []),
+      prisma.orderItem.findMany().catch(() => []),
+      prisma.payment.findMany().catch(() => []),
+      prisma.expense.findMany().catch(() => []),
+      prisma.purchase.findMany().catch(() => []),
+      prisma.salesReturn.findMany().catch(() => []),
+      prisma.supplier.findMany().catch(() => [])
+    ]);
+
+    const backupObj = {
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      categories,
+      products,
+      customers,
+      orders,
+      orderItems,
+      payments,
+      expenses,
+      purchases,
+      salesReturns,
+      suppliers
+    };
+
+    fs.writeFileSync(filePath, JSON.stringify(backupObj, null, 2), 'utf8');
+    log(`Successfully generated Prisma JSON backup at ${filePath}`);
+  } catch (err) {
+    log(`Prisma fallback backup failed: ${err.message}`);
+    throw err;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 async function performBackup() {
   const dateStr = new Date().toISOString().split('T')[0];
   const fileName = `backup-${dateStr}.sql`;
@@ -181,22 +225,32 @@ async function performBackup() {
   log(`Starting database backup for ${dateStr}...`);
 
   try {
-    const dbUrl = getDatabaseUrl();
-    const pgDumpCmd = getPgDumpPath();
-    
-    // -F p format is plain text SQL, -O ignores ownership
-    const command = `${pgDumpCmd} --dbname="${dbUrl}" -F p -O -f "${filePath}"`;
-    
-    await runCommand(command);
-    log(`Successfully created local backup at ${filePath}`);
-    
-    // Apply Retention Policy (Local files)
-    manageRetention();
+    let backupDone = false;
+    try {
+      const dbUrl = getDatabaseUrl();
+      const pgDumpCmd = getPgDumpPath();
+      const command = `${pgDumpCmd} --dbname="${dbUrl}" -F p -O -f "${filePath}"`;
+      
+      await runCommand(command);
+      log(`Successfully created pg_dump backup at ${filePath}`);
+      backupDone = true;
+    } catch (pgErr) {
+      log(`pg_dump non-executable or failed (${pgErr.message}), switching to Prisma JS dump...`);
+      const jsonFileName = `backup-${dateStr}.json`;
+      const jsonFilePath = path.join(BACKUP_DIR, jsonFileName);
+      await performPrismaBackup(jsonFilePath);
+      
+      manageRetention();
+      await uploadToGoogleDrive(jsonFilePath, jsonFileName);
+      log(`Backup process completed successfully via Prisma JS fallback.`);
+      return;
+    }
 
-    // Cloud Upload
-    await uploadToGoogleDrive(filePath, fileName);
-
-    log(`Backup process completed successfully.`);
+    if (backupDone) {
+      manageRetention();
+      await uploadToGoogleDrive(filePath, fileName);
+      log(`Backup process completed successfully.`);
+    }
   } catch (error) {
     log(`Backup process failed: ${error.message}`);
     if (error.stderr) {

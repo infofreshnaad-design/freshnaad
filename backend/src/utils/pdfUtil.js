@@ -112,20 +112,36 @@ const pdfUtil = {
       summaryY += 15;
     };
 
-    drawRow('Total Items :', (order.itemsCount || items.length).toString(), false);
-    drawRow('Total Qty :', formatQty(order.totalQty || items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)), false);
-    drawRow('Total :', (Number(order.subtotal) || 0).toFixed(2), false);
-    drawRow('Discount :', (Number(order.discount) || 0).toFixed(2), false);
+    const itemsSubtotal = items.reduce((acc, i) => acc + (Number(i.price ?? i.sellingPrice ?? 0) * Number(i.quantity || 0)), 0);
+    const subtotal = (Number(order.subtotal) > 0) ? Number(order.subtotal) : itemsSubtotal;
+    const discount = Number(order.discount || 0);
+    const expectedNet = Math.floor(Math.max(0, subtotal + Number(order.taxTotal || 0) - discount));
+    const netTotal = (!isNaN(Number(order.roundedTotal)) && Math.abs(Number(order.roundedTotal) - expectedNet) <= 1)
+      ? Number(order.roundedTotal)
+      : expectedNet;
+    const tender = (order.paymentMode === 'CREDIT') ? Math.min(Number(order.amountPaid || 0), netTotal) : (Number(order.amountPaid) || netTotal);
+    const balance = (order.paymentMode === 'CREDIT') ? Math.max(0, netTotal - tender) : 0;
+
+    const itemsSavings = items.reduce((acc, i) => {
+      const mrp = Number(i.mrp || i.product?.mrp || i.price || 0);
+      const price = Number(i.price ?? i.sellingPrice ?? 0);
+      return acc + Math.max(0, mrp - price) * Number(i.quantity || 0);
+    }, 0);
+    const savings = Math.max(Number(order.savings || 0), itemsSavings + discount);
+
+    drawRow('Total Items :', (order.itemsCount || items.length || 1).toString(), false);
+    drawRow('Total Qty :', formatQty(items.length > 0 ? items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0) : (Number(order.totalQty) || 0)), false);
+    drawRow('Total :', subtotal.toFixed(2), false);
+    drawRow('Discount :', discount.toFixed(2), false);
     
     doc.moveTo(summaryX, summaryY).lineTo(555, summaryY).stroke('#EEEEEE');
     summaryY += 8;
     
-    drawRow('Net Total :', `Rs. ${(Number(order.roundedTotal) || 0).toFixed(2)}`, true);
-    drawRow('Tender :', `Rs. ${(Number(order.amountPaid) || 0).toFixed(2)}`, false);
-    drawRow('Balance :', `Rs. ${(Number(order.balance) || 0).toFixed(2)}`, true);
+    drawRow('Net Total :', `Rs. ${netTotal.toFixed(2)}`, true);
+    drawRow('Tender :', `Rs. ${tender.toFixed(2)}`, false);
+    drawRow('Balance :', `Rs. ${balance.toFixed(2)}`, true);
 
     // --- Savings Badge ---
-    const savings = Number(order.savings) || 0;
     if (savings > 0) {
       doc.moveDown(0.5);
       doc.fillColor('#28a745')

@@ -424,21 +424,31 @@ const POSInterface: React.FC = () => {
           return v.toString(16);
       }), 
       invoiceNo: nextInvoiceNo,
-      orderItems: cart.map((item: any, index: number) => ({
-        ...item,
-        slNo: index + 1,
-        price: item.sellingPrice ?? item.price ?? 0,
-        sellingPrice: item.sellingPrice ?? item.price ?? 0,
-        mrp: item.mrp || item.sellingPrice || 0,
-        gstRate: item.gstRate ?? 0,
-        total: (item.sellingPrice * item.quantity) + ((item.sellingPrice * ((item.gstRate ?? 0) / 100)) * item.quantity)
-      })),
+      orderItems: cart.map((item: any, index: number) => {
+        const itemPrice = Number(item.sellingPrice ?? item.price ?? item.product?.sellingPrice ?? 0);
+        const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice);
+        const itemGst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
+        const itemQty = Number(item.quantity) || 0;
+        const itemTax = (itemPrice * (itemGst / 100)) * itemQty;
+        const itemTotal = (itemPrice * itemQty) + itemTax;
+
+        return {
+          ...item,
+          slNo: index + 1,
+          price: itemPrice,
+          sellingPrice: itemPrice,
+          mrp: itemMrp,
+          gstRate: itemGst,
+          taxAmount: itemTax,
+          total: itemTotal
+        };
+      }),
       subtotal,
       taxTotal,
       grandTotal,
       roundedTotal,
       savings,
-      totalQty: cart.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0),
+      totalQty: cart.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0),
       itemsCount: cart.length,
       amountPaid: Math.min(parseFloat(amount) || 0, roundedTotal),
       balance: Math.max(0, roundedTotal - (parseFloat(amount) || 0)),

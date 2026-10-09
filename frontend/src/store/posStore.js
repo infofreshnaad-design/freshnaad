@@ -64,18 +64,29 @@ const usePOSStore = create(
   
   getTotals: () => {
     const { cart, loyaltyDiscount, manualDiscount } = get();
-    if (!cart) return { subtotal: 0, taxTotal: 0, grandTotal: 0, loyaltyDiscount: 0, manualDiscount: 0 };
+    if (!cart) return { subtotal: 0, taxTotal: 0, grandTotal: 0, loyaltyDiscount: 0, manualDiscount: 0, savings: 0 };
     
     const subtotal = cart.reduce(
-      (acc, item) => acc + (item.sellingPrice || 0) * (item.quantity || 0),
+      (acc, item) => {
+        const itemPrice = Number(item.sellingPrice ?? item.price ?? item.product?.sellingPrice ?? 0);
+        return acc + itemPrice * (Number(item.quantity) || 0);
+      },
       0
     );
     const taxTotal = cart.reduce(
-      (acc, item) => acc + ((item.sellingPrice || 0) * ((item.gstRate || 0) / 100)) * (item.quantity || 0),
+      (acc, item) => {
+        const itemPrice = Number(item.sellingPrice ?? item.price ?? item.product?.sellingPrice ?? 0);
+        const gst = Number(item.gstRate ?? item.product?.gstRate ?? 0);
+        return acc + (itemPrice * (gst / 100)) * (Number(item.quantity) || 0);
+      },
       0
     );
     const savings = cart.reduce(
-      (acc, item) => acc + ((item.mrp || item.sellingPrice || 0) - (item.sellingPrice || 0)) * (item.quantity || 0),
+      (acc, item) => {
+        const itemPrice = Number(item.sellingPrice ?? item.price ?? item.product?.sellingPrice ?? 0);
+        const itemMrp = Number(item.mrp ?? item.product?.mrp ?? itemPrice);
+        return acc + Math.max(0, itemMrp - itemPrice) * (Number(item.quantity) || 0);
+      },
       0
     );
     const grandTotal = Math.max(0, subtotal + taxTotal - (loyaltyDiscount || 0) - (manualDiscount || 0));

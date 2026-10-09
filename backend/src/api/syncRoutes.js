@@ -53,13 +53,16 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
             invoiceNo: invoiceNo,
             serverId: orderData.id,
             customerId: orderData.customerId,
-            subtotal: orderData.subtotal,
-            taxTotal: orderData.taxTotal,
-            grandTotal: orderData.grandTotal,
+            subtotal: Number(orderData.subtotal || 0),
+            discount: Number(orderData.discount || 0),
+            taxTotal: Number(orderData.taxTotal || 0),
+            grandTotal: Number(orderData.grandTotal || 0),
             roundedTotal: roundedVal,
+            savings: Number(orderData.savings || 0),
             amountPaid: actualPaid,
             balance: actualBalance,
             paymentMode: orderData.paymentMode,
+            orderType: orderData.orderType || 'Walk-in',
             loyaltyPointsEarned,
             loyaltyPointsRedeemed,
             status: 'COMPLETED',
@@ -69,10 +72,12 @@ router.post('/orders', auth(['ADMIN', 'MANAGER', 'CASHIER']), async (req, res) =
             orderItems: {
               create: orderData.orderItems.map(item => ({
                 productId: item.productId || item.id,
-                quantity: item.quantity,
-                price: item.price || item.sellingPrice,
-                taxAmount: ((item.price || item.sellingPrice) * ((item.gstRate || 0) / 100)) * item.quantity,
-                total: ((item.price || item.sellingPrice) * item.quantity) + (((item.price || item.sellingPrice) * ((item.gstRate || 0) / 100)) * item.quantity)
+                quantity: Number(item.quantity || 0),
+                price: Number(item.price || item.sellingPrice || 0),
+                mrp: Number(item.mrp || item.sellingPrice || item.price || 0),
+                discount: Number(item.discount || 0),
+                taxAmount: ((Number(item.price || item.sellingPrice || 0)) * ((Number(item.gstRate || 0)) / 100)) * Number(item.quantity || 0),
+                total: ((Number(item.price || item.sellingPrice || 0)) * Number(item.quantity || 0)) + (((Number(item.price || item.sellingPrice || 0)) * ((Number(item.gstRate || 0)) / 100)) * Number(item.quantity || 0))
               }))
             },
             payments: {

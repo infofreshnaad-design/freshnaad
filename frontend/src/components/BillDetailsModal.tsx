@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ShoppingBag, CreditCard, ChevronRight, Loader2, Edit3, Trash2, Save, Plus } from 'lucide-react';
+import { X, Calendar, ShoppingBag, CreditCard, ChevronRight, Loader2, Edit3, Trash2, Save, Plus, Printer } from 'lucide-react';
 import api from '../api/api';
+import ReceiptPreview from './ReceiptPreview';
 
 interface BillDetailsModalProps {
   billId: string;
@@ -16,6 +17,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   const [items, setItems] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const fetchBill = async () => {
     setLoading(true);
@@ -109,17 +111,40 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
 
     setSaving(true);
     try {
-      const mappedItems = items.map(i => ({
-        ...i,
-        productId: i.productId || null,
-        productName: i.productName || i.product?.name || i.name || "",
-        price: Number(i.price || i.sellingPrice || 0),
-        quantity: Number(i.quantity || 0)
-      }));
+      const mappedItems = items.map(i => {
+        const prod = products.find(p => p.id === (i.productId || i.id)) || i.product;
+        const price = Number(i.price || i.sellingPrice || prod?.sellingPrice || 0);
+        const mrp = Number(i.mrp || prod?.mrp || price);
+        const qty = Number(i.quantity || 0);
+        const gstRate = Number(i.gstRate || prod?.gstRate || 0);
+        const taxAmount = (price * (gstRate / 100)) * qty;
+        const total = (price * qty) + taxAmount;
+        return {
+          ...i,
+          productId: i.productId || prod?.id || null,
+          productName: i.productName || prod?.name || i.name || "",
+          price,
+          sellingPrice: price,
+          mrp,
+          gstRate,
+          taxAmount,
+          total,
+          quantity: qty
+        };
+      });
 
-      const subtotal = mappedItems.reduce((sum, i) => sum + ( i.price * i.quantity), 0);
-      const taxTotal = mappedItems.reduce((sum, i) => sum + ( i.price * ( (i.product?.gstRate || 0) / 100) * i.quantity), 0);
-      const grandTotal = subtotal + taxTotal;
+      const subtotal = mappedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+      const taxTotal = mappedItems.reduce((sum, i) => sum + (i.taxAmount || 0), 0);
+      const discount = Number(bill.discount || 0);
+      const grandTotal = Math.max(0, subtotal + taxTotal - discount);
+      const roundedTotal = Math.floor(grandTotal);
+      const savings = mappedItems.reduce((sum, i) => sum + (Math.max(0, i.mrp - i.price) * i.quantity), 0) + discount;
+      const totalQty = mappedItems.reduce((sum, i) => sum + i.quantity, 0);
+
+      const isCredit = bill.paymentMode === 'CREDIT';
+      const prevPaid = Number(bill.amountPaid || 0);
+      const amountPaid = isCredit ? Math.min(prevPaid, roundedTotal) : roundedTotal;
+      const balance = isCredit ? Math.max(0, roundedTotal - amountPaid) : 0;
 
       const payload = {
         ...bill,
@@ -127,16 +152,33 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
         purchaseItems: type === 'PURCHASE' ? mappedItems : undefined,
         subtotal,
         taxTotal,
-        grandTotal
+        discount,
+        grandTotal,
+        roundedTotal,
+        savings,
+        totalQty,
+        itemsCount: mappedItems.length,
+        amountPaid,
+        balance
       };
 
       const endpoint = type === 'SALE' ? `/orders/${billId}` : `/purchases/${billId}`;
-      await api.put(endpoint, payload);
+      const res = await api.put(endpoint, payload);
+
+      if (type === 'SALE') {
+        try {
+          const { offlineDB } = await import('../utils/offlineDB');
+          await offlineDB.put('orders', res.data || payload);
+        } catch (dbErr) {
+          console.warn('Failed to update local offline DB for edited order:', dbErr);
+        }
+      }
+
       setIsEditing(false);
       fetchBill();
       if (onUpdate) onUpdate();
     } catch (err) {
-      alert('Error updating bill: ' + (err as any).response?.data?.error || 'Unknown error');
+      alert('Error updating bill: ' + ((err as any).response?.data?.error || (err as any).message || 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -161,6 +203,15 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                 </p>
             </div>
             <div className="flex gap-2">
+                {!isEditing && type === 'SALE' && (
+                    <button 
+                        onClick={() => setShowPrintPreview(true)} 
+                        className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all"
+                        title="Print Receipt"
+                    >
+                        <Printer size={18} />
+                    </button>
+                )}
                 {!isEditing && (
                     <button onClick={() => setIsEditing(true)} className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all">
                         <Edit3 size={18} />
@@ -292,6 +343,12 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
             )}
         </div>
       </div>
+      {showPrintPreview && bill && (
+        <ReceiptPreview 
+          order={bill} 
+          onClose={() => setShowPrintPreview(false)} 
+        />
+      )}
     </div>
   );
 };
