@@ -389,8 +389,6 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       await tx.orderItem.deleteMany({ where: { orderId: id } });
       await tx.payment.deleteMany({ where: { orderId: id } });
 
-      const earnRate = 100;
-      const newLoyaltyPointsEarned = Math.floor(grandTotal / earnRate);
 
       // Re-apply new items
       for (const item of newItems) {
@@ -454,6 +452,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       const actualPaid = isCredit ? Math.min(Number(amountPaid ?? oldOrder.amountPaid ?? 0), roundedVal) : roundedVal;
       const actualBalance = isCredit ? Math.max(0, roundedVal - actualPaid) : 0;
 
+      const earnRate = 100;
       const newLoyaltyPointsEarned = Math.floor(computedGrandTotal / earnRate);
 
       // 6. Final Record Update
