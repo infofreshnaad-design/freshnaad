@@ -246,7 +246,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                 </div>
                 {!isEditing && (
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-1">
-                    <Calendar size={13} className="text-brand-primary" /> {new Date(bill.createdAt || bill.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    <Calendar size={13} className="text-brand-primary" /> {new Date(bill.createdAt || bill.date).toLocaleString()}
                   </p>
                 )}
               </div>
