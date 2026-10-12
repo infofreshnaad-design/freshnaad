@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ShoppingBag, CreditCard, ChevronRight, Loader2, Edit3, Trash2, Save, Plus, Printer } from 'lucide-react';
+import { X, Calendar, ShoppingBag, CreditCard, ChevronRight, Loader2, Edit3, Trash2, Save, Plus, Printer, Clock, RotateCcw } from 'lucide-react';
 import api from '../api/api';
 import ReceiptPreview from './ReceiptPreview';
 
@@ -8,24 +8,49 @@ interface BillDetailsModalProps {
   type: 'SALE' | 'PURCHASE';
   onClose: () => void;
   onUpdate?: () => void;
+  startInEditMode?: boolean;
 }
 
-const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClose, onUpdate }) => {
+const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClose, onUpdate, startInEditMode }) => {
   const [bill, setBill] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startInEditMode || false);
   const [items, setItems] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+  // Editable Date, Time, and Payment Mode state
+  const [billDate, setBillDate] = useState<string>('');
+  const [billTime, setBillTime] = useState<string>('');
+  const [paymentMode, setPaymentMode] = useState<string>('CASH');
+
+  const populateBillDetails = (data: any) => {
+    setBill(data);
+    setItems(type === 'SALE' ? (data.orderItems || []) : (data.purchaseItems || []));
+    setPaymentMode(data.paymentMode || 'CASH');
+
+    const rawDate = data.createdAt || data.date;
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        const hr = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        setBillDate(`${yr}-${mo}-${da}`);
+        setBillTime(`${hr}:${mi}`);
+      }
+    }
+  };
 
   const fetchBill = async () => {
     setLoading(true);
     try {
       const endpoint = type === 'SALE' ? `/orders/${billId}` : `/purchases/${billId}`;
       const res = await api.get(endpoint);
-      setBill(res.data);
-      setItems(type === 'SALE' ? res.data.orderItems : res.data.purchaseItems);
+      populateBillDetails(res.data);
     } catch (err) {
       console.error('Error fetching bill from server:', err);
       if (type === 'SALE') {
@@ -37,8 +62,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
             localOrder = allLocal.find((o: any) => o.id === billId || o.invoiceNo === billId || o.serverId === billId);
           }
           if (localOrder) {
-            setBill(localOrder);
-            setItems(localOrder.orderItems || []);
+            populateBillDetails(localOrder);
           }
         } catch (localErr) {
           console.error('Error fetching offline bill:', localErr);
@@ -141,10 +165,21 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
       const savings = mappedItems.reduce((sum, i) => sum + (Math.max(0, i.mrp - i.price) * i.quantity), 0) + discount;
       const totalQty = mappedItems.reduce((sum, i) => sum + i.quantity, 0);
 
-      const isCredit = bill.paymentMode === 'CREDIT';
+      const isCredit = paymentMode === 'CREDIT';
       const prevPaid = Number(bill.amountPaid || 0);
       const amountPaid = isCredit ? Math.min(prevPaid, roundedTotal) : roundedTotal;
       const balance = isCredit ? Math.max(0, roundedTotal - amountPaid) : 0;
+
+      // Construct target date
+      let finalDateIso = bill.createdAt || bill.date;
+      if (billDate) {
+        const [y, m, d] = billDate.split('-').map(Number);
+        const [h, min] = (billTime || '12:00').split(':').map(Number);
+        const localD = new Date(y, m - 1, d, h || 0, min || 0, 0);
+        if (!isNaN(localD.getTime())) {
+          finalDateIso = localD.toISOString();
+        }
+      }
 
       const payload = {
         ...bill,
@@ -158,8 +193,11 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
         savings,
         totalQty,
         itemsCount: mappedItems.length,
+        paymentMode,
         amountPaid,
-        balance
+        balance,
+        date: finalDateIso,
+        createdAt: finalDateIso
       };
 
       const endpoint = type === 'SALE' ? `/orders/${billId}` : `/purchases/${billId}`;
@@ -195,32 +233,106 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-            <div>
-                <h2 className="text-xl font-black text-slate-900">{bill.invoiceNo}</h2>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mt-1">
-                    <Calendar size={12}/> {new Date(bill.createdAt || bill.date).toLocaleString()}
-                </p>
-            </div>
-            <div className="flex gap-2">
-                {!isEditing && type === 'SALE' && (
-                    <button 
-                        onClick={() => setShowPrintPreview(true)} 
-                        className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all"
-                        title="Print Receipt"
-                    >
-                        <Printer size={18} />
-                    </button>
-                )}
+        <div className="p-8 border-b border-slate-100 flex flex-col gap-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-black text-slate-900">{bill.invoiceNo}</h2>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    isEditing ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {isEditing ? 'Editing Mode' : bill.paymentMode || 'CASH'}
+                  </span>
+                </div>
                 {!isEditing && (
-                    <button onClick={() => setIsEditing(true)} className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all">
-                        <Edit3 size={18} />
-                    </button>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-1">
+                    <Calendar size={13} className="text-brand-primary" /> {new Date(bill.createdAt || bill.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {!isEditing && type === 'SALE' && (
+                  <button 
+                    onClick={() => setShowPrintPreview(true)} 
+                    className="p-3 bg-brand-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all"
+                    title="Print Receipt"
+                  >
+                    <Printer size={18} />
+                  </button>
+                )}
+                {!isEditing ? (
+                  <button 
+                    onClick={() => setIsEditing(true)} 
+                    className="px-4 py-3 bg-brand-50 text-brand-primary font-bold text-xs rounded-2xl hover:bg-brand-primary hover:text-white transition-all flex items-center gap-2 shadow-sm"
+                    title="Edit Bill & Date"
+                  >
+                    <Edit3 size={16} /> Edit Bill & Date
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => { setIsEditing(false); fetchBill(); }} 
+                    className="px-4 py-3 bg-slate-100 text-slate-600 font-bold text-xs rounded-2xl hover:bg-slate-200 transition-all flex items-center gap-2"
+                  >
+                    <RotateCcw size={14} /> Cancel Edit
+                  </button>
                 )}
                 <button onClick={onClose} className="p-3 bg-slate-100 text-slate-400 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all">
-                    <X size={18} />
+                  <X size={18} />
                 </button>
+              </div>
             </div>
+
+            {/* Editable Date, Time, and Payment Mode Header in Edit Mode */}
+            {isEditing && (
+              <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3 animate-in fade-in duration-150">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm">
+                      <Calendar size={14} className="text-amber-600" />
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Date:</label>
+                      <input 
+                        type="date"
+                        value={billDate}
+                        onChange={(e) => setBillDate(e.target.value)}
+                        className="bg-transparent border-none p-0 text-xs font-black text-slate-800 focus:ring-0 cursor-pointer outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm">
+                      <Clock size={14} className="text-amber-600" />
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Time:</label>
+                      <input 
+                        type="time"
+                        value={billTime}
+                        onChange={(e) => setBillTime(e.target.value)}
+                        className="bg-transparent border-none p-0 text-xs font-black text-slate-800 focus:ring-0 cursor-pointer outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {type === 'SALE' && (
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm">
+                      <CreditCard size={14} className="text-amber-600" />
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Payment:</label>
+                      <select 
+                        value={paymentMode}
+                        onChange={(e) => setPaymentMode(e.target.value)}
+                        className="bg-transparent border-none p-0 text-xs font-bold text-slate-800 focus:ring-0 cursor-pointer outline-none font-sans"
+                      >
+                        <option value="CASH">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="CARD">Card</option>
+                        <option value="CREDIT">Credit (Udhar)</option>
+                        <option value="BANK">Bank Transfer</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] font-medium text-amber-700 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  Updating the date moves this bill to that date in all financial reports, daybook, and filters.
+                </p>
+              </div>
+            )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -338,7 +450,7 @@ const BillDetailsModal: React.FC<BillDetailsModalProps> = ({ billId, type, onClo
                     className="w-full mt-4 py-4 bg-brand-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-brand-secondary transition-all shadow-xl shadow-brand-primary/20"
                 >
                     {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                    Apply Reconciliation
+                    Save Changes / Apply Reconciliation
                 </button>
             )}
         </div>

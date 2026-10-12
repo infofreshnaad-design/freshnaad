@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
-import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2, RefreshCw, Search } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, Users, Clock, Calendar, FileText, IndianRupee, PieChart, Package, Receipt, X, ArrowUpRight, Plus, Download, FileSpreadsheet, Loader2, Printer, Trash2, RefreshCw, Search, Edit3 } from 'lucide-react';
 import { exportUtils } from '../../utils/exportUtils';
 import PartyDetailsModal from '../../components/PartyDetailsModal';
 import BillDetailsModal from '../../components/BillDetailsModal';
@@ -72,11 +72,87 @@ const Reports = () => {
   const [entities, setEntities] = useState<any[]>([]); // To populate dropdowns for statement/details
   const [selectedReturn, setSelectedReturn] = useState<any>(null); // For Credit Note Detailed View
   const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
-  const [selectedBill, setSelectedBill] = useState<{id: string, type: 'SALE' | 'PURCHASE'} | null>(null);
+  const [selectedBill, setSelectedBill] = useState<{id: string, type: 'SALE' | 'PURCHASE', startInEditMode?: boolean} | null>(null);
   const [syncingOffline, setSyncingOffline] = useState(false);
   const [unsyncedCount, setUnsyncedCount] = useState(0);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Quick Date Editing Modal State
+  const [quickDateModal, setQuickDateModal] = useState<{
+    id: string;
+    invoiceNo: string;
+    currentDate: string;
+    type: 'SALE' | 'PURCHASE';
+  } | null>(null);
+  const [quickDateValue, setQuickDateValue] = useState<string>('');
+  const [quickTimeValue, setQuickTimeValue] = useState<string>('');
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+
+  const openQuickDate = (id: string, invoiceNo: string, currentDate: string, type: 'SALE' | 'PURCHASE' = 'SALE') => {
+    const d = new Date(currentDate);
+    if (!isNaN(d.getTime())) {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      const hr = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      setQuickDateValue(`${yr}-${mo}-${da}`);
+      setQuickTimeValue(`${hr}:${mi}`);
+    } else {
+      const now = new Date();
+      const yr = now.getFullYear();
+      const mo = String(now.getMonth() + 1).padStart(2, '0');
+      const da = String(now.getDate()).padStart(2, '0');
+      setQuickDateValue(`${yr}-${mo}-${da}`);
+      setQuickTimeValue('12:00');
+    }
+    setQuickDateModal({ id, invoiceNo, currentDate, type });
+  };
+
+  const handleQuickDateSave = async () => {
+    if (!quickDateModal || !quickDateValue) return;
+    setIsUpdatingDate(true);
+    try {
+      const [y, m, d] = quickDateValue.split('-').map(Number);
+      const [h, min] = (quickTimeValue || '12:00').split(':').map(Number);
+      const targetDate = new Date(y, m - 1, d, h || 0, min || 0, 0);
+
+      const endpoint = quickDateModal.type === 'SALE' 
+        ? `/orders/${quickDateModal.id}/date` 
+        : `/purchases/${quickDateModal.id}/date`;
+
+      await api.patch(endpoint, {
+        date: targetDate.toISOString(),
+        createdAt: targetDate.toISOString()
+      });
+
+      if (quickDateModal.type === 'SALE') {
+        try {
+          const { offlineDB } = await import('../../utils/offlineDB');
+          let localOrder = await offlineDB.get('orders', quickDateModal.id);
+          if (!localOrder) {
+            const allLocal = await offlineDB.getAll('orders');
+            localOrder = allLocal.find((o: any) => o.id === quickDateModal.id || o.invoiceNo === quickDateModal.invoiceNo || o.serverId === quickDateModal.id);
+          }
+          if (localOrder) {
+            localOrder.createdAt = targetDate.toISOString();
+            localOrder.date = targetDate.toISOString();
+            await offlineDB.put('orders', localOrder);
+          }
+        } catch (dbErr) {
+          console.warn('Failed to update local offline DB date:', dbErr);
+        }
+      }
+
+      setQuickDateModal(null);
+      await fetchReport();
+    } catch (err: any) {
+      alert('Failed to update bill date: ' + (err.response?.data?.error || err.message || 'Unknown error'));
+    } finally {
+      setIsUpdatingDate(false);
+    }
+  };
 
   // Reset search term when report tab changes
   useEffect(() => {
@@ -485,14 +561,29 @@ const Reports = () => {
                     {activeReport === 'sales' && <th className="p-4 text-center">Print</th>}
                     {activeReport === 'sales' ? <th className="p-4">Customer</th> : <th className="p-4">Supplier</th>}
                     <th className="p-4 text-right">Amount</th>
-                    {activeReport === 'sales' && <th className="p-4 text-center">Action</th>}
+                    <th className="p-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-700">
                   {filteredDetails.map((item: any) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4">{new Date(item.createdAt || item.date).toLocaleDateString()}</td>
-                      <td className="p-4">{new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 group">
+                          <span className="font-semibold text-slate-900">{new Date(item.createdAt || item.date).toLocaleDateString()}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const type = activeReport === 'purchase' || item.type === 'PURCHASE' ? 'PURCHASE' : 'SALE';
+                              openQuickDate(item.id, item.invoiceNo, item.createdAt || item.date, type);
+                            }}
+                            className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                            title="Change Bill Date"
+                          >
+                            <Calendar size={14} className="text-brand-500" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-4 text-slate-500">{new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
                       <td className="p-4">
                         <button 
                           onClick={() => {
@@ -544,42 +635,54 @@ const Reports = () => {
                         )}
                       </td>
                       <td className="p-4 text-right font-bold text-slate-900">₹{item.grandTotal.toFixed(2)}</td>
-                      {activeReport === 'sales' && (
-                        <td className="p-4 text-center">
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (window.confirm('Are you sure you want to permanently delete this bill? This action cannot be undone and will reverse inventory and loyalty points.')) {
-                                    try {
-                                        await api.delete(`/orders/${item.id}`);
-                                        // Also cleanup local offline DB
-                                        try { await offlineDB.delete('orders', item.id); } catch(e) {}
-                                        fetchReport(); // Refresh the list
-                                    } catch (err: any) {
-                                        const errorData = err.response?.data;
-                                        const statusCode = err.response?.status;
-                                        
-                                        // If server says 404, it means it's already gone from server. 
-                                        // We should just clean up locally and refresh.
-                                        if (statusCode === 404) {
-                                            try { await offlineDB.delete('orders', item.id); } catch(e) {}
-                                            fetchReport();
-                                            return;
-                                        }
-
-                                        const errorMessage = errorData?.error || err.message;
-                                        const errorCode = errorData?.code ? ` [Code: ${errorData.code}]` : '';
-                                        alert('Failed to delete bill: ' + errorMessage + errorCode);
-                                    }
-                                }
+                            onClick={() => {
+                              const type = activeReport === 'purchase' || item.type === 'PURCHASE' ? 'PURCHASE' : 'SALE';
+                              setSelectedBill({ id: item.id, type, startInEditMode: true });
                             }}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                            title="Delete Bill"
+                            className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                            title="Edit Bill & Date"
                           >
-                             <Trash2 size={16} />
+                            <Edit3 size={16} />
                           </button>
-                        </td>
-                      )}
+                          {activeReport === 'sales' && (
+                            <button
+                              onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Are you sure you want to permanently delete this bill? This action cannot be undone and will reverse inventory and loyalty points.')) {
+                                      try {
+                                          await api.delete(`/orders/${item.id}`);
+                                          // Also cleanup local offline DB
+                                          try { await offlineDB.delete('orders', item.id); } catch(e) {}
+                                          fetchReport(); // Refresh the list
+                                      } catch (err: any) {
+                                          const errorData = err.response?.data;
+                                          const statusCode = err.response?.status;
+                                          
+                                          // If server says 404, it means it's already gone from server. 
+                                          // We should just clean up locally and refresh.
+                                          if (statusCode === 404) {
+                                              try { await offlineDB.delete('orders', item.id); } catch(e) {}
+                                              fetchReport();
+                                              return;
+                                          }
+
+                                          const errorMessage = errorData?.error || err.message;
+                                          const errorCode = errorData?.code ? ` [Code: ${errorData.code}]` : '';
+                                          alert('Failed to delete bill: ' + errorMessage + errorCode);
+                                      }
+                                  }
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              title="Delete Bill"
+                            >
+                               <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -659,7 +762,21 @@ const Reports = () => {
                 <tbody className="divide-y divide-slate-100 text-sm font-medium text-slate-600">
                   {filteredDetails.map((item: any) => (
                     <tr key={item.id} className="hover:bg-orange-50/20 transition-colors">
-                      <td className="p-6">{new Date(item.createdAt).toLocaleDateString()}</td>
+                      <td className="p-6">
+                        <div className="flex items-center gap-2 group">
+                          <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openQuickDate(item.id, item.invoiceNo, item.createdAt, 'SALE');
+                            }}
+                            className="p-1 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                            title="Change Bill Date"
+                          >
+                            <Calendar size={13} className="text-brand-500" />
+                          </button>
+                        </div>
+                      </td>
                       <td className="p-6">
                         <button 
                           onClick={() => setSelectedBill({ id: item.id, type: 'SALE' })}
@@ -680,16 +797,25 @@ const Reports = () => {
                       <td className="p-6 text-right font-bold text-emerald-600">₹{(item.amountPaid || 0).toFixed(2)}</td>
                       <td className="p-6 text-right font-black text-orange-600">₹{(item.balance || 0).toFixed(2)}</td>
                       <td className="p-6 text-center">
-                        <button 
-                          onClick={() => {
-                            setSelectedSettleOrder(item);
-                            setIsSettleModalOpen(true);
-                          }}
-                          className="px-3 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-xs font-black hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1 mx-auto"
-                        >
-                          <Coins size={14} />
-                          Settle
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedSettleOrder(item);
+                              setIsSettleModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-xs font-black hover:bg-brand-primary hover:text-white transition-all flex items-center gap-1"
+                          >
+                            <Coins size={14} />
+                            Settle
+                          </button>
+                          <button
+                            onClick={() => setSelectedBill({ id: item.id, type: 'SALE', startInEditMode: true })}
+                            className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all"
+                            title="Edit Bill & Date"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1743,9 +1869,126 @@ const Reports = () => {
         <BillDetailsModal 
           billId={selectedBill.id}
           type={selectedBill.type}
+          startInEditMode={selectedBill.startInEditMode}
           onClose={() => setSelectedBill(null)}
           onUpdate={fetchReport}
         />
+      )}
+
+      {/* Quick Edit Bill Date Modal */}
+      {quickDateModal && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="p-8 pb-4">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span className="px-3 py-1 bg-brand-50 text-brand-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    {quickDateModal.type === 'SALE' ? 'Sales Bill' : 'Purchase Bill'}
+                  </span>
+                  <h3 className="text-xl font-black text-slate-800 mt-1">Change Bill Date</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-0.5 font-mono">Invoice #{quickDateModal.invoiceNo}</p>
+                </div>
+                <button 
+                  onClick={() => setQuickDateModal(null)} 
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-5">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">Current Date</p>
+                <p className="text-sm font-black text-slate-700 flex items-center gap-2">
+                  <Calendar size={14} className="text-brand-500" />
+                  {new Date(quickDateModal.currentDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex gap-2 mb-4">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const yr = now.getFullYear();
+                    const mo = String(now.getMonth() + 1).padStart(2, '0');
+                    const da = String(now.getDate()).padStart(2, '0');
+                    setQuickDateValue(`${yr}-${mo}-${da}`);
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                >
+                  Set to Today
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const yest = new Date(Date.now() - 86400000);
+                    const yr = yest.getFullYear();
+                    const mo = String(yest.getMonth() + 1).padStart(2, '0');
+                    const da = String(yest.getDate()).padStart(2, '0');
+                    setQuickDateValue(`${yr}-${mo}-${da}`);
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                >
+                  Set to Yesterday
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                    New Date *
+                  </label>
+                  <div className="p-3 bg-white border-2 border-slate-200 rounded-2xl focus-within:border-brand-primary transition-all flex items-center gap-2">
+                    <Calendar size={18} className="text-brand-primary" />
+                    <input 
+                      type="date"
+                      value={quickDateValue}
+                      onChange={(e) => setQuickDateValue(e.target.value)}
+                      className="w-full bg-transparent border-none p-0 text-sm font-black text-slate-800 focus:ring-0 outline-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                    Time (Optional)
+                  </label>
+                  <div className="p-3 bg-white border-2 border-slate-200 rounded-2xl focus-within:border-brand-primary transition-all flex items-center gap-2">
+                    <Clock size={18} className="text-slate-400" />
+                    <input 
+                      type="time"
+                      value={quickTimeValue}
+                      onChange={(e) => setQuickTimeValue(e.target.value)}
+                      className="w-full bg-transparent border-none p-0 text-sm font-black text-slate-800 focus:ring-0 outline-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-100 text-[11px] text-amber-800 font-medium">
+                Once saved, all reports and daybooks will immediately show this bill under the new date.
+              </div>
+            </div>
+
+            <div className="p-8 pt-4 flex gap-3 bg-white border-t border-slate-50">
+              <button 
+                onClick={() => setQuickDateModal(null)}
+                className="flex-1 p-3.5 bg-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-200 transition-all text-xs uppercase"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleQuickDateSave}
+                disabled={isUpdatingDate || !quickDateValue}
+                className="flex-[2] p-3.5 bg-brand-primary text-white font-black rounded-2xl shadow-lg shadow-brand-primary/20 hover:bg-brand-secondary transition-all text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isUpdatingDate ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                Update Date
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {/* Record Payment Modal */}
       {selectedPurchase && (

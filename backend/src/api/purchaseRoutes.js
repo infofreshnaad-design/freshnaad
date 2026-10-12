@@ -211,8 +211,13 @@ router.put('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res
       balanceDue, 
       paymentMode, 
       paymentStatus,
-      date 
+      date,
+      createdAt
     } = req.body;
+
+    const targetDateInput = date || createdAt;
+    const targetDate = targetDateInput ? new Date(targetDateInput) : undefined;
+    const validTargetDate = targetDate && !isNaN(targetDate.getTime()) ? targetDate : undefined;
 
     const updatedPurchase = await prisma.$transaction(async (tx) => {
       const oldPurchase = await tx.purchase.findUnique({
@@ -228,7 +233,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res
       // 2. Delete old items and record the update
       await tx.purchaseItem.deleteMany({ where: { purchaseId: id } });
 
-      return await tx.purchase.update({
+      const finalPurchase = await tx.purchase.update({
         where: { id },
         data: {
           supplierId,
@@ -241,7 +246,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res
           balanceDue: balanceDue || 0,
           paymentMode: paymentMode || 'CASH',
           paymentStatus: paymentStatus || 'PAID',
-          date: date ? new Date(date) : undefined,
+          date: validTargetDate || undefined,
+          createdAt: validTargetDate || undefined,
           purchaseItems: {
             create: validNewItems.map(item => ({
               productId: item.productId || item.id || null,
@@ -257,11 +263,68 @@ router.put('/:id', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res
         },
         include: { purchaseItems: { include: { product: true } } }
       });
+
+      if (validTargetDate) {
+        await tx.purchasePayment.updateMany({
+          where: { purchaseId: id },
+          data: { date: validTargetDate, createdAt: validTargetDate }
+        });
+      }
+
+      return finalPurchase;
     }, { timeout: 30000 });
 
     res.json(updatedPurchase);
   } catch (error) {
     console.error('Update Purchase Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Quick update for purchase date
+router.patch('/:id/date', auth(['ADMIN', 'MANAGER'], 'PURCHASE_ENTRY'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, createdAt } = req.body;
+    const targetInput = date || createdAt;
+
+    if (!targetInput) {
+      return res.status(400).json({ error: 'A valid date must be provided.' });
+    }
+
+    const targetDate = new Date(targetInput);
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format.' });
+    }
+
+    const updatedPurchase = await prisma.$transaction(async (tx) => {
+      const purchase = await tx.purchase.findFirst({
+        where: {
+          OR: [{ id }, { invoiceNo: id }]
+        }
+      });
+
+      if (!purchase) {
+        throw new Error('Purchase not found');
+      }
+
+      const finalPurchase = await tx.purchase.update({
+        where: { id: purchase.id },
+        data: { date: targetDate, createdAt: targetDate },
+        include: { purchaseItems: { include: { product: true } } }
+      });
+
+      await tx.purchasePayment.updateMany({
+        where: { purchaseId: purchase.id },
+        data: { date: targetDate, createdAt: targetDate }
+      });
+
+      return finalPurchase;
+    });
+
+    res.json(updatedPurchase);
+  } catch (error) {
+    console.error('[Purchase API] Quick date update error:', error);
     res.status(500).json({ error: error.message });
   }
 });

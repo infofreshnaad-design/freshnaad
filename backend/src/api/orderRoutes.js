@@ -336,7 +336,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
   const startTime = Date.now();
   try {
     const { id } = req.params;
-    const { orderItems: newItems, subtotal, discount, taxTotal, grandTotal, amountPaid, balance, paymentMode, customerId } = req.body;
+    const { orderItems: newItems, subtotal, discount, taxTotal, grandTotal, amountPaid, balance, paymentMode, customerId, createdAt, date } = req.body;
 
     const updatedOrder = await prisma.$transaction(async (tx) => {
       // 1. Fetch old order with items
@@ -345,6 +345,10 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
         include: { orderItems: true, customer: true }
       });
       if (!oldOrder) throw new Error('Order not found');
+
+      // Determine target date (allow updating date)
+      const targetDate = (createdAt || date) ? new Date(createdAt || date) : oldOrder.createdAt;
+      const validTargetDate = !isNaN(targetDate.getTime()) ? targetDate : oldOrder.createdAt;
 
       // 2. Pre-fetch ALL products involved (Old and New)
       const allProductIds = [...new Set([
@@ -380,7 +384,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
             productId: item.productId,
             type: 'IN',
             quantity: item.quantity,
-            reason: `Edit Reverse: ${oldOrder.invoiceNo}`
+            reason: `Edit Reverse: ${oldOrder.invoiceNo}`,
+            createdAt: validTargetDate
           }
         });
       }
@@ -406,7 +411,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
             productId: pid,
             type: 'OUT',
             quantity: item.quantity,
-            reason: `Edit Apply: ${oldOrder.invoiceNo}`
+            reason: `Edit Apply: ${oldOrder.invoiceNo}`,
+            createdAt: validTargetDate
           }
         });
       }
@@ -459,6 +465,7 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
       const finalOrder = await tx.order.update({
         where: { id },
         data: {
+          createdAt: validTargetDate,
           customerId: customerId !== undefined ? customerId : oldOrder.customerId,
           subtotal: effectiveSubtotal,
           discount: effectiveDiscount,
@@ -477,7 +484,8 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
             create: {
               method: paymentMode || oldOrder.paymentMode,
               amount: actualPaid,
-              status: 'SUCCESS'
+              status: 'SUCCESS',
+              createdAt: validTargetDate
             }
           }
         },
@@ -510,6 +518,67 @@ router.put('/:id', auth(['ADMIN', 'MANAGER']), async (req, res) => {
     res.json(updatedOrder);
   } catch (error) {
     console.error('[Order API] Edit FAILED:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Quick update for order date (e.g., date deferred until payment received)
+router.patch('/:id/date', auth(['ADMIN', 'MANAGER']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, createdAt } = req.body;
+    const targetInput = date || createdAt;
+
+    if (!targetInput) {
+      return res.status(400).json({ error: 'A valid date must be provided.' });
+    }
+
+    const targetDate = new Date(targetInput);
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format.' });
+    }
+
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: {
+          OR: [{ id }, { invoiceNo: id }]
+        }
+      });
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Update Order createdAt
+      const finalOrder = await tx.order.update({
+        where: { id: order.id },
+        data: { createdAt: targetDate },
+        include: { orderItems: { include: { product: true } }, payments: true, customer: true }
+      });
+
+      // Update associated payments to match order date
+      await tx.payment.updateMany({
+        where: { orderId: order.id },
+        data: { createdAt: targetDate }
+      });
+
+      // Update inventory logs associated with this invoice
+      await tx.inventoryLog.updateMany({
+        where: { reason: { contains: order.invoiceNo } },
+        data: { createdAt: targetDate }
+      });
+
+      return finalOrder;
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('ORDER_UPDATED', updatedOrder);
+    }
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('[Order API] Quick date update error:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -187,7 +187,8 @@ router.get('/credit-sales', auth(['ADMIN', 'MANAGER'], 'REPORTS'), async (req, r
           createdAt: dateRange,
           balance: { gt: 0 }
         },
-        include: { customer: true, payments: true }
+        include: { customer: true, payments: true },
+        orderBy: { createdAt: 'desc' }
       });
     } catch (err) {
       console.warn('Credit sales fallback:', err.message);
@@ -199,6 +200,7 @@ router.get('/credit-sales', auth(['ADMIN', 'MANAGER'], 'REPORTS'), async (req, r
         FROM "Order" o
         LEFT JOIN "Customer" c ON o."customerId" = c.id
         WHERE o.balance > 0 AND o."createdAt" >= ${dateRange.gte} AND o."createdAt" <= ${dateRange.lte}
+        ORDER BY o."createdAt" DESC
       `;
       credits = credits.map(c => ({
         ...c,
@@ -247,14 +249,22 @@ router.get('/purchase', async (req, res) => {
     let purchases = [];
     try {
       purchases = await prisma.purchase.findMany({
-        where: { createdAt: dateRange }
+        where: {
+          OR: [
+            { createdAt: dateRange },
+            { date: dateRange }
+          ]
+        },
+        orderBy: { createdAt: 'desc' }
       });
     } catch (err) {
       console.warn('Purchase report fallback:', err.message);
       purchases = await prisma.$queryRaw`
-        SELECT CAST(id AS TEXT) as id, "invoiceNo", "supplierName", "grandTotal", "taxTotal", "createdAt"
+        SELECT CAST(id AS TEXT) as id, "invoiceNo", "supplierName", "grandTotal", "taxTotal", "createdAt", "date"
         FROM "Purchase"
-        WHERE "createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte}
+        WHERE ("createdAt" >= ${dateRange.gte} AND "createdAt" <= ${dateRange.lte})
+           OR ("date" >= ${dateRange.gte} AND "date" <= ${dateRange.lte})
+        ORDER BY "createdAt" DESC
       `;
     }
     
