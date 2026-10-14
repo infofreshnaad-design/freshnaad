@@ -23,8 +23,11 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Run Backup Script
+      - name: Generate Prisma Client
         working-directory: ./backend
+        run: npx prisma generate --schema ../prisma/schema.prisma
+
+      - name: Validate Backup Secrets
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -33,5 +36,45 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
         run: |
-          node scripts/backup.js
-          node scripts/exportExcel.js
+          node -e '
+            const required = ["DATABASE_URL", "DRIVE_FOLDER_ID", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN"];
+            let missing = [];
+            for (const key of required) {
+              const val = process.env[key];
+              if (!val || val.trim() === "") {
+                missing.push(key);
+              } else {
+                console.log(`  ✓ Secret "${key}" is configured`);
+              }
+            }
+            if (missing.length > 0) {
+              console.error("\n❌ CRITICAL ERROR: The following required GitHub Secrets are MISSING or EMPTY:");
+              missing.forEach(m => console.error(`   - ${m}`));
+              console.error("\n👉 How to fix:\n   1. Go to https://github.com/infofreshnaad-design/freshnaad/settings/secrets/actions\n   2. Add each missing secret under \"Repository secrets\"\n");
+              process.exit(1);
+            }
+            console.log("\nAll required secrets are present. Proceeding with backup.\n");
+          '
+
+      - name: Run Database Backup Script
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+        run: node scripts/backup.js
+
+      - name: Run Excel Backup Script
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DRIVE_FOLDER_ID: ${{ secrets.DRIVE_FOLDER_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+        run: node scripts/exportExcel.js
+

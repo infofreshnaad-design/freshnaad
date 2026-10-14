@@ -89,13 +89,17 @@ async function uploadToGoogleDrive(filePath, fileName) {
       fields: 'files(id, name)',
     });
 
+    const isJson = fileName.endsWith('.json');
+    const isExcel = fileName.endsWith('.xlsx');
+    const mimeType = isJson ? 'application/json' : isExcel ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/sql';
+
     if (res.data.files.length > 0) {
       log(`File ${fileName} already exists in Google Drive. Overwriting...`);
       const fileId = res.data.files[0].id;
       await drive.files.update({
         fileId: fileId,
         media: {
-          mimeType: 'application/sql',
+          mimeType: mimeType,
           body: fs.createReadStream(filePath)
         }
       });
@@ -109,7 +113,7 @@ async function uploadToGoogleDrive(filePath, fileName) {
       parents: [folderId]
     };
     const media = {
-      mimeType: 'application/sql',
+      mimeType: mimeType,
       body: fs.createReadStream(filePath)
     };
 
@@ -128,11 +132,11 @@ async function uploadToGoogleDrive(filePath, fileName) {
 
 function manageRetention() {
   const files = fs.readdirSync(BACKUP_DIR)
-    .filter(f => f.startsWith('backup-') && f.endsWith('.sql'));
+    .filter(f => (f.startsWith('backup-') && (f.endsWith('.sql') || f.endsWith('.json'))) || (f.startsWith('excel-backup-') && f.endsWith('.xlsx')));
 
   const backupData = files.map(file => {
-    // backup-YYYY-MM-DD.sql
-    const dateStr = file.replace('backup-', '').replace('.sql', '');
+    // backup-YYYY-MM-DD.sql or backup-YYYY-MM-DD.json or excel-backup-YYYY-MM-DD.xlsx
+    const dateStr = file.replace('excel-backup-', '').replace('backup-', '').replace('.sql', '').replace('.json', '').replace('.xlsx', '');
     const date = new Date(dateStr);
     return { file, date };
   }).filter(b => !isNaN(b.date.getTime()));
@@ -143,15 +147,15 @@ function manageRetention() {
   const keepFiles = new Set();
 
   // 1. Keep last 7 daily backups
-  const dailies = backupData.slice(0, 7);
+  const dailies = backupData.slice(0, 14); // Keep last 14 files (both sql/json & xlsx)
   dailies.forEach(b => keepFiles.add(b.file));
 
   // 2. Keep last 4 weekly backups (Sundays)
-  const weeklies = backupData.filter(b => b.date.getDay() === 0).slice(0, 4);
+  const weeklies = backupData.filter(b => b.date.getDay() === 0).slice(0, 8);
   weeklies.forEach(b => keepFiles.add(b.file));
 
   // 3. Keep last 3 monthly backups (1st of the month)
-  const monthlies = backupData.filter(b => b.date.getDate() === 1).slice(0, 3);
+  const monthlies = backupData.filter(b => b.date.getDate() === 1).slice(0, 6);
   monthlies.forEach(b => keepFiles.add(b.file));
 
   // 4. Delete the rest
@@ -178,39 +182,71 @@ async function performPrismaBackup(filePath) {
   const prisma = new PrismaClient();
 
   try {
-    log('Fetching database tables via Prisma for cloud backup fallback...');
-    const [categories, products, customers, orders, orderItems, payments, expenses, purchases, salesReturns, suppliers] = await Promise.all([
+    log('Fetching all database tables via Prisma for cloud backup...');
+    const [
+      users, licenses, devices, categories, products, suppliers,
+      purchaseOrders, purchaseOrderItems, customers, orders, orderItems,
+      salesReturns, salesReturnItems, purchaseReturns, purchaseReturnItems,
+      inventoryLogs, payments, expenses, purchases, purchasePayments,
+      purchaseItems, expenseCategories, userActivities
+    ] = await Promise.all([
+      prisma.user.findMany().catch(() => []),
+      prisma.license.findMany().catch(() => []),
+      prisma.device.findMany().catch(() => []),
       prisma.category.findMany().catch(() => []),
       prisma.product.findMany().catch(() => []),
+      prisma.supplier.findMany().catch(() => []),
+      prisma.purchaseOrder.findMany().catch(() => []),
+      prisma.purchaseOrderItem.findMany().catch(() => []),
       prisma.customer.findMany().catch(() => []),
       prisma.order.findMany().catch(() => []),
       prisma.orderItem.findMany().catch(() => []),
+      prisma.salesReturn.findMany().catch(() => []),
+      prisma.salesReturnItem.findMany().catch(() => []),
+      prisma.purchaseReturn.findMany().catch(() => []),
+      prisma.purchaseReturnItem.findMany().catch(() => []),
+      prisma.inventoryLog.findMany().catch(() => []),
       prisma.payment.findMany().catch(() => []),
       prisma.expense.findMany().catch(() => []),
       prisma.purchase.findMany().catch(() => []),
-      prisma.salesReturn.findMany().catch(() => []),
-      prisma.supplier.findMany().catch(() => [])
+      prisma.purchasePayment.findMany().catch(() => []),
+      prisma.purchaseItem.findMany().catch(() => []),
+      prisma.expenseCategory.findMany().catch(() => []),
+      prisma.userActivity.findMany().catch(() => [])
     ]);
 
     const backupObj = {
       timestamp: new Date().toISOString(),
-      version: '1.0',
+      version: '2.0',
+      users,
+      licenses,
+      devices,
       categories,
       products,
+      suppliers,
+      purchaseOrders,
+      purchaseOrderItems,
       customers,
       orders,
       orderItems,
+      salesReturns,
+      salesReturnItems,
+      purchaseReturns,
+      purchaseReturnItems,
+      inventoryLogs,
       payments,
       expenses,
       purchases,
-      salesReturns,
-      suppliers
+      purchasePayments,
+      purchaseItems,
+      expenseCategories,
+      userActivities
     };
 
     fs.writeFileSync(filePath, JSON.stringify(backupObj, null, 2), 'utf8');
-    log(`Successfully generated Prisma JSON backup at ${filePath}`);
+    log(`Successfully generated Prisma JSON backup (${Object.keys(backupObj).length - 2} tables) at ${filePath}`);
   } catch (err) {
-    log(`Prisma fallback backup failed: ${err.message}`);
+    log(`Prisma backup failed: ${err.message}`);
     throw err;
   } finally {
     await prisma.$disconnect();
@@ -225,6 +261,18 @@ async function performBackup() {
   log(`Starting database backup for ${dateStr}...`);
 
   try {
+    // If in GitHub Actions, directly use Prisma JSON extraction (avoids IPv6 & pg_dump version issues in CI)
+    if (process.env.GITHUB_ACTIONS) {
+      log(`Detected GitHub Actions cloud runner: using direct Prisma database extraction...`);
+      const jsonFileName = `backup-${dateStr}.json`;
+      const jsonFilePath = path.join(BACKUP_DIR, jsonFileName);
+      await performPrismaBackup(jsonFilePath);
+      manageRetention();
+      await uploadToGoogleDrive(jsonFilePath, jsonFileName);
+      log(`GitHub Actions cloud backup completed successfully.`);
+      return;
+    }
+
     let backupDone = false;
     try {
       const dbUrl = getDatabaseUrl();
