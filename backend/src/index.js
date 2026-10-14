@@ -54,7 +54,7 @@ app.use('/api/ap', require('./api/apRoutes'));
 
 // Health Checks
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'POS Billing System API is running on Vercel' });
+  res.json({ status: 'ok', message: 'POS Billing System API is running' });
 });
 
 // Emergency DB Recovery Sync Endpoint
@@ -270,7 +270,25 @@ app.get('/api/backup/trigger', (req, res) => {
   });
 });
 
-// Socket.io & Local Cron initialization (Conditional for Local Dev)
+// Unified Static Frontend Serving (PWA & Client SPA)
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
+
+// SPA Client-Side Routing Fallback (All unhandled GET requests return index.html)
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return next();
+  }
+  const indexPath = path.join(distPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      next();
+    }
+  });
+});
+
+// Socket.io & Local Cron initialization (Conditional for Local Dev / Persistent Host)
 let io;
 if (!process.env.VERCEL) {
   const http = require('http');

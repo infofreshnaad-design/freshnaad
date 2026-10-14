@@ -1,15 +1,18 @@
 services:
   - type: web
-    name: pos-billing-system
+    name: freshnaad-pos
     runtime: node
-    buildCommand: npm install && npm run build && npx prisma db push --schema=database/schema/schema.prisma --accept-data-loss && node database/schema/seed.js
+    plan: free
+    buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: 18.0.0
+        value: 20.18.0
       - key: DATABASE_URL
-        sync: false # User will provide this in Render Dashboard
+        sync: false # Set your Supabase connection string in Render Dashboard
       - key: JWT_SECRET
-        generateValue: true
+        sync: false # Set your JWT Secret in Render Dashboard
       - key: NODE_ENV
         value: production
+
