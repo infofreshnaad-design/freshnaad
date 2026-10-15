@@ -20,55 +20,76 @@ import PinProductsModal from '../../components/PinProductsModal';
 
 interface QuantityInputProps {
   item: CartItem;
-  isFractional: boolean;
+  isFractional?: boolean;
   updateQuantity: (id: string, qty: number) => void;
 }
 
-const QuantityInput: React.FC<QuantityInputProps> = ({ item, isFractional, updateQuantity }) => {
-  const [localVal, setLocalVal] = useState<string>(item.quantity === 0 ? '' : String(item.quantity));
+const QuantityInput: React.FC<QuantityInputProps> = ({ item, isFractional = true, updateQuantity }) => {
+  const [localVal, setLocalVal] = useState<string>(
+    item.quantity === 0 ? '' : String(item.quantity)
+  );
+  const [isFocused, setIsFocused] = useState<boolean>(false);
 
+  // Sync from props ONLY when the user is NOT actively typing in this field
   useEffect(() => {
-    const parsedLocal = parseFloat(localVal);
-    if (isNaN(parsedLocal) || parsedLocal !== item.quantity) {
+    if (!isFocused) {
       setLocalVal(item.quantity === 0 ? '' : String(item.quantity));
     }
-  }, [item.quantity]);
+  }, [item.quantity, isFocused]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Convert comma to period for international/tablet keypads
+    let valStr = e.target.value.replace(',', '.');
+
+    // Allow digits with at most one decimal point
+    if (!/^\d*\.?\d*$/.test(valStr)) {
+      return;
+    }
+
+    setLocalVal(valStr);
+
+    // Intermediate typing states (e.g. empty, ".", "0.", "1.", "1.0")
+    if (valStr === '' || valStr === '.' || valStr === '0.') {
+      updateQuantity(item.id, 0);
+      return;
+    }
+
+    const parsed = parseFloat(valStr);
+    if (!isNaN(parsed)) {
+      updateQuantity(item.id, Math.max(0, parsed));
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    const parsed = parseFloat(localVal);
+    if (isNaN(parsed) || parsed <= 0) {
+      const fallback = isFractional ? 0.001 : 1;
+      setLocalVal(String(fallback));
+      updateQuantity(item.id, fallback);
+    } else {
+      updateQuantity(item.id, parsed);
+      setLocalVal(String(parsed));
+    }
+  };
 
   return (
     <input 
       type="text" 
       inputMode="decimal"
       value={localVal}
-      onChange={(e) => {
-        const valStr = e.target.value;
-        if (isFractional) {
-          if (!/^\d*\.?\d*$/.test(valStr)) return;
-        } else {
-          if (!/^\d*$/.test(valStr)) return;
-        }
-        setLocalVal(valStr);
-
-        if (valStr === '' || valStr === '.') {
-          updateQuantity(item.id, 0);
-          return;
-        }
-
-        const parsed = parseFloat(valStr);
-        if (!isNaN(parsed)) {
-          updateQuantity(item.id, Math.max(0, parsed));
+      onFocus={(e) => {
+        setIsFocused(true);
+        e.currentTarget.select();
+      }}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
         }
       }}
-      onBlur={() => {
-        const parsed = parseFloat(localVal);
-        if (isNaN(parsed) || parsed <= 0) {
-          const fallback = isFractional ? 0.001 : 1;
-          setLocalVal(String(fallback));
-          updateQuantity(item.id, fallback);
-        } else {
-          setLocalVal(String(parsed));
-        }
-      }}
-      className="w-12 md:w-16 bg-transparent border-none text-center font-bold text-base text-slate-700 focus:ring-0 p-0 outline-none"
+      className="w-14 md:w-16 bg-transparent border-none text-center font-bold text-base text-slate-700 focus:ring-0 p-0 outline-none"
     />
   );
 };
